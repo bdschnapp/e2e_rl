@@ -58,3 +58,4 @@ bev_offset_x_m = -4.0       # in tractor body frame (+x forward); negative = bia
 bev_offset_y_m = 0.0        # lateral offset (rarely needed)
 bev_forward_up = True       # if True, rotate so tractor forward points UP on screen
 use_bev_render = True       # toggle BEV vs global view
+bev_zoom_scale = 3.0

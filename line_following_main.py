@@ -4,7 +4,7 @@ from stable_baselines3.common.noise import NormalActionNoise
 
 import numpy as np
 
-from Environments.LineFollowing import LaneDrivingEnv as LineFollowingEnv
+from Environments.LineFollowing import StateObservationLaneDrivingEnv as LineFollowingEnv
 
 from Models.CNNFeatureExtractor import CNNFeatureExtractor
 

@@ -480,29 +480,54 @@ class LaneDrivingEnv(LineFollowingEnv):
         return (left, top, width, height), (left_cl, top_cl, width_cl, height_cl)
 
 
+class StateObservationLaneDrivingEnv(LaneDrivingEnv):
+    def __init__(self, render_mode="human"):
+        super().__init__(render_mode=render_mode)
+
+        # redefine observation space
+        self.observation_space = spaces.Box(low=np.array([-config.steering_observation,
+                                                          -config.hitch_angle_observation,
+                                                          -config.cross_track_distance_observation,
+                                                          -config.cross_track_angle_observation]),
+                                            high=np.array([config.steering_observation,
+                                                           config.hitch_angle_observation,
+                                                           config.cross_track_distance_observation,
+                                                           config.cross_track_angle_observation]),
+                                            dtype=np.float32)
+        self.observation = np.zeros(self.observation_space.shape, dtype=np.float32)
+
+    def _get_obs(self):
+        error, error_theta = self.get_errors()
+        hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
+        self.observation = np.array([self.vehicle.s,
+                                     hitch_angle,
+                                     error,
+                                     error_theta], dtype=np.float32)
+        return self.observation
+
+
 def main():
-    from controllers.mpc import TractorTrailerSteeringMPC
-    from controllers.mpc_traj_gen import generate_trajectory
-    mpc = TractorTrailerSteeringMPC()
-    env = LineFollowingEnv(render_mode='human')
+    env = LaneDrivingEnv(render_mode='human')
     env.reset()
     done = False
     action = env.action_space.sample()
-
+    k_y = 0.6
+    k_theta = 1.5
+    i = 0
     while not done:
-        trajectory = generate_trajectory(env.xx, env.yy, env.vehicle)
-        state = (env.vehicle.xd, env.vehicle.s)
-
-        u = -mpc.solve(trajectory, state)  # get target steering angle from MPC
+        i += 1
+        error, error_theta = env.get_errors()
+        u = -k_y * error - k_theta * error_theta
         s = env.vehicle.s  # get current vehicle steering angle
         ds_dt = (u - s) / env.vehicle.dt  # convert steering angle error to steering rate
-        action[0] = ds_dt
-        action[1] = -1 * config.initial_xd  # constant speed
+        action[0] = 10 * ds_dt
+        action[1] = config.initial_xd  # constant speed
 
-        print(f'S: {s}, U: {u}')
         obs, reward, term, trunc, info = env.step(action)
         done = term or trunc
-        env.render()
+        if i % 5 == 0:
+            print(f'S: {s}, U: {u}')
+            env.render()
 
     env.close()
 
