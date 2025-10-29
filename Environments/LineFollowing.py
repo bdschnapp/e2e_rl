@@ -342,30 +342,142 @@ class LaneDrivingEnv(LineFollowingEnv):
         super().generate_path()
         self._build_occupancy_grid()
 
+    def reset(self, seed=None, options=None):
+        self.vehicle.reset(config.initial_xd, x=4.1, y=45, p=0)
+        self.generate_path()
+
+        observation = self._get_obs()
+        info = self._get_info()
+
+        return observation, info
+
     def _render_frame(self, surface=None):
-        # 1) Ensure pygame surface(s)
+        # Ensure base canvas exists
         if surface is None:
             if self.canvas is None:
                 pygame.init()
                 self.canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-        canvas = surface if surface is not None else self.canvas
+        world_canvas = surface if surface is not None else self.canvas
 
-        # 2) Ensure occupancy background is ready (cached)
+        # Draw the full world (occupancy background + vehicle) onto world_canvas
         self._ensure_occ_surface_if_needed()
-
-        # 3) Draw background
         if self._occ_surface is not None:
-            # Blit the scaled occupancy map to the canvas
-            canvas.blit(self._occ_surface, (0, 0))
+            world_canvas.blit(self._occ_surface, (0, 0))
         else:
-            # Fallback: fill white if something’s off
-            canvas.fill(COLOR_WHITE)
+            world_canvas.fill(COLOR_WHITE)
+        super()._render_frame(world_canvas)  # vehicle polygons on top
 
-        # 4) Draw vehicle on top (uses world→screen transform inside)
-        super()._render_frame(canvas)
+        # If we are not in BEV mode, just return global view
+        if not getattr(config, "use_bev_render", True):
+            return np.transpose(np.array(pygame.surfarray.pixels3d(world_canvas)), axes=(1, 0, 2))
 
-        # Return as numpy array
-        return np.transpose(np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2))
+        # ============================
+        # BEV mode (pan -> rotate -> zoom)
+        # ============================
+
+        # 1) Figure out the anchor point we want to keep centered
+        #    We'll reuse _get_anchor_world() for position and yaw
+        xA, yA, yaw_cam = self._get_anchor_world()
+
+        # world -> pixel in world_canvas space
+        anchor_x_pix = xA / METERS_PER_PIXEL
+        anchor_y_pix = WINDOW_HEIGHT - (yA / METERS_PER_PIXEL)
+
+        # desired on-screen center (we'll keep anchor in middle of view)
+        target_cx = WINDOW_WIDTH // 2
+        target_cy = WINDOW_HEIGHT // 2
+
+        # how much to shift world_canvas so anchor sits at (target_cx, target_cy)
+        offset_x = target_cx - anchor_x_pix
+        offset_y = target_cy - anchor_y_pix
+
+        # 2) Create a shifted copy of the world
+        shifted_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        shifted_surface.fill((0, 0, 0))  # background outside world is black
+        shifted_surface.blit(
+            world_canvas,
+            (offset_x, offset_y)
+        )
+
+        # 3) Rotate so that vehicle forward points "up"
+        yaw_cam_deg = np.rad2deg(yaw_cam)
+        if getattr(config, "bev_forward_up", True):
+            # tractor/rear-axle forward -> up
+            rot_deg = yaw_cam_deg + 90.0
+        else:
+            # tractor forward -> right
+            rot_deg = yaw_cam_deg
+
+        zoom_scale = getattr(config, "bev_zoom_scale", 1.5)
+        bev_rotzoom = pygame.transform.rotozoom(shifted_surface, rot_deg, zoom_scale)
+
+        # 4) Composite into final window: center the rotated+zoomed image
+        final_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        final_canvas.fill((0, 0, 0))
+
+        bev_rect = bev_rotzoom.get_rect()
+        bev_rect.center = (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
+        final_canvas.blit(bev_rotzoom, bev_rect.topleft)
+
+        # 5) Return as numpy array
+        return np.transpose(np.array(pygame.surfarray.pixels3d(final_canvas)), axes=(1, 0, 2))
+
+    # --- Phase 4: BEV camera helpers ----------------------------------------
+    def _get_anchor_world(self):
+        """Return anchor point (xA, yA) and yaw psi for camera (tractor yaw)."""
+        xA = self.vehicle.x
+        yA = self.vehicle.y
+        psi = -self.vehicle.p
+        return xA, yA, psi
+
+    def _get_camera_pose(self):
+        """
+        Camera pose (x_cam, y_cam, yaw_cam) using anchor + body-frame offset.
+        Offset is expressed in tractor body frame: +x forward, +y left.
+        """
+        xA, yA, psi = self._get_anchor_world()
+        dx = getattr(config, "bev_offset_x_m", -4.0)
+        dy = getattr(config, "bev_offset_y_m", 0.0)
+        # body->world
+        x_cam = xA + dx * np.cos(psi) - dy * np.sin(psi)
+        y_cam = yA + dx * np.sin(psi) + dy * np.cos(psi)
+        yaw_cam = psi
+        return x_cam, y_cam, yaw_cam
+
+    def _camera_rect_pixels_on_world(self):
+        """
+        Compute the BEV crop rectangle in *world-surface pixel* coordinates.
+        Our world canvas uses: x_pix = x / METERS_PER_PIXEL,
+                               y_pix = WINDOW_HEIGHT - y / METERS_PER_PIXEL (y-down).
+        """
+        x_cam, y_cam, _ = self._get_camera_pose()
+        W = getattr(config, "bev_width_m", 28.0)
+        H = getattr(config, "bev_height_m", 18.0)
+        mpp = METERS_PER_PIXEL
+
+        x1_pix = int((x_cam - W / 2) / mpp)
+        x2_pix = int((x_cam + W / 2) / mpp)
+        # top is the *larger* screen-y pixel because screen y is inverted vs world y
+        top_pix = int(WINDOW_HEIGHT - (y_cam + H / 2) / mpp)
+        bot_pix = int(WINDOW_HEIGHT - (y_cam - H / 2) / mpp)
+
+        # normalize to left, top, width, height
+        left = min(x1_pix, x2_pix)
+        right = max(x1_pix, x2_pix)
+        top = min(top_pix, bot_pix)
+        bottom = max(top_pix, bot_pix)
+        width = right - left
+        height = bottom - top
+
+        # clamp to world canvas
+        left_cl = max(0, left)
+        top_cl = max(0, top)
+        right_cl = min(WINDOW_WIDTH, right)
+        bottom_cl = min(WINDOW_HEIGHT, bottom)
+        width_cl = max(1, right_cl - left_cl)
+        height_cl = max(1, bottom_cl - top_cl)
+
+        return (left, top, width, height), (left_cl, top_cl, width_cl, height_cl)
 
 
 def main():

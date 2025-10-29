@@ -43,7 +43,7 @@ class TractorTrailerEnv(gym.Env):
         # 1. Define Action Space (MODIFIED)
         # Action: [steering_angle_rate_of_change, target_linear_velocity]
         self.action_space = spaces.Box(
-            low=np.array([-np.deg2rad(15), -2], dtype=np.float64),
+            low=np.array([-np.deg2rad(15), 0], dtype=np.float64),
             high=np.array([np.deg2rad(15), 2], dtype=np.float64),
         )
 

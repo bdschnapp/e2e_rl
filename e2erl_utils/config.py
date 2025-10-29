@@ -48,6 +48,13 @@ visualize = True
 environment_render_mode = 1 #1 is render.py, #2 is render_observation.py needed for the CNN based DDPG models
 
 grid_res_m = 0.10                     # meters per cell
-lane_centerline_half_width_m = 2.5    # half of the lane width (e.g., ~3.5 m lane)
+lane_centerline_half_width_m = 5.0    # half of the lane width (e.g., ~3.5 m lane)
 lane_shoulder_m = 0.50                # extra margin on each side
 lane_sample_ds_m = 0.25
+
+# --- BEV camera ---
+bev_anchor = "tractor_rear_axle"   # "tractor_cg" | "tractor_rear_axle" | "trailer_axle"
+bev_offset_x_m = -4.0       # in tractor body frame (+x forward); negative = bias behind tractor
+bev_offset_y_m = 0.0        # lateral offset (rarely needed)
+bev_forward_up = True       # if True, rotate so tractor forward points UP on screen
+use_bev_render = True       # toggle BEV vs global view
