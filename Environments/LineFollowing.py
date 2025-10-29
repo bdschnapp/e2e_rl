@@ -141,7 +141,7 @@ class LineFollowingEnv(TractorTrailerEnv):
         surface = surface if surface else self.canvas
 
         # fill the background
-        surface.fill(COLOR_WHITE)
+        # surface.fill(COLOR_WHITE)
 
         # render the vehicle
         super()._render_frame(surface)
@@ -198,6 +198,11 @@ class LaneDrivingEnv(LineFollowingEnv):
         self.occ_grid = None  # np.uint8 [H,W], 0=free, 100=blocked
         self.occ_meta: GridMeta | None = None
         self._build_occupancy_grid()  # build once on init
+
+        # --- Phase 2: render cache ---
+        self._occ_surface = None  # pygame.Surface aligned to world extents
+        self._occ_dirty = True  # set True whenever grid changes
+        self._show_spline_debug = True  # toggle overlay of spline (thin line)
 
     def _world_bounds(self):
         """World bounds derived from the current global window constants."""
@@ -279,6 +284,7 @@ class LaneDrivingEnv(LineFollowingEnv):
         # Cache
         self.occ_grid = grid
         self.occ_meta = meta
+        self._occ_dirty = True
 
     # Convenience hooks for later phases
     def get_occupancy_grid(self):
@@ -292,6 +298,74 @@ class LaneDrivingEnv(LineFollowingEnv):
         gy = int((y - meta.origin_y) / meta.res_m)
         return gx, gy
 
+    def _grid_to_surface(self):
+        """
+        Convert self.occ_grid (uint8: 0=free,100=blocked) into a pygame.Surface matching WINDOW size.
+        Palette: free (0) -> bright, blocked (100) -> dark.
+        Notes:
+          - We render the grid world-up, then flip to screen-down (pygame Y+ down).
+          - We cache the scaled surface; re-create only when _occ_dirty is True.
+        """
+        import pygame
+
+        if self.occ_grid is None:
+            return None
+
+        grid = self.occ_grid  # H×W, uint8: {0,100}
+        H, W = grid.shape
+
+        # Map [0,100] -> [255, 40] (white to dark)
+        # Keep uint8
+        # scale range 100 -> 215 range in gray, invert so 0->255, 100->40
+        gray = (255 - (grid.astype(np.uint16) * 215 // 100)).astype(np.uint8)
+
+        # We need (width, height, 3) for pygame.surfarray
+        # Flip vertically to account for world-y up vs screen-y down.
+        gray_flipped = np.flipud(gray)
+
+        rgb = np.dstack([gray_flipped] * 3)  # make it RGB
+
+        # Create a surface from the small grid and scale to window size
+        surf_small = pygame.surfarray.make_surface(np.transpose(rgb, (1, 0, 2)))  # surfarray expects (W,H,C)
+
+        # Scale to global window
+        surf = pygame.transform.scale(surf_small, (WINDOW_WIDTH, WINDOW_HEIGHT))
+        return surf
+
+    def _ensure_occ_surface_if_needed(self):
+        """Create or refresh the cached occupancy surface if dirty."""
+        if self._occ_dirty or (self._occ_surface is None):
+            self._occ_surface = self._grid_to_surface()
+            self._occ_dirty = False
+
+    def generate_path(self):
+        super().generate_path()
+        self._build_occupancy_grid()
+
+    def _render_frame(self, surface=None):
+        # 1) Ensure pygame surface(s)
+        if surface is None:
+            if self.canvas is None:
+                pygame.init()
+                self.canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        canvas = surface if surface is not None else self.canvas
+
+        # 2) Ensure occupancy background is ready (cached)
+        self._ensure_occ_surface_if_needed()
+
+        # 3) Draw background
+        if self._occ_surface is not None:
+            # Blit the scaled occupancy map to the canvas
+            canvas.blit(self._occ_surface, (0, 0))
+        else:
+            # Fallback: fill white if something’s off
+            canvas.fill(COLOR_WHITE)
+
+        # 4) Draw vehicle on top (uses world→screen transform inside)
+        super()._render_frame(canvas)
+
+        # Return as numpy array
+        return np.transpose(np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2))
 
 
 def main():
