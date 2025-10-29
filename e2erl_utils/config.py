@@ -46,3 +46,8 @@ use_piecewise_curve = False
 visualize = True
 
 environment_render_mode = 1 #1 is render.py, #2 is render_observation.py needed for the CNN based DDPG models
+
+grid_res_m = 0.10                     # meters per cell
+lane_centerline_half_width_m = 1.75   # half of the lane width (e.g., ~3.5 m lane)
+lane_shoulder_m = 0.50                # extra margin on each side
+lane_sample_ds_m = 0.25

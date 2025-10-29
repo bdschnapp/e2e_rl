@@ -2,11 +2,20 @@ import numpy as np
 import pygame
 from scipy.interpolate import CubicSpline
 from gymnasium import spaces
+from dataclasses import dataclass
+from scipy.spatial import cKDTree
 
 from Environments.TractorTrailer import TractorTrailerEnv, WINDOW_WIDTH, WINDOW_HEIGHT, METERS_PER_PIXEL, COLOR_WHITE, \
     COLOR_BLACK
 import e2erl_utils.config as config
 
+@dataclass
+class GridMeta:
+    origin_x: float        # world x at grid(0,0)
+    origin_y: float        # world y at grid(0,0)
+    res_m: float           # meters per cell
+    width: int             # cells
+    height: int            # cells
 
 class LineFollowingEnv(TractorTrailerEnv):
     def __init__(self, render_mode="human"):
@@ -181,6 +190,108 @@ class StateObservationLineFollowingEnv(LineFollowingEnv):
                                      error,
                                      error_theta], dtype=np.float32)
         return self.observation
+
+
+class LaneDrivingEnv(LineFollowingEnv):
+    def __init__(self, render_mode="human"):
+        super().__init__(render_mode=render_mode)
+        self.occ_grid = None  # np.uint8 [H,W], 0=free, 100=blocked
+        self.occ_meta: GridMeta | None = None
+        self._build_occupancy_grid()  # build once on init
+
+    def _world_bounds(self):
+        """World bounds derived from the current global window constants."""
+        world_w_m = WINDOW_WIDTH * METERS_PER_PIXEL
+        world_h_m = WINDOW_HEIGHT * METERS_PER_PIXEL
+        # We’ll use a world-aligned grid whose (0,0) is the bottom-left of the window
+        x_min, y_min = 0.0, 0.0
+        x_max, y_max = world_w_m, world_h_m
+        return x_min, y_min, x_max, y_max
+
+    def _sample_centerline(self):
+        """
+        Resample the existing spline (self.xx, self.yy) at approximately uniform arclength.
+        Returns Nx2 array of (x, y) in world meters.
+        """
+        # compute cumulative arclength on existing piecewise-linear polyline
+        dx = np.diff(self.xx)
+        dy = np.diff(self.yy)
+        seg_len = np.hypot(dx, dy)
+        s = np.concatenate([[0.0], np.cumsum(seg_len)])
+        total = s[-1]
+        if total <= 0.0:
+            return np.vstack([self.xx, self.yy]).T
+
+        ds = getattr(config, "lane_sample_ds_m", 0.25)
+        new_s = np.arange(0.0, total, ds)
+        # interpolate x(s), y(s) linearly over the polyline parameter
+        xs = np.interp(new_s, s, self.xx)
+        ys = np.interp(new_s, s, self.yy)
+        return np.stack([xs, ys], axis=1)
+
+    def _grid_from_bounds(self, x_min, y_min, x_max, y_max, res_m):
+        width = int(np.ceil((x_max - x_min) / res_m))
+        height = int(np.ceil((y_max - y_min) / res_m))
+        meta = GridMeta(origin_x=x_min, origin_y=y_min, res_m=res_m, width=width, height=height)
+        return meta
+
+    def _cell_centers_world(self, meta: 'GridMeta'):
+        """
+        Return (Xc, Yc) 2D arrays of cell-center coordinates in world meters for the entire grid.
+        Note: y increases upward in world; later we’ll remember that the screen Y is inverted.
+        """
+        gx = (np.arange(meta.width) + 0.5) * meta.res_m + meta.origin_x
+        gy = (np.arange(meta.height) + 0.5) * meta.res_m + meta.origin_y
+        Xc, Yc = np.meshgrid(gx, gy, indexing='xy')
+        return Xc, Yc
+
+    def _build_occupancy_grid(self):
+        """
+        Build lane-style occupancy once (or when path changes).
+        Strategy: nearest-distance of each grid cell center to the resampled centerline.
+        Cells within lane_half_width + shoulder are 'free' (0), else 'blocked' (100).
+        """
+        x_min, y_min, x_max, y_max = self._world_bounds()
+        res = getattr(config, "grid_res_m", 0.10)
+        meta = self._grid_from_bounds(x_min, y_min, x_max, y_max, res)
+
+        # Sample centerline points
+        centerline = self._sample_centerline()  # [N,2] in meters
+
+        # KDTree for nearest distance queries
+        kdt = cKDTree(centerline)
+
+        # Evaluate distance per grid cell (vectorized)
+        Xc, Yc = self._cell_centers_world(meta)
+        pts = np.stack([Xc.ravel(), Yc.ravel()], axis=1)
+        dists, _ = kdt.query(pts, k=1, workers=-1)  # nearest distance in meters
+
+        lane_half = getattr(config, "lane_centerline_half_width_m", 1.75)
+        shoulder = getattr(config, "lane_shoulder_m", 0.50)
+        lane_radius = lane_half + shoulder
+
+        free_mask = dists.reshape(meta.height, meta.width) <= lane_radius
+
+        # Initialize grid: blocked=100 everywhere, then set free cells to 0
+        grid = np.full((meta.height, meta.width), 100, dtype=np.uint8)
+        grid[free_mask] = 0
+
+        # Cache
+        self.occ_grid = grid
+        self.occ_meta = meta
+
+    # Convenience hooks for later phases
+    def get_occupancy_grid(self):
+        """Return a (grid copy, meta) so callers don't mutate the cache by mistake."""
+        return self.occ_grid.copy() if self.occ_grid is not None else None, self.occ_meta
+
+    def world_to_grid(self, x, y):
+        """Map world meters → integer grid indices (gx, gy). No bounds checking here."""
+        meta = self.occ_meta
+        gx = int((x - meta.origin_x) / meta.res_m)
+        gy = int((y - meta.origin_y) / meta.res_m)
+        return gx, gy
+
 
 
 def main():
