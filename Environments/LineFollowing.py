@@ -76,13 +76,13 @@ class LineFollowingEnv(TractorTrailerEnv):
 
     def get_errors(self):
         # find the closest point on the path to the trailer axle
-        errors = np.sqrt((self.xx - self.vehicle.trailer.x) ** 2 + (self.yy - self.vehicle.trailer.y) ** 2)
+        errors = np.sqrt((self.xx - self.vehicle.x) ** 2 + (self.yy - self.vehicle.y) ** 2)
         nearest_index = np.argmin(errors)
         nearest_y = self.yy[nearest_index]
 
         # calculate cross track distance error
         error = errors[nearest_index]
-        if nearest_y > self.vehicle.trailer.y:
+        if nearest_y > self.vehicle.y:
             error = -1 * error
 
         # calculate cross track angle error
@@ -92,7 +92,7 @@ class LineFollowingEnv(TractorTrailerEnv):
         except IndexError:
             theta = np.arctan((self.yy[nearest_index] - self.yy[nearest_index - 1])
                               / (self.xx[nearest_index] - self.xx[nearest_index - 1]))
-        error_theta = (self.vehicle.trailer.yaw - theta) * config.error_theta_scale
+        error_theta = (self.vehicle.p - theta) * config.error_theta_scale
 
         return error, error_theta
 
@@ -286,18 +286,6 @@ class LaneDrivingEnv(LineFollowingEnv):
         self.occ_meta = meta
         self._occ_dirty = True
 
-    # Convenience hooks for later phases
-    def get_occupancy_grid(self):
-        """Return a (grid copy, meta) so callers don't mutate the cache by mistake."""
-        return self.occ_grid.copy() if self.occ_grid is not None else None, self.occ_meta
-
-    def world_to_grid(self, x, y):
-        """Map world meters → integer grid indices (gx, gy). No bounds checking here."""
-        meta = self.occ_meta
-        gx = int((x - meta.origin_x) / meta.res_m)
-        gy = int((y - meta.origin_y) / meta.res_m)
-        return gx, gy
-
     def _grid_to_surface(self):
         """
         Convert self.occ_grid (uint8: 0=free,100=blocked) into a pygame.Surface matching WINDOW size.
@@ -306,29 +294,13 @@ class LaneDrivingEnv(LineFollowingEnv):
           - We render the grid world-up, then flip to screen-down (pygame Y+ down).
           - We cache the scaled surface; re-create only when _occ_dirty is True.
         """
-        import pygame
-
         if self.occ_grid is None:
             return None
-
         grid = self.occ_grid  # H×W, uint8: {0,100}
-        H, W = grid.shape
-
-        # Map [0,100] -> [255, 40] (white to dark)
-        # Keep uint8
-        # scale range 100 -> 215 range in gray, invert so 0->255, 100->40
         gray = (255 - (grid.astype(np.uint16) * 215 // 100)).astype(np.uint8)
-
-        # We need (width, height, 3) for pygame.surfarray
-        # Flip vertically to account for world-y up vs screen-y down.
         gray_flipped = np.flipud(gray)
-
         rgb = np.dstack([gray_flipped] * 3)  # make it RGB
-
-        # Create a surface from the small grid and scale to window size
-        surf_small = pygame.surfarray.make_surface(np.transpose(rgb, (1, 0, 2)))  # surfarray expects (W,H,C)
-
-        # Scale to global window
+        surf_small = pygame.surfarray.make_surface(np.transpose(rgb, (1, 0, 2)))
         surf = pygame.transform.scale(surf_small, (WINDOW_WIDTH, WINDOW_HEIGHT))
         return surf
 
@@ -345,10 +317,8 @@ class LaneDrivingEnv(LineFollowingEnv):
     def reset(self, seed=None, options=None):
         self.vehicle.reset(config.initial_xd, x=4.1, y=45, p=0)
         self.generate_path()
-
         observation = self._get_obs()
         info = self._get_info()
-
         return observation, info
 
     def _render_frame(self, surface=None):
@@ -358,126 +328,47 @@ class LaneDrivingEnv(LineFollowingEnv):
                 pygame.init()
                 self.canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         world_canvas = surface if surface is not None else self.canvas
-
-        # Draw the full world (occupancy background + vehicle) onto world_canvas
         self._ensure_occ_surface_if_needed()
         if self._occ_surface is not None:
             world_canvas.blit(self._occ_surface, (0, 0))
         else:
             world_canvas.fill(COLOR_WHITE)
-        super()._render_frame(world_canvas)  # vehicle polygons on top
-
-        # If we are not in BEV mode, just return global view
+        super()._render_frame(world_canvas)
         if not getattr(config, "use_bev_render", True):
             return np.transpose(np.array(pygame.surfarray.pixels3d(world_canvas)), axes=(1, 0, 2))
-
-        # ============================
-        # BEV mode (pan -> rotate -> zoom)
-        # ============================
-
-        # 1) Figure out the anchor point we want to keep centered
-        #    We'll reuse _get_anchor_world() for position and yaw
         xA, yA, yaw_cam = self._get_anchor_world()
-
-        # world -> pixel in world_canvas space
         anchor_x_pix = xA / METERS_PER_PIXEL
         anchor_y_pix = WINDOW_HEIGHT - (yA / METERS_PER_PIXEL)
-
-        # desired on-screen center (we'll keep anchor in middle of view)
         target_cx = WINDOW_WIDTH // 2
         target_cy = WINDOW_HEIGHT // 2
-
-        # how much to shift world_canvas so anchor sits at (target_cx, target_cy)
         offset_x = target_cx - anchor_x_pix
         offset_y = target_cy - anchor_y_pix
-
-        # 2) Create a shifted copy of the world
         shifted_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-        shifted_surface.fill((0, 0, 0))  # background outside world is black
+        shifted_surface.fill((0, 0, 0))
         shifted_surface.blit(
             world_canvas,
             (offset_x, offset_y)
         )
-
-        # 3) Rotate so that vehicle forward points "up"
         yaw_cam_deg = np.rad2deg(yaw_cam)
         if getattr(config, "bev_forward_up", True):
-            # tractor/rear-axle forward -> up
             rot_deg = yaw_cam_deg + 90.0
         else:
-            # tractor forward -> right
             rot_deg = yaw_cam_deg
-
         zoom_scale = getattr(config, "bev_zoom_scale", 1.5)
         bev_rotzoom = pygame.transform.rotozoom(shifted_surface, rot_deg, zoom_scale)
-
-        # 4) Composite into final window: center the rotated+zoomed image
         final_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         final_canvas.fill((0, 0, 0))
-
         bev_rect = bev_rotzoom.get_rect()
         bev_rect.center = (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
         final_canvas.blit(bev_rotzoom, bev_rect.topleft)
-
-        # 5) Return as numpy array
         return np.transpose(np.array(pygame.surfarray.pixels3d(final_canvas)), axes=(1, 0, 2))
 
-    # --- Phase 4: BEV camera helpers ----------------------------------------
     def _get_anchor_world(self):
         """Return anchor point (xA, yA) and yaw psi for camera (tractor yaw)."""
         xA = self.vehicle.x
         yA = self.vehicle.y
         psi = -self.vehicle.p
         return xA, yA, psi
-
-    def _get_camera_pose(self):
-        """
-        Camera pose (x_cam, y_cam, yaw_cam) using anchor + body-frame offset.
-        Offset is expressed in tractor body frame: +x forward, +y left.
-        """
-        xA, yA, psi = self._get_anchor_world()
-        dx = getattr(config, "bev_offset_x_m", -4.0)
-        dy = getattr(config, "bev_offset_y_m", 0.0)
-        # body->world
-        x_cam = xA + dx * np.cos(psi) - dy * np.sin(psi)
-        y_cam = yA + dx * np.sin(psi) + dy * np.cos(psi)
-        yaw_cam = psi
-        return x_cam, y_cam, yaw_cam
-
-    def _camera_rect_pixels_on_world(self):
-        """
-        Compute the BEV crop rectangle in *world-surface pixel* coordinates.
-        Our world canvas uses: x_pix = x / METERS_PER_PIXEL,
-                               y_pix = WINDOW_HEIGHT - y / METERS_PER_PIXEL (y-down).
-        """
-        x_cam, y_cam, _ = self._get_camera_pose()
-        W = getattr(config, "bev_width_m", 28.0)
-        H = getattr(config, "bev_height_m", 18.0)
-        mpp = METERS_PER_PIXEL
-
-        x1_pix = int((x_cam - W / 2) / mpp)
-        x2_pix = int((x_cam + W / 2) / mpp)
-        # top is the *larger* screen-y pixel because screen y is inverted vs world y
-        top_pix = int(WINDOW_HEIGHT - (y_cam + H / 2) / mpp)
-        bot_pix = int(WINDOW_HEIGHT - (y_cam - H / 2) / mpp)
-
-        # normalize to left, top, width, height
-        left = min(x1_pix, x2_pix)
-        right = max(x1_pix, x2_pix)
-        top = min(top_pix, bot_pix)
-        bottom = max(top_pix, bot_pix)
-        width = right - left
-        height = bottom - top
-
-        # clamp to world canvas
-        left_cl = max(0, left)
-        top_cl = max(0, top)
-        right_cl = min(WINDOW_WIDTH, right)
-        bottom_cl = min(WINDOW_HEIGHT, bottom)
-        width_cl = max(1, right_cl - left_cl)
-        height_cl = max(1, bottom_cl - top_cl)
-
-        return (left, top, width, height), (left_cl, top_cl, width_cl, height_cl)
 
 
 class StateObservationLaneDrivingEnv(LaneDrivingEnv):
@@ -506,26 +397,56 @@ class StateObservationLaneDrivingEnv(LaneDrivingEnv):
         return self.observation
 
 
+def compute_curvature(env, lookahead_steps=10, max_curvature=0.3):
+    """
+    Estimate path curvature ahead of the trailer axle.
+    Returns a signed curvature kappa (1/m).
+    Positive means 'curve left', negative 'curve right'.
+    """
+    tx = env.vehicle.trailer.x
+    ty = env.vehicle.trailer.y
+    dx = env.xx - tx
+    dy = env.yy - ty
+    dist_sq = dx*dx + dy*dy
+    nearest_idx = int(np.argmin(dist_sq))
+    i = nearest_idx + lookahead_steps
+    i = max(1, min(i, len(env.xx) - 2))
+    x_im1, x_i, x_ip1 = env.xx[i-1], env.xx[i], env.xx[i+1]
+    y_im1, y_i, y_ip1 = env.yy[i-1], env.yy[i], env.yy[i+1]
+    x_p = (x_ip1 - x_im1) * 0.5
+    y_p = (y_ip1 - y_im1) * 0.5
+    x_pp = (x_ip1 - 2.0 * x_i + x_im1)
+    y_pp = (y_ip1 - 2.0 * y_i + y_im1)
+    denom = (x_p**2 + y_p**2)**1.5 + 1e-6
+    kappa = (x_p * y_pp - y_p * x_pp) / denom  # signed curvature
+    kappa = np.clip(kappa, -max_curvature, max_curvature)
+    return kappa
+
 def main():
     env = LaneDrivingEnv(render_mode='human')
     env.reset()
     done = False
     action = env.action_space.sample()
-    k_y = 0.6
-    k_theta = 1.5
+    k_y = 0.9
+    k_theta = 4.0
+    wheelbase = env.vehicle.trailer.L + env.vehicle.lr + env.vehicle.lf
     i = 0
     while not done:
         i += 1
         error, error_theta = env.get_errors()
-        u = -k_y * error - k_theta * error_theta
+        u_fb = -k_y * error - k_theta * error_theta
+        kappa = compute_curvature(env)
+        u_ff = np.arctan(wheelbase * kappa)
+        u = u_ff + u_fb
+
         s = env.vehicle.s  # get current vehicle steering angle
         ds_dt = (u - s) / env.vehicle.dt  # convert steering angle error to steering rate
-        action[0] = 10 * ds_dt
-        action[1] = config.initial_xd  # constant speed
+        action[0] = ds_dt
+        action[1] = 3.0 # constant speed
 
         obs, reward, term, trunc, info = env.step(action)
         done = term or trunc
-        if i % 5 == 0:
+        if i % 1 == 0:
             print(f'S: {s}, U: {u}')
             env.render()
 
