@@ -224,6 +224,7 @@ class TractorTrailerEnv(gym.Env):
 
         # The offset is (0,0) because both masks are drawn on full-size surfaces
         if self.obstacle_mask.overlap(vehicle_mask, (0, 0)):
+            print("Collision detected!")
             return True
 
         # jack knife collision check

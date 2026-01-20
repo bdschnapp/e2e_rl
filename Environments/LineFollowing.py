@@ -225,9 +225,6 @@ class LaneDrivingEnv(LineFollowingEnv):
         super().__init__(render_mode=render_mode)
         self.occ_grid = None  # np.uint8 [H,W], 0=free, 100=blocked
         self.occ_meta: GridMeta | None = None
-        self._build_occupancy_grid()  # build once on init
-
-        # --- Phase 2: render cache ---
         self._occ_surface = None  # pygame.Surface aligned to world extents
         self._occ_dirty = True  # set True whenever grid changes
         self._show_spline_debug = True  # toggle overlay of spline (thin line)
@@ -314,41 +311,8 @@ class LaneDrivingEnv(LineFollowingEnv):
         self.occ_meta = meta
         self._occ_dirty = True
 
-        # Build obstacle mask for collision detection
-        self._build_obstacle_mask()
-
-    def _build_obstacle_mask(self):
-        """
-        Convert the occupancy grid to a pygame mask for collision detection.
-        Blocked cells (100) become opaque, free cells (0) become transparent.
-        """
-        if self.occ_grid is None:
-            return
-
-        # Create a surface where blocked cells are opaque (for mask collision)
-        # Grid: 0 = free (transparent), 100 = blocked (opaque)
-        grid = self.occ_grid  # [H, W], uint8: {0, 100}
-
-        # Create alpha channel: blocked (100) -> 255 (opaque), free (0) -> 0 (transparent)
-        alpha = (grid * 255 // 100).astype(np.uint8)
-
-        # Flip vertically to match pygame's coordinate system (y=0 at top)
-        alpha_flipped = np.flipud(alpha)
-
-        # Create RGBA array: RGB can be any color, alpha determines the mask
-        rgba = np.zeros((alpha_flipped.shape[0], alpha_flipped.shape[1], 4), dtype=np.uint8)
-        rgba[:, :, 0] = 255  # R
-        rgba[:, :, 3] = alpha_flipped  # A
-
-        # Create surface from the small grid
-        # Need to transpose for pygame (expects [W, H, 4])
-        surf_small = pygame.image.frombuffer(rgba.tobytes(), (rgba.shape[1], rgba.shape[0]), 'RGBA')
-
-        # Scale to window size
-        surf_scaled = pygame.transform.scale(surf_small, (WINDOW_WIDTH, WINDOW_HEIGHT))
-
-        # Create mask from surface
-        self.obstacle_mask = pygame.mask.from_surface(surf_scaled)
+        self._ensure_occ_surface_if_needed()
+        self.obstacle_mask = pygame.mask.from_surface(self._occ_surface)
 
     def _grid_to_surface(self):
         """
