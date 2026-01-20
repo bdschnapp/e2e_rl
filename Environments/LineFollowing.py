@@ -117,9 +117,8 @@ class LineFollowingEnv(TractorTrailerEnv):
         # check out of bounds or collision
         term = super()._get_term()
 
-        # check if trailer is jackknifed
-        hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
-        term = term or (abs(hitch_angle) > np.pi / 2)
+        # check collision with obstacles (includes jackknife check)
+        term = term or self._check_collision()
 
         return term
 
@@ -314,6 +313,42 @@ class LaneDrivingEnv(LineFollowingEnv):
         self.occ_grid = grid
         self.occ_meta = meta
         self._occ_dirty = True
+
+        # Build obstacle mask for collision detection
+        self._build_obstacle_mask()
+
+    def _build_obstacle_mask(self):
+        """
+        Convert the occupancy grid to a pygame mask for collision detection.
+        Blocked cells (100) become opaque, free cells (0) become transparent.
+        """
+        if self.occ_grid is None:
+            return
+
+        # Create a surface where blocked cells are opaque (for mask collision)
+        # Grid: 0 = free (transparent), 100 = blocked (opaque)
+        grid = self.occ_grid  # [H, W], uint8: {0, 100}
+
+        # Create alpha channel: blocked (100) -> 255 (opaque), free (0) -> 0 (transparent)
+        alpha = (grid * 255 // 100).astype(np.uint8)
+
+        # Flip vertically to match pygame's coordinate system (y=0 at top)
+        alpha_flipped = np.flipud(alpha)
+
+        # Create RGBA array: RGB can be any color, alpha determines the mask
+        rgba = np.zeros((alpha_flipped.shape[0], alpha_flipped.shape[1], 4), dtype=np.uint8)
+        rgba[:, :, 0] = 255  # R
+        rgba[:, :, 3] = alpha_flipped  # A
+
+        # Create surface from the small grid
+        # Need to transpose for pygame (expects [W, H, 4])
+        surf_small = pygame.image.frombuffer(rgba.tobytes(), (rgba.shape[1], rgba.shape[0]), 'RGBA')
+
+        # Scale to window size
+        surf_scaled = pygame.transform.scale(surf_small, (WINDOW_WIDTH, WINDOW_HEIGHT))
+
+        # Create mask from surface
+        self.obstacle_mask = pygame.mask.from_surface(surf_scaled)
 
     def _grid_to_surface(self):
         """

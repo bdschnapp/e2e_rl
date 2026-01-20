@@ -69,6 +69,9 @@ class TractorTrailerEnv(gym.Env):
 
         self.goal_pose = (0.0, 0.0, 0.0)
 
+        # collision checking - child classes set this to a pygame mask
+        self.obstacle_mask = None
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
@@ -205,6 +208,30 @@ class TractorTrailerEnv(gym.Env):
     def _check_jackknife(self):
         hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
         return abs(hitch_angle) > np.pi / 2
+
+    def _check_collision(self):
+        """
+        Checks for collision between the vehicle (tractor and trailer) and obstacles.
+        Returns True if a collision occurs.
+        Child classes should set self.obstacle_mask to enable collision detection.
+        """
+        if self.obstacle_mask is None:
+            return False
+
+        vehicle_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+        vehicle_surface.fill((0, 0, 0, 0))
+        vehicle_mask = pygame.mask.from_surface(self._render_vehicle(vehicle_surface))
+
+        # The offset is (0,0) because both masks are drawn on full-size surfaces
+        if self.obstacle_mask.overlap(vehicle_mask, (0, 0)):
+            return True
+
+        # jack knife collision check
+        hitch_angle = abs((self.vehicle.p - self.vehicle.trailer.yaw + np.pi) % (2 * np.pi) - np.pi)
+        if hitch_angle > np.deg2rad(90):
+            return True
+
+        return False
 
     def _get_term(self):
         distance_to_goal, yaw_error = self.get_goal_errors()
