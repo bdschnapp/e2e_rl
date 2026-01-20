@@ -129,6 +129,25 @@ class TractorTrailerEnv(gym.Env):
             COLOR_TRAILER,
         )
 
+        steer_angle = self.vehicle.s
+
+        # Position for the indicator: center-top of the tractor
+        indicator_length = TRACTOR_LENGTH * 0.2
+        indicator_offset = TRACTOR_LENGTH * 0.25  # move toward front
+        base_x = self.vehicle.x + indicator_offset * np.cos(self.vehicle.p)
+        base_y = self.vehicle.y + indicator_offset * np.sin(self.vehicle.p)
+        end_x = base_x + indicator_length * np.cos(self.vehicle.p + steer_angle)
+        end_y = base_y + indicator_length * np.sin(self.vehicle.p + steer_angle)
+
+        # Draw the line
+        self._draw_rotated_line(
+            surface if surface else self.canvas,
+            base_x, base_y,
+            end_x, end_y,
+            color=(255, 0, 0),
+            width=2,
+        )
+
         return surface if surface else self.canvas
 
     def _render_frame(self, surface=None):
@@ -143,6 +162,7 @@ class TractorTrailerEnv(gym.Env):
         return np.transpose(np.array(pygame.surfarray.pixels3d(surface if surface else self.canvas)), axes=(1, 0, 2))
 
     def render(self):
+        # print("TractorTrailerEnv.render called")
         if self.window is None:
             pygame.display.init()
             self.window = pygame.display.set_mode(
@@ -278,6 +298,19 @@ class TractorTrailerEnv(gym.Env):
             rotated_points.append((x_rot, y_rot))
 
         pygame.draw.polygon(surface, color, rotated_points, border_width)
+
+    def _draw_rotated_line(self, surface, x0, y0, x1, y1, color, width=2):
+        """
+        Draw a world-coordinate line from (x0,y0) to (x1,y1),
+        converting meters→pixels and flipping Y axis.
+        """
+        x0_pix = x0 / METERS_PER_PIXEL
+        y0_pix = WINDOW_HEIGHT - (y0 / METERS_PER_PIXEL)
+
+        x1_pix = x1 / METERS_PER_PIXEL
+        y1_pix = WINDOW_HEIGHT - (y1 / METERS_PER_PIXEL)
+
+        pygame.draw.line(surface, color, (x0_pix, y0_pix), (x1_pix, y1_pix), width)
 
     def close(self):
         pygame.display.quit()

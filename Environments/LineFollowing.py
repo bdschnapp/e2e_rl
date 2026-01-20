@@ -9,6 +9,7 @@ from Environments.TractorTrailer import TractorTrailerEnv, WINDOW_WIDTH, WINDOW_
     COLOR_BLACK
 import e2erl_utils.config as config
 
+
 @dataclass
 class GridMeta:
     origin_x: float        # world x at grid(0,0)
@@ -16,6 +17,43 @@ class GridMeta:
     res_m: float           # meters per cell
     width: int             # cells
     height: int            # cells
+
+
+def run_one_episode(env):
+    env.reset()
+    done = False
+    action = env.action_space.sample()
+    k_y = 1.2
+    k_yi = 0.1
+    k_theta = 2.4
+    wheelbase = env.vehicle.lr + env.vehicle.lf
+    MAX_STEER_RATE = 0.5  # rad/s
+    i = 0
+    i_error = 0.0
+    while not done:
+        i += 1
+        error, error_theta = env.get_vehicle_errors()
+        i_error += error * env.vehicle.dt
+        i_error = np.clip(i_error, -0.5, 0.5)
+        u_fb = -k_y * error - k_yi * i_error - k_theta * error_theta
+        kappa = compute_curvature(env)
+        u_ff = np.arctan(wheelbase * kappa)
+        u = 0.85 * u_ff + 0.15 * u_fb
+
+        s = env.vehicle.s  # get current vehicle steering angle
+
+        # convert steering angle error to steering rate
+        ds_dt = np.clip((u - s) / env.vehicle.dt, -MAX_STEER_RATE, MAX_STEER_RATE)
+        # ds_dt = (u - s) / env.vehicle.dt
+        action[0] = ds_dt
+        action[1] = 3.0  # constant speed
+
+        obs, reward, term, trunc, info = env.step(action)
+        done = term or trunc
+        if i % 1 == 0:
+            print(f'S: {s}, U: {u}')
+            env.render()
+
 
 class LineFollowingEnv(TractorTrailerEnv):
     def __init__(self, render_mode="human"):
@@ -30,11 +68,17 @@ class LineFollowingEnv(TractorTrailerEnv):
         self.box_observation_space = spaces.Box(low=np.array([-config.steering_observation,
                                                               -config.hitch_angle_observation,
                                                               -config.cross_track_distance_observation,
-                                                              -config.cross_track_angle_observation]),
+                                                              -config.cross_track_angle_observation,
+                                                              -config.cross_track_distance_observation,
+                                                              -config.cross_track_angle_observation
+                                                              ]),
                                                 high=np.array([config.steering_observation,
                                                                config.hitch_angle_observation,
                                                                config.cross_track_distance_observation,
-                                                               config.cross_track_angle_observation]),
+                                                               config.cross_track_angle_observation,
+                                                               config.cross_track_distance_observation,
+                                                               config.cross_track_angle_observation
+                                                               ]),
                                                 dtype=np.float32)
 
         self.observation_space = spaces.Dict({
@@ -45,17 +89,22 @@ class LineFollowingEnv(TractorTrailerEnv):
     def _get_reward(self):
         if self._get_term():
             return -10.0
-        error, error_theta = self.get_errors()
-        return 5 * np.exp(-abs(error)) * np.exp(-abs(error_theta)) - (self.vehicle.xd / 5)
+        error, error_theta = self.get_vehicle_errors()
+        error_t, error_theta_t = self.get_trailer_errors()
+        # return 5 * np.exp(-abs(error)) * np.exp(-abs(error_theta)) - (self.vehicle.xd / 5)
+        return 1 - (error ** 2) - (error_theta ** 2) - ((0.5 * error_t) ** 2) - ((0.5 * error_theta_t) ** 2)
 
     def _get_obs(self):
         obs_dict = super()._get_obs()  # handle the image observation
-        error, error_theta = self.get_errors()
+        error, error_theta = self.get_vehicle_errors()
+        error_t, error_theta_t = self.get_trailer_errors()
         hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
         observation = np.array([self.vehicle.s,
                                 hitch_angle,
                                 error,
-                                error_theta], dtype=np.float32)
+                                error_theta,
+                                error_t,
+                                error_theta_t], dtype=np.float32)
         obs_dict['vector'] = observation
         return obs_dict
 
@@ -74,15 +123,21 @@ class LineFollowingEnv(TractorTrailerEnv):
 
         return term
 
-    def get_errors(self):
+    def get_vehicle_errors(self):
+        return self.get_errors(self.vehicle.x, self.vehicle.y, self.vehicle.p)
+
+    def get_trailer_errors(self):
+        return self.get_errors(self.vehicle.trailer.x, self.vehicle.trailer.y, self.vehicle.trailer.yaw)
+
+    def get_errors(self, x, y, p):
         # find the closest point on the path to the trailer axle
-        errors = np.sqrt((self.xx - self.vehicle.x) ** 2 + (self.yy - self.vehicle.y) ** 2)
+        errors = np.sqrt((self.xx - x) ** 2 + (self.yy - y) ** 2)
         nearest_index = np.argmin(errors)
         nearest_y = self.yy[nearest_index]
 
         # calculate cross track distance error
         error = errors[nearest_index]
-        if nearest_y > self.vehicle.y:
+        if nearest_y > y:
             error = -1 * error
 
         # calculate cross track angle error
@@ -92,7 +147,7 @@ class LineFollowingEnv(TractorTrailerEnv):
         except IndexError:
             theta = np.arctan((self.yy[nearest_index] - self.yy[nearest_index - 1])
                               / (self.xx[nearest_index] - self.xx[nearest_index - 1]))
-        error_theta = (self.vehicle.p - theta) * config.error_theta_scale
+        error_theta = (p - theta) * config.error_theta_scale
 
         return error, error_theta
 
@@ -147,7 +202,7 @@ class LineFollowingEnv(TractorTrailerEnv):
         super()._render_frame(surface)
 
         # render the path on top of the vehicle
-        self.render_path(surface)
+        # self.render_path(surface)
 
         return np.transpose(np.array(pygame.surfarray.pixels3d(surface)), axes=(1, 0, 2))
 
@@ -164,32 +219,6 @@ class LineFollowingEnv(TractorTrailerEnv):
         info = self._get_info()
 
         return observation, info
-
-
-class StateObservationLineFollowingEnv(LineFollowingEnv):
-    def __init__(self, render_mode="human"):
-        super().__init__(render_mode=render_mode)
-
-        # redefine observation space
-        self.observation_space = spaces.Box(low=np.array([-config.steering_observation,
-                                                          -config.hitch_angle_observation,
-                                                          -config.cross_track_distance_observation,
-                                                          -config.cross_track_angle_observation]),
-                                            high=np.array([config.steering_observation,
-                                                           config.hitch_angle_observation,
-                                                           config.cross_track_distance_observation,
-                                                           config.cross_track_angle_observation]),
-                                            dtype=np.float32)
-        self.observation = np.zeros(self.observation_space.shape, dtype=np.float32)
-
-    def _get_obs(self):
-        error, error_theta = self.get_errors()
-        hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
-        self.observation = np.array([self.vehicle.s,
-                                     hitch_angle,
-                                     error,
-                                     error_theta], dtype=np.float32)
-        return self.observation
 
 
 class LaneDrivingEnv(LineFollowingEnv):
@@ -371,7 +400,7 @@ class LaneDrivingEnv(LineFollowingEnv):
         return xA, yA, psi
 
 
-class StateObservationLaneDrivingEnv(LaneDrivingEnv):
+class StateObservationLineFollowingEnv(LaneDrivingEnv):
     def __init__(self, render_mode="human"):
         super().__init__(render_mode=render_mode)
 
@@ -379,21 +408,28 @@ class StateObservationLaneDrivingEnv(LaneDrivingEnv):
         self.observation_space = spaces.Box(low=np.array([-config.steering_observation,
                                                           -config.hitch_angle_observation,
                                                           -config.cross_track_distance_observation,
+                                                          -config.cross_track_angle_observation,
+                                                          -config.cross_track_distance_observation,
                                                           -config.cross_track_angle_observation]),
                                             high=np.array([config.steering_observation,
                                                            config.hitch_angle_observation,
+                                                           config.cross_track_distance_observation,
+                                                           config.cross_track_angle_observation,
                                                            config.cross_track_distance_observation,
                                                            config.cross_track_angle_observation]),
                                             dtype=np.float32)
         self.observation = np.zeros(self.observation_space.shape, dtype=np.float32)
 
     def _get_obs(self):
-        error, error_theta = self.get_errors()
+        error, error_theta = self.get_vehicle_errors()
+        error_t, error_theta_t = self.get_trailer_errors()
         hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
         self.observation = np.array([self.vehicle.s,
                                      hitch_angle,
                                      error,
-                                     error_theta], dtype=np.float32)
+                                     error_theta,
+                                     error_t,
+                                     error_theta_t], dtype=np.float32)
         return self.observation
 
 
@@ -422,34 +458,11 @@ def compute_curvature(env, lookahead_steps=10, max_curvature=0.3):
     kappa = np.clip(kappa, -max_curvature, max_curvature)
     return kappa
 
+
 def main():
     env = LaneDrivingEnv(render_mode='human')
-    env.reset()
-    done = False
-    action = env.action_space.sample()
-    k_y = 0.9
-    k_theta = 4.0
-    wheelbase = env.vehicle.trailer.L + env.vehicle.lr + env.vehicle.lf
-    i = 0
-    while not done:
-        i += 1
-        error, error_theta = env.get_errors()
-        u_fb = -k_y * error - k_theta * error_theta
-        kappa = compute_curvature(env)
-        u_ff = np.arctan(wheelbase * kappa)
-        u = u_ff + u_fb
-
-        s = env.vehicle.s  # get current vehicle steering angle
-        ds_dt = (u - s) / env.vehicle.dt  # convert steering angle error to steering rate
-        action[0] = ds_dt
-        action[1] = 3.0 # constant speed
-
-        obs, reward, term, trunc, info = env.step(action)
-        done = term or trunc
-        if i % 1 == 0:
-            print(f'S: {s}, U: {u}')
-            env.render()
-
+    
+    run_one_episode(env)
     env.close()
 
 

@@ -4,9 +4,10 @@ from stable_baselines3.common.noise import NormalActionNoise
 
 import numpy as np
 
-from Environments.LineFollowing import StateObservationLaneDrivingEnv as LineFollowingEnv
+from Environments.LineFollowing import StateObservationLineFollowingEnv as LineFollowingEnv
 
 from Models.CNNFeatureExtractor import CNNFeatureExtractor
+from Models.AutoEncoder import train_autoencoder
 
 
 class RenderCallback(BaseCallback):
@@ -35,17 +36,17 @@ def main():
     n_actions = env.action_space.shape[-1]
     action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=1.0 * np.ones(n_actions))
 
-    policy_kwargs = dict(
-        features_extractor_class=CNNFeatureExtractor,
-        features_extractor_kwargs=dict()
-    )
+    # policy_kwargs = dict(
+    #     features_extractor_class=CNNFeatureExtractor,
+    #     features_extractor_kwargs=dict()
+    # )
     model = TD3(
-        "MultiInputPolicy",
+        "MlpPolicy",
         env,
         action_noise=action_noise,
         verbose=1,
         device='cuda',
-        policy_kwargs=policy_kwargs,
+        # policy_kwargs=policy_kwargs,
         buffer_size=200000
     )
 
