@@ -5,7 +5,7 @@ import pygame
 from VehicleModels.tractor_trailer import StateSpaceTractorTrailer
 
 # --- Configuration ---
-WINDOW_WIDTH = 900
+WINDOW_WIDTH = 1800
 WINDOW_HEIGHT = 900
 METERS_PER_PIXEL = 0.1
 

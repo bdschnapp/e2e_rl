@@ -64,6 +64,9 @@ class LineFollowingEnv(TractorTrailerEnv):
         self.yy = np.array([])
         self.generate_path()  # ensure that a path is always initialized
 
+        # max attempts to find collision-free spawn
+        self.max_attempts = 100
+
         # redefine box observation space to add cross track error and angle error
         self.box_observation_space = spaces.Box(low=np.array([-config.steering_observation,
                                                               -config.hitch_angle_observation,
@@ -151,8 +154,15 @@ class LineFollowingEnv(TractorTrailerEnv):
         return error, error_theta
 
     def generate_path(self):
-        x0 = self.vehicle.trailer.x
-        x = np.array([x0, 30, 45, 60, 75, 90])
+        # World width in meters (WINDOW_WIDTH * METERS_PER_PIXEL)
+        world_width_m = WINDOW_WIDTH * METERS_PER_PIXEL
+
+        # Path spans from near start to near end of world
+        x0 = 5.0  # Start path 5m into the world
+        x_end = world_width_m - 5.0  # End path 5m before world edge
+
+        # Create evenly spaced control points
+        x = np.linspace(x0, x_end, 6)
 
         a = -1
         b = 1
@@ -166,7 +176,7 @@ class LineFollowingEnv(TractorTrailerEnv):
         y[0] = (-0.25 / 50) + np.random.rand() * (0.5 / 50)
 
         # self.xx is the x values for the cubic spline
-        self.xx = np.arange(int(x0), 90, 1)
+        self.xx = np.arange(int(x0), int(x_end), 1)
 
         cs = CubicSpline(x, y, bc_type=((1, 0.0), 'not-a-knot'))
         # self.yy is the y values for the cubic spline
@@ -176,6 +186,36 @@ class LineFollowingEnv(TractorTrailerEnv):
         y_g = self.yy[-1]
         yaw_g = np.arctan((self.yy[-1] - self.yy[-2]) / (self.xx[-1] - self.xx[-2]))
         self.goal_pose = (x_g, y_g, yaw_g)
+
+    def get_point_on_path(self, percent):
+        """
+        Get a point on the path at a given percentage along its length.
+
+        Args:
+            percent: Float between 0.0 and 1.0 representing position along path
+
+        Returns:
+            Tuple (x, y, yaw) where yaw is the heading angle in radians
+        """
+        if len(self.xx) == 0:
+            raise ValueError("Path has not been generated yet")
+
+        # Clamp percent to valid range
+        percent = np.clip(percent, 0.0, 1.0)
+
+        # Find index at this percentage of path length
+        idx = int(percent * (len(self.xx) - 1))
+        idx = np.clip(idx, 0, len(self.xx) - 2)  # Ensure we can compute derivative
+
+        x = self.xx[idx]
+        y = self.yy[idx]
+
+        # Compute yaw from path tangent (using forward difference)
+        dx = self.xx[idx + 1] - self.xx[idx]
+        dy = self.yy[idx + 1] - self.yy[idx]
+        yaw = np.arctan2(dy, dx)
+
+        return x, y, yaw
 
     def render_path(self, surface):
         for i in range(len(self.xx) - 1):
@@ -211,8 +251,22 @@ class LineFollowingEnv(TractorTrailerEnv):
         return super().step(action)
 
     def reset(self, seed=None, options=None):
-        self.vehicle.reset(-1 * config.initial_xd, x=0.1, y=45, p=-np.pi)
-        self.generate_path()
+        for attempt in range(self.max_attempts):
+            # Generate path first so we can find starting position on it
+            self.generate_path()
+
+            # Get position 10% along the path
+            x, y, yaw = self.get_point_on_path(0.1)
+
+            # This env drives backward (negative speed, reversed yaw)
+            self.vehicle.reset(-1 * config.initial_xd, x=x, y=y, p=yaw + np.pi)
+
+            # Check if spawn is collision-free
+            if not self._check_collision():
+                break
+
+            if attempt == self.max_attempts - 1:
+                print(f"Warning: Could not find collision-free spawn after {self.max_attempts} attempts")
 
         observation = self._get_obs()
         info = self._get_info()
@@ -343,8 +397,23 @@ class LaneDrivingEnv(LineFollowingEnv):
         self._build_occupancy_grid()
 
     def reset(self, seed=None, options=None):
-        self.vehicle.reset(config.initial_xd, x=4.1, y=45, p=0)
-        self.generate_path()
+        for attempt in range(self.max_attempts):
+            # Generate path first so we can find starting position on it
+            self.generate_path()
+
+            # Get position 10% along the path
+            x, y, yaw = self.get_point_on_path(0.1)
+
+            # Reset vehicle at this position, facing along the path
+            self.vehicle.reset(config.initial_xd, x=x, y=y, p=yaw)
+
+            # Check if spawn is collision-free
+            if not self._check_collision():
+                break
+
+            if attempt == self.max_attempts - 1:
+                print(f"Warning: Could not find collision-free spawn after {self.max_attempts} attempts")
+
         observation = self._get_obs()
         info = self._get_info()
         return observation, info
