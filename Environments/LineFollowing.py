@@ -63,6 +63,7 @@ class LineFollowingEnv(TractorTrailerEnv):
         self.xx = np.array([])
         self.yy = np.array([])
         self.generate_path()  # ensure that a path is always initialized
+        self.success = False
 
         # max attempts to find collision-free spawn
         self.max_attempts = 100
@@ -91,23 +92,28 @@ class LineFollowingEnv(TractorTrailerEnv):
 
     def _get_reward(self):
         if self._get_term():
+            if self.success:
+                return 100.0
             return -10.0
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
         # return 5 * np.exp(-abs(error)) * np.exp(-abs(error_theta)) - (self.vehicle.xd / 5)
-        return 1 - (error ** 2) - (error_theta ** 2) - ((0.5 * error_t) ** 2) - ((0.5 * error_theta_t) ** 2)
+        return (0.5 * self.vehicle.xd) - (error ** 2) - (error_theta ** 2) - ((0.5 * error_t) ** 2) - ((0.5 * error_theta_t) ** 2)
 
     def _get_obs(self):
         obs_dict = super()._get_obs()  # handle the image observation
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
         hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
-        observation = np.array([self.vehicle.s,
-                                hitch_angle,
-                                error,
-                                error_theta,
-                                error_t,
-                                error_theta_t], dtype=np.float32)
+        observation = np.array([
+
+            self.vehicle.s,
+            hitch_angle,
+            error,
+            error_theta,
+            error_t,
+            error_theta_t
+        ], dtype=np.float32)
         obs_dict['vector'] = observation
         return obs_dict
 
@@ -122,6 +128,11 @@ class LineFollowingEnv(TractorTrailerEnv):
 
         # check collision with obstacles (includes jackknife check)
         term = term or self._check_collision()
+
+        env_len = (WINDOW_WIDTH * METERS_PER_PIXEL) * 0.85
+        if self.vehicle.x > env_len or self.vehicle.trailer.x > env_len:
+            self.success = True
+            term = True
 
         return term
 
@@ -267,7 +278,7 @@ class LineFollowingEnv(TractorTrailerEnv):
 
             if attempt == self.max_attempts - 1:
                 print(f"Warning: Could not find collision-free spawn after {self.max_attempts} attempts")
-
+        self.success = False
         observation = self._get_obs()
         info = self._get_info()
 
@@ -392,6 +403,45 @@ class LaneDrivingEnv(LineFollowingEnv):
             self._occ_surface = self._grid_to_surface()
             self._occ_dirty = False
 
+    def _check_collision(self):
+        """
+        Checks for collision between the vehicle (tractor and trailer) and obstacles.
+        Returns True if a collision occurs.
+        Child classes should set self.obstacle_mask to enable collision detection.
+        """
+        if self.obstacle_mask is None:
+            return False
+
+        vehicle_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+        vehicle_surface.fill((0, 0, 0, 0))
+        vehicle_surface = self._render_vehicle(vehicle_surface)
+        alpha = pygame.surfarray.pixels_alpha(vehicle_surface).copy().T
+        ys, xs = np.nonzero(alpha > 0)
+        x_world = xs * METERS_PER_PIXEL
+        y_world = (WINDOW_HEIGHT - ys) * METERS_PER_PIXEL
+        # --- World → grid ---
+        meta = self.occ_meta
+        gx = np.floor((x_world - meta.origin_x) / meta.res_m).astype(int)
+        gy = np.floor((y_world - meta.origin_y) / meta.res_m).astype(int)
+
+        # --- Out-of-bounds = collision ---
+        if (
+                np.any(gx < 0) or np.any(gx >= meta.width) or
+                np.any(gy < 0) or np.any(gy >= meta.height)
+        ):
+            return True
+
+        # --- Occupancy check ---
+        if np.any(self.occ_grid[gy, gx] == 100):
+            return True
+
+        # jack knife collision check
+        hitch_angle = abs((self.vehicle.p - self.vehicle.trailer.yaw + np.pi) % (2 * np.pi) - np.pi)
+        if hitch_angle > np.deg2rad(90):
+            return True
+
+        return False
+
     def generate_path(self):
         super().generate_path()
         self._build_occupancy_grid()
@@ -414,6 +464,7 @@ class LaneDrivingEnv(LineFollowingEnv):
             if attempt == self.max_attempts - 1:
                 print(f"Warning: Could not find collision-free spawn after {self.max_attempts} attempts")
 
+        self.success = False
         observation = self._get_obs()
         info = self._get_info()
         return observation, info
@@ -473,32 +524,96 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
         super().__init__(render_mode=render_mode)
 
         # redefine observation space
-        self.observation_space = spaces.Box(low=np.array([-config.steering_observation,
-                                                          -config.hitch_angle_observation,
-                                                          -config.cross_track_distance_observation,
-                                                          -config.cross_track_angle_observation,
-                                                          -config.cross_track_distance_observation,
-                                                          -config.cross_track_angle_observation]),
-                                            high=np.array([config.steering_observation,
-                                                           config.hitch_angle_observation,
-                                                           config.cross_track_distance_observation,
-                                                           config.cross_track_angle_observation,
-                                                           config.cross_track_distance_observation,
-                                                           config.cross_track_angle_observation]),
-                                            dtype=np.float32)
+        self.observation_space = spaces.Box(
+            low=np.array([
+                -config.steering_observation,
+                -config.hitch_angle_observation,
+                -config.cross_track_distance_observation,
+                -config.cross_track_angle_observation,
+                -config.cross_track_distance_observation,
+                -config.cross_track_angle_observation,
+                -config.curvature_observation,
+                -config.curvature_observation
+            ]),
+            high=np.array([
+                config.steering_observation,
+                config.hitch_angle_observation,
+                config.cross_track_distance_observation,
+                config.cross_track_angle_observation,
+                config.cross_track_distance_observation,
+                config.cross_track_angle_observation,
+                config.curvature_observation,
+                config.curvature_observation
+            ]),
+            dtype=np.float32)
         self.observation = np.zeros(self.observation_space.shape, dtype=np.float32)
 
     def _get_obs(self):
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
         hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
-        self.observation = np.array([self.vehicle.s,
-                                     hitch_angle,
-                                     error,
-                                     error_theta,
-                                     error_t,
-                                     error_theta_t], dtype=np.float32)
+        k1 = compute_curvature(self, lookahead_steps=10, max_curvature=config.curvature_observation)
+        k2 = compute_curvature(self, lookahead_steps=20, max_curvature=config.curvature_observation)
+        self.observation = np.array([
+            self.vehicle.s,
+            hitch_angle,
+            error,
+            error_theta,
+            error_t,
+            error_theta_t,
+            k1,
+            k2
+        ], dtype=np.float32)
         return self.observation
+
+
+class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
+    def __init__(self):
+        super().__init__()
+
+        # redefine action space to reverse
+        self.action_space = spaces.Box(
+            low=np.array([-np.deg2rad(config.steering_action), -config.speed_action_high], dtype=np.float64),
+            high=np.array([np.deg2rad(config.steering_action), -config.speed_action_low], dtype=np.float64),
+        )
+    def _get_reward(self):
+        if self._get_term():
+            if self.success:
+                return 100.0
+            return -10.0
+        error, error_theta = self.get_vehicle_errors()
+        error_t, error_theta_t = self.get_trailer_errors()
+        # return 5 * np.exp(-abs(error)) * np.exp(-abs(error_theta)) - (self.vehicle.xd / 5)
+        return (-0.5 * self.vehicle.xd) - (error ** 2) - (error_theta ** 2) - ((0.5 * error_t) ** 2) - (
+                    (0.5 * error_theta_t) ** 2)
+
+    def reset(self, seed=None, options=None):
+        for attempt in range(self.max_attempts):
+            # Generate path first so we can find starting position on it
+            self.generate_path()
+
+            # Get position 10% along the path
+            x, y, yaw = self.get_point_on_path(0.10)
+
+            # Reset vehicle at this position, facing along the path
+            self.vehicle.reset(config.initial_xd, x=x, y=y, p=(yaw + np.pi))
+
+            # Check if spawn is collision-free
+            if not self._check_collision():
+                break
+
+            if attempt == self.max_attempts - 1:
+                print(f"Warning: Could not find collision-free spawn after {self.max_attempts} attempts")
+
+        self.success = False
+        observation = self._get_obs()
+        info = self._get_info()
+        return observation, info
+
+    def step(self, action):
+        # override the action to use a constant negative speed
+        action = np.array([action[0], -1 * config.initial_xd])
+        return super().step(action)
 
 
 def compute_curvature(env, lookahead_steps=10, max_curvature=0.3):

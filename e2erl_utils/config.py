@@ -1,12 +1,12 @@
 import numpy as np
 
-initial_xd = 1.5
+initial_xd = 5
 xd_base = 15
 xd_scale = 5
 
 
 # actions
-steering_action = np.pi / 8
+steering_action = 25
 speed_action_low = initial_xd - (2 * xd_scale)
 speed_action_high = initial_xd + (2 * xd_scale)
 
@@ -16,7 +16,7 @@ hitch_angle_observation = np.pi / 2
 speed_observation = 20
 cross_track_angle_observation = np.pi / 4
 cross_track_distance_observation = 100
-curvature_observation = 2
+curvature_observation = 0.3
 yaw_rate_observation = 1.5
 
 # Error Scale Constants

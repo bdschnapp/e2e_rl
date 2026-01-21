@@ -1,10 +1,8 @@
 from stable_baselines3 import TD3
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.noise import NormalActionNoise
 
 import numpy as np
-
-from Environments.LineFollowing import StateObservationLineFollowingEnv as LineFollowingEnv
 
 from Models.CNNFeatureExtractor import CNNFeatureExtractor
 from Models.AutoEncoder import train_autoencoder
@@ -29,8 +27,8 @@ class RenderCallback(BaseCallback):
         return True  # Must return True to continue training
 
 
-def main():
-    env = LineFollowingEnv(render_mode='human')
+def main(render_mode="human", save_path="./models/LineFollowing/"):
+    env = LineFollowingEnv(render_mode=render_mode)
 
     # Create the action noise object for DDPG
     n_actions = env.action_space.shape[-1]
@@ -47,14 +45,30 @@ def main():
         verbose=1,
         device='cuda',
         # policy_kwargs=policy_kwargs,
-        buffer_size=200000
+        buffer_size=200_000
     )
-
-    render_callback = RenderCallback(render_freq=30)
+    cbs = []
+    if render_mode:
+        cbs.append(RenderCallback(render_freq=1))
+    eval_env = LineFollowingEnv(render_mode='human')
+    cbs.append(EvalCallback(
+        eval_env,
+        best_model_save_path=save_path,
+        log_path="./logs/",
+        eval_freq=1_000,
+        deterministic=True,
+        render=False
+    ))
 
     # Train the model
-    model.learn(total_timesteps=200000, callback=render_callback)
+    model.learn(total_timesteps=200_000, callback=cbs)
 
 
 if __name__ == "__main__":
-    main()
+    # train forward model
+    # from Environments.LineFollowing import StateObservationLineFollowingEnv as LineFollowingEnv
+    # main(render_mode=None, save_path="./models/LineFollowing/Forward/")
+
+    # train reverse model
+    from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv as LineFollowingEnv
+    main(render_mode='human', save_path="./models/LineFollowing/Reverse/")

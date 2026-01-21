@@ -3,9 +3,10 @@ from gymnasium import spaces
 import numpy as np
 import pygame
 from VehicleModels.tractor_trailer import StateSpaceTractorTrailer
+from e2erl_utils import config
 
 # --- Configuration ---
-WINDOW_WIDTH = 1800
+WINDOW_WIDTH = 1500
 WINDOW_HEIGHT = 900
 METERS_PER_PIXEL = 0.1
 
@@ -43,8 +44,8 @@ class TractorTrailerEnv(gym.Env):
         # 1. Define Action Space (MODIFIED)
         # Action: [steering_angle_rate_of_change, target_linear_velocity]
         self.action_space = spaces.Box(
-            low=np.array([-np.deg2rad(15), 0], dtype=np.float64),
-            high=np.array([np.deg2rad(15), 2], dtype=np.float64),
+            low=np.array([-np.deg2rad(config.steering_action), config.speed_action_low], dtype=np.float64),
+            high=np.array([np.deg2rad(config.steering_action), config.speed_action_high], dtype=np.float64),
         )
 
         # 2. Define Observation Space
@@ -96,7 +97,7 @@ class TractorTrailerEnv(gym.Env):
         info = self._get_info()
 
         if terminated or truncated:
-            print("Episode Ended")
+            pass
 
         return observation, reward, terminated, truncated, info
 
