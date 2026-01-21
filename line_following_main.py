@@ -71,4 +71,4 @@ if __name__ == "__main__":
 
     # train reverse model
     from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv as LineFollowingEnv
-    main(render_mode='human', save_path="./models/LineFollowing/Reverse/")
+    main(render_mode=None, save_path="./models/LineFollowing/Reverse/")

@@ -568,24 +568,62 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
 
 
 class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, render_mode="human"):
+        super().__init__(render_mode="human")
 
         # redefine action space to reverse
         self.action_space = spaces.Box(
             low=np.array([-np.deg2rad(config.steering_action), -config.speed_action_high], dtype=np.float64),
             high=np.array([np.deg2rad(config.steering_action), -config.speed_action_low], dtype=np.float64),
         )
+
     def _get_reward(self):
+        # --- Terminal conditions ---
         if self._get_term():
             if self.success:
-                return 100.0
-            return -10.0
+                return 150.0  # higher than forward: reverse is harder
+            return -50.0  # strong failure signal
+
+        # --- Tracking errors ---
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
-        # return 5 * np.exp(-abs(error)) * np.exp(-abs(error_theta)) - (self.vehicle.xd / 5)
-        return (-0.5 * self.vehicle.xd) - (error ** 2) - (error_theta ** 2) - ((0.5 * error_t) ** 2) - (
-                    (0.5 * error_theta_t) ** 2)
+
+        # --- Geometry ---
+        hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
+        hitch_angle = (hitch_angle + np.pi) % (2 * np.pi) - np.pi  # wrap to [-pi, pi]
+
+        # --- Speed (reverse speed is negative) ---
+        reverse_speed = -self.vehicle.xd  # positive when reversing correctly
+
+        # =========================
+        # Reward components
+        # =========================
+
+        # 1. Progress reward (gentle)
+        r_progress = 0.3 * reverse_speed
+
+        # 2. Path tracking (tractor + trailer)
+        r_track = (
+                -1.0 * error ** 2
+                - 1.0 * error_theta ** 2
+                - 0.7 * error_t ** 2
+                - 0.7 * error_theta_t ** 2
+        )
+
+        # 3. Hitch angle shaping (soft barrier)
+        hitch_soft_limit = np.deg2rad(20)
+        r_hitch = -0.5 * (hitch_angle / hitch_soft_limit) ** 4
+
+        # =========================
+        # Total reward
+        # =========================
+        reward = (
+                r_progress
+                + r_track
+                + r_hitch
+        )
+
+        return float(reward)
 
     def reset(self, seed=None, options=None):
         for attempt in range(self.max_attempts):
