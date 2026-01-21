@@ -578,52 +578,33 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
         )
 
     def _get_reward(self):
-        # --- Terminal conditions ---
-        if self._get_term():
-            if self.success:
-                return 150.0  # higher than forward: reverse is harder
-            return -50.0  # strong failure signal
-
-        # --- Tracking errors ---
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
 
-        # --- Geometry ---
         hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
-        hitch_angle = (hitch_angle + np.pi) % (2 * np.pi) - np.pi  # wrap to [-pi, pi]
 
-        # --- Speed (reverse speed is negative) ---
-        reverse_speed = -self.vehicle.xd  # positive when reversing correctly
+        # --- Terminal ---
+        if self._get_term():
+            if self.success:
+                return 200.0
+            return -500.0
 
-        # =========================
-        # Reward components
-        # =========================
-
-        # 1. Progress reward (gentle)
-        r_progress = 0.3 * reverse_speed
-
-        # 2. Path tracking (tractor + trailer)
-        r_track = (
-                -1.0 * error ** 2
-                - 1.0 * error_theta ** 2
-                - 0.7 * error_t ** 2
-                - 0.7 * error_theta_t ** 2
+        # --- Stability penalties ---
+        path_penalty = (
+                error ** 2 +
+                0.5 * error_theta ** 2 +
+                0.5 * error_t ** 2 +
+                0.25 * error_theta_t ** 2
         )
 
-        # 3. Hitch angle shaping (soft barrier)
-        hitch_soft_limit = np.deg2rad(20)
-        r_hitch = -0.5 * (hitch_angle / hitch_soft_limit) ** 4
+        # --- Jackknife prevention ---
+        jackknife_penalty = 10.0 * max(0.0, abs(hitch_angle) - 0.4) ** 2
 
-        # =========================
-        # Total reward
-        # =========================
-        reward = (
-                r_progress
-                + r_track
-                + r_hitch
-        )
+        # --- Reward slow, controlled reverse ---
+        reverse_reward = 3.0 * np.clip(-self.vehicle.xd, 0.0, 1.0)
 
-        return float(reward)
+        # --- Final reward ---
+        return reverse_reward - path_penalty - jackknife_penalty
 
     def reset(self, seed=None, options=None):
         for attempt in range(self.max_attempts):
