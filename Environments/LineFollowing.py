@@ -181,8 +181,8 @@ class LineFollowingEnv(TractorTrailerEnv):
     def get_reward(self, error, error_theta, error_t, error_theta_t):
         if self._get_term():
             if self.success:
-                return 200.0
-            return -100.0
+                return 100.0
+            return -10.0
         # return 5 * np.exp(-abs(error)) * np.exp(-abs(error_theta)) - (self.vehicle.xd / 5)
         return (0.5 * self.vehicle.xd) - (error ** 2) - (error_theta ** 2) - ((0.5 * error_t) ** 2) - ((0.5 * error_theta_t) ** 2)
 
@@ -393,6 +393,16 @@ class LaneDrivingEnv(LineFollowingEnv):
         self._occ_dirty = True  # set True whenever grid changes
         self._show_spline_debug = True  # toggle overlay of spline (thin line)
 
+        # Reusable surfaces to avoid memory leaks from repeated allocations
+        self._collision_surface = None  # reused in _check_collision
+        self._shifted_surface = None    # reused in _render_frame
+        self._final_canvas = None       # reused in _render_frame
+
+        # Cache termination result to avoid redundant collision checks
+        self._term_cache = None
+        self._term_cache_step = -1
+        self._step_count = 0
+
     def _world_bounds(self):
         """World bounds derived from the current global window constants."""
         world_w_m = WINDOW_WIDTH * METERS_PER_PIXEL
@@ -511,17 +521,32 @@ class LaneDrivingEnv(LineFollowingEnv):
         if self.obstacle_mask is None:
             return False
 
-        vehicle_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
-        vehicle_surface.fill((0, 0, 0, 0))
-        vehicle_surface = self._render_vehicle(vehicle_surface)
-        alpha = pygame.surfarray.pixels_alpha(vehicle_surface).copy().T
-        ys, xs = np.nonzero(alpha > 0)
+        # Reuse collision surface to avoid memory leak from repeated allocations
+        if self._collision_surface is None:
+            self._collision_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+
+        # Clear and reuse existing surface
+        self._collision_surface.fill((0, 0, 0, 0))
+        self._render_vehicle(self._collision_surface)
+
+        # Get alpha channel - pixels_alpha returns a view, copy to detach from surface
+        alpha = pygame.surfarray.pixels_alpha(self._collision_surface)
+
+        # Use numpy operations more efficiently - avoid creating large intermediate arrays
+        # Find non-zero indices directly
+        nonzero_mask = alpha > 0
+        ys, xs = np.where(nonzero_mask.T)  # .T because surfarray is (width, height)
+
+        if len(xs) == 0:
+            return False  # No vehicle pixels rendered (shouldn't happen normally)
+
         x_world = xs * METERS_PER_PIXEL
         y_world = (WINDOW_HEIGHT - ys) * METERS_PER_PIXEL
+
         # --- World → grid ---
         meta = self.occ_meta
-        gx = np.floor((x_world - meta.origin_x) / meta.res_m).astype(int)
-        gy = np.floor((y_world - meta.origin_y) / meta.res_m).astype(int)
+        gx = np.floor((x_world - meta.origin_x) / meta.res_m).astype(np.int32)
+        gy = np.floor((y_world - meta.origin_y) / meta.res_m).astype(np.int32)
 
         # --- Out-of-bounds = collision ---
         if (
@@ -545,7 +570,30 @@ class LaneDrivingEnv(LineFollowingEnv):
         super().generate_path()
         self._build_occupancy_grid()
 
+    def step(self, action):
+        # Increment step counter and invalidate termination cache
+        self._step_count += 1
+        self._term_cache = None
+        return super().step(action)
+
+    def _get_term(self):
+        """Cached termination check to avoid redundant collision detection."""
+        if self._term_cache is not None and self._term_cache_step == self._step_count:
+            return self._term_cache
+
+        # Compute termination - super()._get_term() already includes collision check
+        term = super()._get_term()
+
+        # Cache the result
+        self._term_cache = term
+        self._term_cache_step = self._step_count
+        return term
+
     def reset(self, seed=None, options=None):
+        # Invalidate termination cache on reset
+        self._term_cache = None
+        self._step_count = 0
+
         for attempt in range(self.max_attempts):
             # Generate path first so we can find starting position on it
             self.generate_path()
@@ -590,9 +638,12 @@ class LaneDrivingEnv(LineFollowingEnv):
         target_cy = WINDOW_HEIGHT // 2
         offset_x = target_cx - anchor_x_pix
         offset_y = target_cy - anchor_y_pix
-        shifted_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-        shifted_surface.fill((0, 0, 0))
-        shifted_surface.blit(
+
+        # Reuse shifted_surface to avoid memory leak
+        if self._shifted_surface is None:
+            self._shifted_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self._shifted_surface.fill((0, 0, 0))
+        self._shifted_surface.blit(
             world_canvas,
             (offset_x, offset_y)
         )
@@ -602,13 +653,17 @@ class LaneDrivingEnv(LineFollowingEnv):
         else:
             rot_deg = yaw_cam_deg
         zoom_scale = getattr(config, "bev_zoom_scale", 1.5)
-        bev_rotzoom = pygame.transform.rotozoom(shifted_surface, rot_deg, zoom_scale)
-        final_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-        final_canvas.fill((0, 0, 0))
+        # Note: rotozoom always creates a new surface (unavoidable due to size changes)
+        bev_rotzoom = pygame.transform.rotozoom(self._shifted_surface, rot_deg, zoom_scale)
+
+        # Reuse final_canvas to avoid memory leak
+        if self._final_canvas is None:
+            self._final_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self._final_canvas.fill((0, 0, 0))
         bev_rect = bev_rotzoom.get_rect()
         bev_rect.center = (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
-        final_canvas.blit(bev_rotzoom, bev_rect.topleft)
-        return np.transpose(np.array(pygame.surfarray.pixels3d(final_canvas)), axes=(1, 0, 2))
+        self._final_canvas.blit(bev_rotzoom, bev_rect.topleft)
+        return np.transpose(np.array(pygame.surfarray.pixels3d(self._final_canvas)), axes=(1, 0, 2))
 
     def _get_anchor_world(self):
         """Return anchor point (xA, yA) and yaw psi for camera (tractor yaw)."""
@@ -619,8 +674,11 @@ class LaneDrivingEnv(LineFollowingEnv):
 
 
 class StateObservationLineFollowingEnv(LaneDrivingEnv):
-    def __init__(self, render_mode="human"):
+    def __init__(self, render_mode="human", max_episode_steps=1000):
         super().__init__(render_mode=render_mode)
+
+        # Episode timeout to prevent deadlock
+        self.max_episode_steps = max_episode_steps
 
         self.obs_low = np.array([
                 -config.steering_observation,
@@ -650,6 +708,12 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
             dtype=np.float32)
         self.observation = np.zeros(self.observation_space.shape, dtype=np.float32)
 
+    def _get_trunc(self):
+        """Episode truncation - timeout if max steps exceeded."""
+        if self._step_count >= self.max_episode_steps:
+            return True
+        return super()._get_trunc()
+
     def _get_obs(self):
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
@@ -670,8 +734,8 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
 
 
 class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
-    def __init__(self, render_mode="human"):
-        super().__init__(render_mode="human")
+    def __init__(self, render_mode="human", max_episode_steps=1000):
+        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps)
 
         # redefine action space to reverse
         self.action_space = spaces.Box(
@@ -711,6 +775,10 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
         return reverse_reward - path_penalty - jackknife_penalty
 
     def reset(self, seed=None, options=None):
+        # Invalidate termination cache on reset
+        self._term_cache = None
+        self._step_count = 0
+
         for attempt in range(self.max_attempts):
             # Generate path first so we can find starting position on it
             self.generate_path()

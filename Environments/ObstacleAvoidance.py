@@ -278,8 +278,8 @@ def plan_local_path(
 
 
 class ObstacleAvoidance:
-    def __init__(self, render_mode=None, **kwargs):
-        super().__init__(render_mode=render_mode, **kwargs)
+    def __init__(self, render_mode=None, max_episode_steps=1000, **kwargs):
+        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps, **kwargs)
 
         if not hasattr(self, "obstacles_low"):
             self.obstacles_low = 0
@@ -371,12 +371,12 @@ class ObstacleAvoidance:
 
 
 class ObstacleAvoidanceEnv(ObstacleAvoidance, StateObservationLineFollowingEnv):
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, max_episode_steps=1000):
         self.obstacles_low = 0
         self.obstacles_high = 0
         self.lidar_beams = 24
         self.lidar_range = 20.0
-        super().__init__(render_mode=render_mode)
+        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps)
 
     def _get_lidar_pose(self):
         return Pose(
@@ -387,12 +387,12 @@ class ObstacleAvoidanceEnv(ObstacleAvoidance, StateObservationLineFollowingEnv):
 
 
 class ReverseObstacleAvoidanceEnv(ObstacleAvoidance, ReverseStateObservationLineFollowingEnv):
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, max_episode_steps=1000):
         self.obstacles_low = 0
         self.obstacles_high = 0
         self.lidar_beams = 24
         self.lidar_range = 20.0
-        super().__init__(render_mode=render_mode)
+        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps)
 
     def _get_lidar_pose(self):
         return Pose(

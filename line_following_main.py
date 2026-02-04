@@ -149,23 +149,23 @@ def main(render_mode="human", save_path="./models/", timesteps=200_000):
 
 
 if __name__ == "__main__":
-    # train forward model
-    from Environments.LineFollowing import StateObservationLineFollowingEnv as LineFollowingEnv
-    main(render_mode=None,
-         save_path="./models/LineFollowing/Forward/",
-         timesteps=30_000)
-
-    # train reverse model
-    from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv as LineFollowingEnv
-    main(render_mode=None,
-         save_path="./models/LineFollowing/Reverse/",
-         timesteps=60_000)
-
-    # train forward model with obstacles
-    from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv as LineFollowingEnv
-    main(render_mode=None,
-         save_path="./models/ObstacleAvoidance/Forward/",
-         timesteps=90_000)
+    # # train forward model
+    # from Environments.LineFollowing import StateObservationLineFollowingEnv as LineFollowingEnv
+    # main(render_mode=None,
+    #      save_path="./models/LineFollowing/Forward/",
+    #      timesteps=30_000)
+    #
+    # # train reverse model
+    # from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv as LineFollowingEnv
+    # main(render_mode=None,
+    #      save_path="./models/LineFollowing/Reverse/",
+    #      timesteps=60_000)
+    #
+    # # train forward model with obstacles
+    # from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv as LineFollowingEnv
+    # main(render_mode=None,
+    #      save_path="./models/ObstacleAvoidance/Forward/",
+    #      timesteps=90_000)
 
     # train reverse model with obstacles
     from Environments.ObstacleAvoidance import ReverseObstacleAvoidanceEnv as LineFollowingEnv
