@@ -173,12 +173,16 @@ class LineFollowingEnv(TractorTrailerEnv):
         })
 
     def _get_reward(self):
-        if self._get_term():
-            if self.success:
-                return 100.0
-            return -10.0
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
+        return self.get_reward(error, error_theta, error_t, error_theta_t)
+
+
+    def get_reward(self, error, error_theta, error_t, error_theta_t):
+        if self._get_term():
+            if self.success:
+                return 200.0
+            return -100.0
         # return 5 * np.exp(-abs(error)) * np.exp(-abs(error_theta)) - (self.vehicle.xd / 5)
         return (0.5 * self.vehicle.xd) - (error ** 2) - (error_theta ** 2) - ((0.5 * error_t) ** 2) - ((0.5 * error_theta_t) ** 2)
 
@@ -218,17 +222,27 @@ class LineFollowingEnv(TractorTrailerEnv):
 
         return term
 
-    def get_vehicle_errors(self):
-        return self.get_errors(self.vehicle.x, self.vehicle.y, self.vehicle.p)
+    def get_vehicle_errors(self, xx=None, yy=None):
+        if xx is None or yy is None:
+            xx = self.xx
+            yy = self.yy
+        return self.get_errors(self.vehicle.x, self.vehicle.y, self.vehicle.p, xx, yy)
 
-    def get_trailer_errors(self):
-        return self.get_errors(self.vehicle.trailer.x, self.vehicle.trailer.y, self.vehicle.trailer.yaw)
+    def get_trailer_errors(self, xx=None, yy=None):
+        if xx is None or yy is None:
+            xx = self.xx
+            yy = self.yy
+        return self.get_errors(self.vehicle.trailer.x, self.vehicle.trailer.y, self.vehicle.trailer.yaw, xx, yy)
 
-    def get_errors(self, x, y, p):
+    def get_errors(self, x, y, p, xx=None, yy=None):
+        if xx is None or yy is None:
+            xx = self.xx
+            yy = self.yy
+
         # find the closest point on the path to the trailer axle
-        errors = np.sqrt((self.xx - x) ** 2 + (self.yy - y) ** 2)
+        errors = np.sqrt((xx - x) ** 2 + (yy - y) ** 2)
         nearest_index = np.argmin(errors)
-        nearest_y = self.yy[nearest_index]
+        nearest_y = yy[nearest_index]
 
         # calculate cross track distance error
         error = errors[nearest_index]
@@ -237,11 +251,11 @@ class LineFollowingEnv(TractorTrailerEnv):
 
         # calculate cross track angle error
         try:
-            theta = np.arctan((self.yy[nearest_index + 1] - self.yy[nearest_index])
-                              / (self.xx[nearest_index + 1] - self.xx[nearest_index]))
+            theta = np.arctan((yy[nearest_index + 1] - yy[nearest_index])
+                              / (xx[nearest_index + 1] - xx[nearest_index]))
         except IndexError:
-            theta = np.arctan((self.yy[nearest_index] - self.yy[nearest_index - 1])
-                              / (self.xx[nearest_index] - self.xx[nearest_index - 1]))
+            theta = np.arctan((yy[nearest_index] - yy[nearest_index - 1])
+                              / (xx[nearest_index] - xx[nearest_index - 1]))
         error_theta = (p - theta) * config.error_theta_scale
 
         return error, error_theta
@@ -310,13 +324,16 @@ class LineFollowingEnv(TractorTrailerEnv):
 
         return x, y, yaw
 
-    def render_path(self, surface):
-        for i in range(len(self.xx) - 1):
-            x1 = int(self.xx[i] / METERS_PER_PIXEL)
-            y1 = int(WINDOW_HEIGHT - self.yy[i] / METERS_PER_PIXEL)
-            x2 = int(self.xx[i + 1] / METERS_PER_PIXEL)
-            y2 = int(WINDOW_HEIGHT - self.yy[i + 1] / METERS_PER_PIXEL)
-            pygame.draw.line(surface, COLOR_BLACK, (x1, y1), (x2, y2), 2)
+    def render_path(self, surface, xx=None, yy=None, color=COLOR_BLACK):
+        if xx is None or yy is None:
+            xx = self.xx
+            yy = self.yy
+        for i in range(len(xx) - 1):
+            x1 = int(xx[i] / METERS_PER_PIXEL)
+            y1 = int(WINDOW_HEIGHT - yy[i] / METERS_PER_PIXEL)
+            x2 = int(xx[i + 1] / METERS_PER_PIXEL)
+            y2 = int(WINDOW_HEIGHT - yy[i + 1] / METERS_PER_PIXEL)
+            pygame.draw.line(surface, color, (x1, y1), (x2, y2), 2)
 
     def _render_frame(self, surface=None):
         # initialize pygame if it hasn't been already
@@ -605,9 +622,7 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
     def __init__(self, render_mode="human"):
         super().__init__(render_mode=render_mode)
 
-        # redefine observation space
-        self.observation_space = spaces.Box(
-            low=np.array([
+        self.obs_low = np.array([
                 -config.steering_observation,
                 -config.hitch_angle_observation,
                 -config.cross_track_distance_observation,
@@ -616,8 +631,8 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
                 -config.cross_track_angle_observation,
                 -config.curvature_observation,
                 -config.curvature_observation
-            ]),
-            high=np.array([
+            ])
+        self.obs_high = np.array([
                 config.steering_observation,
                 config.hitch_angle_observation,
                 config.cross_track_distance_observation,
@@ -626,7 +641,12 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
                 config.cross_track_angle_observation,
                 config.curvature_observation,
                 config.curvature_observation
-            ]),
+            ])
+
+        # redefine observation space
+        self.observation_space = spaces.Box(
+            low=self.obs_low,
+            high=self.obs_high,
             dtype=np.float32)
         self.observation = np.zeros(self.observation_space.shape, dtype=np.float32)
 
@@ -662,7 +682,9 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
     def _get_reward(self):
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
+        return self.get_reward(error, error_theta, error_t, error_theta_t)
 
+    def get_reward(self, error, error_theta, error_t, error_theta_t):
         hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
 
         # --- Terminal ---

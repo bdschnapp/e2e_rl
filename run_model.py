@@ -7,6 +7,9 @@ from Environments.LineFollowing import forward_pure_pursuit, reverse_pure_pursui
 
 def fpp(n_episodes: int, render: bool):
     env = LineFollowingEnv(render_mode="human" if render else None)
+    if hasattr(env, "obstacles_low"):
+        env.obstacles_low = 5
+        env.obstacles_high = 10
     print("Forward Pure Pursuit Evaluation:")
     for ep in range(1, n_episodes + 1):
         total_reward, steps = forward_pure_pursuit(env, render=render)
@@ -31,6 +34,9 @@ def rpp(n_episodes: int, render: bool):
 
 def run(model_path: str, n_episodes: int, render: bool):
     env = LineFollowingEnv(render_mode="human" if render else None)
+    if hasattr(env, "obstacles_low"):
+        env.obstacles_low = 5
+        env.obstacles_high = 10
     env = Monitor(env)
 
     model = TD3.load(model_path, env=env)
@@ -67,15 +73,31 @@ if __name__ == "__main__":
     parser.add_argument("--episodes", type=int, default=10)
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--reverse", action="store_true")
+    parser.add_argument("--obstacles", action="store_true")
 
     args = parser.parse_args()
 
-    if args.reverse:
-        print("Using Reverse Driving Model")
-        from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv as LineFollowingEnv
+    print("Model:", args.model)
+    print("Episodes:", args.episodes)
+    print("Render:", args.render)
+    print("Reverse:", args.reverse)
+    print("Obstacles:", args.obstacles)
+
+    if args.obstacles:
+        if args.reverse:
+            print("Using Reverse Driving Model with Obstacles")
+            from Environments.ObstacleAvoidance import ReverseObstacleAvoidanceEnv as LineFollowingEnv
+        else:
+            print("Using Forward Driving Model with Obstacles")
+            from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv as LineFollowingEnv
+
     else:
-        print("Using Forward Driving Model")
-        from Environments.LineFollowing import StateObservationLineFollowingEnv as LineFollowingEnv
+        if args.reverse:
+            print("Using Reverse Driving Model")
+            from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv as LineFollowingEnv
+        else:
+            print("Using Forward Driving Model")
+            from Environments.LineFollowing import StateObservationLineFollowingEnv as LineFollowingEnv
 
     if args.model == 'fpp':
         fpp(args.episodes, args.render)

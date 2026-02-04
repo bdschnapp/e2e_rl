@@ -29,10 +29,28 @@ class RenderCallback(BaseCallback):
         return True  # Must return True to continue training
 
 
+class ObstacleCallback(BaseCallback):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.obstacles_low = 0
+        self.obstacles_high = 0
+        self.freq = 2000
+
+    def _on_step(self) -> bool:
+        if self.n_calls % self.freq == 0:
+            self.obstacles_low =min(self.obstacles_low + 1, 5)
+            self.training_env.set_attr('obstacles_low', self.obstacles_low)
+
+            self.obstacles_high = min(self.obstacles_high + 2, 10)
+            self.training_env.set_attr('obstacles_high', self.obstacles_high)
+        return True
+
+
 class NormalizedEvalCallback(EvalCallback):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.best_normalized_score = -np.inf
+        self.k = 1
 
     def _on_step(self) -> bool:
         result = super()._on_step()
@@ -58,9 +76,10 @@ class NormalizedEvalCallback(EvalCallback):
 
                 save_path = os.path.join(
                     self.best_model_save_path,
-                    "best_normalized_model"
+                    f"norm{self.k}"
                 )
                 self.model.save(save_path)
+                self.k += 1
 
                 print(
                     f"[Eval] New best normalized model | "
@@ -72,7 +91,7 @@ class NormalizedEvalCallback(EvalCallback):
         return result
 
 
-def main(render_mode="human", save_path="./models/LineFollowing/"):
+def main(render_mode="human", save_path="./models/", timesteps=200_000):
     env = Monitor(LineFollowingEnv(render_mode=render_mode))
 
     # Create the action noise object for DDPG
@@ -96,7 +115,14 @@ def main(render_mode="human", save_path="./models/LineFollowing/"):
     cbs = []
     if render_mode:
         cbs.append(RenderCallback(render_freq=1))
-    eval_env = Monitor(LineFollowingEnv(render_mode='human'))
+
+    eval_env = LineFollowingEnv(render_mode='human')
+    if hasattr(eval_env, 'obstacles_low'):
+        eval_env.obstacles_low = 5
+        eval_env.obstacles_high = 10
+        cbs.append(ObstacleCallback())
+    eval_env = Monitor(eval_env)
+
     cbs.append(
         EvalCallback(
             eval_env,
@@ -112,21 +138,37 @@ def main(render_mode="human", save_path="./models/LineFollowing/"):
             eval_env,
             best_model_save_path=os.path.join(save_path, "normalized"),
             log_path="./eval_logs",
-            eval_freq=5000,
-            n_eval_episodes=5,
+            eval_freq=3_000,
+            n_eval_episodes=10,
             deterministic=True,
         )
     )
 
     # Train the model
-    model.learn(total_timesteps=200_000, callback=cbs)
+    model.learn(total_timesteps=timesteps, callback=cbs)
 
 
 if __name__ == "__main__":
     # train forward model
     from Environments.LineFollowing import StateObservationLineFollowingEnv as LineFollowingEnv
-    main(render_mode=None, save_path="./models/LineFollowing/Forward/")
+    main(render_mode=None,
+         save_path="./models/LineFollowing/Forward/",
+         timesteps=30_000)
 
     # train reverse model
-    # from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv as LineFollowingEnv
-    # main(render_mode=None, save_path="./models/LineFollowing/Reverse/")
+    from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv as LineFollowingEnv
+    main(render_mode=None,
+         save_path="./models/LineFollowing/Reverse/",
+         timesteps=60_000)
+
+    # train forward model with obstacles
+    from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv as LineFollowingEnv
+    main(render_mode=None,
+         save_path="./models/ObstacleAvoidance/Forward/",
+         timesteps=90_000)
+
+    # train reverse model with obstacles
+    from Environments.ObstacleAvoidance import ReverseObstacleAvoidanceEnv as LineFollowingEnv
+    main(render_mode=None,
+         save_path="./models/ObstacleAvoidance/Reverse/",
+         timesteps=180_000)
