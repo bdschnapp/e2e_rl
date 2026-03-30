@@ -101,6 +101,11 @@ class TractorTrailerSteeringMPC:
         self.v = []  # Store last solution
         self.n_consecutive_failures = 0
 
+    def reset(self):
+        """Clear warm-start buffer and failure counter between episodes."""
+        self.v = []
+        self.n_consecutive_failures = 0
+
     def A_Matrix(self, delta_0, psi1_0, psi2_0, vx):
         """
         Python/Numpy translation of the MATLAB function A_Matrix.

@@ -80,6 +80,7 @@ def generate_obstacles(
     lateral_offset_range_m=(1.0, 5.0),
     radius_range_m=(0.8, 1.4),
     longitudinal_jitter_m=0.5,
+    rng=None,
 ):
     """
     Generates circular obstacles near the lane centerline.
@@ -111,7 +112,8 @@ def generate_obstacles(
 
     if not bins:
         return occ_grid, None
-    bin_order = np.random.permutation(len(bins))
+    _rng = rng if rng is not None else np.random.default_rng()
+    bin_order = _rng.permutation(len(bins))
 
     obstacles: list[tuple[float, float, float]] = []
     for k in range(num_obstacles):
@@ -119,7 +121,7 @@ def generate_obstacles(
         a, b = bins[bi]
 
         # Sample an index within this bin
-        idx = np.random.randint(a, b)
+        idx = int(_rng.integers(a, b))
         p = centerline[idx]
         p_next = centerline[idx + 1]
 
@@ -131,12 +133,12 @@ def generate_obstacles(
         n = np.array([-t[1], t[0]])
 
         # Random lateral offset (left or right)
-        lat_mag = np.random.uniform(*lateral_offset_range_m)
-        lat_sign = np.random.choice([-1.0, 1.0])
+        lat_mag = _rng.uniform(*lateral_offset_range_m)
+        lat_sign = _rng.choice([-1.0, 1.0])
         lateral_offset = lat_sign * lat_mag
 
         # Optional longitudinal jitter
-        longitudinal_offset = np.random.uniform(
+        longitudinal_offset = _rng.uniform(
             -longitudinal_jitter_m,
             longitudinal_jitter_m
         )
@@ -145,7 +147,7 @@ def generate_obstacles(
         pos = p + lateral_offset * n + longitudinal_offset * t
 
         # Random obstacle size
-        radius_m = np.random.uniform(*radius_range_m)
+        radius_m = _rng.uniform(*radius_range_m)
         radius_px = int(radius_m / METERS_PER_PIXEL)
 
         obstacles.append((float(pos[0]), float(pos[1]), float(radius_m)))
@@ -348,11 +350,12 @@ class ObstacleAvoidance:
 
         num_obstacles = 0
         if self.obstacles_high >= 1:
-            # NOTE: randint high is exclusive; keep your behavior
-            num_obstacles = np.random.randint(self.obstacles_low, self.obstacles_high)
+            num_obstacles = int(self.np_random.integers(self.obstacles_low, self.obstacles_high))
 
         centerline = self._sample_centerline()
-        self.occ_grid, obstacles = generate_obstacles(centerline, self.occ_grid, num_obstacles)
+        self.occ_grid, obstacles = generate_obstacles(
+            centerline, self.occ_grid, num_obstacles, rng=self.np_random
+        )
         original_path = np.stack([self.xx, self.yy], axis=1)
         if obstacles:
             self.local_path = plan_local_path(
@@ -368,6 +371,53 @@ class ObstacleAvoidance:
         self._occ_dirty = True
         self._ensure_occ_surface_if_needed()
         self.obstacle_mask = pygame.mask.from_surface(self._occ_surface)
+
+
+class LidarStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
+    """
+    Lane-following env with state + simulated lidar observations.
+
+    Designed for fair Phase 1 comparison against state_only and BEV variants:
+      - Extends StateObservationLineFollowingEnv directly (not ObstacleAvoidanceEnv)
+      - Same path generation, reward function, and termination as state_only
+      - Same 8-dim state vector; lidar distances are appended on top
+      - Lidar reads from the lane occupancy grid (detects lane boundaries only)
+      - No obstacles generated; no local_path override of reward
+
+    Observation: [s, γ, e_y, e_ψ, e_y_t, e_ψ_t, κ₁, κ₂, d₀, …, d_{N-1}]
+    """
+
+    def __init__(self, render_mode="human", max_episode_steps=1000, lidar_beams=16):
+        self.lidar_beams = lidar_beams
+        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps)
+
+        lidar_low  = np.zeros(self.lidar_beams, dtype=np.float32)
+        lidar_high = np.ones(self.lidar_beams,  dtype=np.float32)
+
+        self.obs_low  = np.concatenate([self.obs_low,  lidar_low])
+        self.obs_high = np.concatenate([self.obs_high, lidar_high])
+        self.observation_space = spaces.Box(
+            low=self.obs_low, high=self.obs_high, dtype=np.float32
+        )
+        self.observation = np.zeros(self.observation_space.shape, dtype=np.float32)
+
+    def _get_obs(self):
+        state_obs = super()._get_obs()   # 8-dim from StateObservationLineFollowingEnv
+
+        lidar_pose = Pose(
+            x=self.vehicle.x,
+            y=self.vehicle.y,
+            yaw=self.vehicle.p,
+        )
+        lidar_distances = get_obstacle_distances(
+            self.occ_grid,
+            lidar_pose,
+            num_sensors=self.lidar_beams,
+        )
+        self.observation = np.concatenate(
+            [state_obs, lidar_distances.astype(np.float32)]
+        )
+        return self.observation
 
 
 class ObstacleAvoidanceEnv(ObstacleAvoidance, StateObservationLineFollowingEnv):

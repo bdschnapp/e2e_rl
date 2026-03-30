@@ -95,7 +95,6 @@ def reverse_pure_pursuit(env, render=False):
         error_t, error_theta_t = env.get_trailer_errors()
 
         # --- Outer loop: compute desired hitch angle (small) ---
-        # Signs may need flipping depending on your error conventions.
         phi_ref = -(K_y_t * error_t) - (K_th_t * error_theta_t)
         phi_ref = float(np.clip(phi_ref, -phi_ref_max, phi_ref_max))
 
@@ -277,10 +276,10 @@ class LineFollowingEnv(TractorTrailerEnv):
 
         vert_offset = 45
 
-        y = (a + (b - a) * np.random.rand(n))
+        y = (a + (b - a) * self.np_random.random(n))
 
         # Have it start so the vehicle isn't immediately on the line, y(0) of vehicle will always be vert_offset
-        y[0] = (-0.25 / 50) + np.random.rand() * (0.5 / 50)
+        y[0] = (-0.25 / 50) + self.np_random.random() * (0.5 / 50)
 
         # self.xx is the x values for the cubic spline
         self.xx = np.arange(int(x0), int(x_end), 1)
@@ -672,6 +671,42 @@ class LaneDrivingEnv(LineFollowingEnv):
         psi = -self.vehicle.p
         return xA, yA, psi
 
+    def _get_state_vector_obs(self):
+        """Return 8-dim state vector [s, γ, e_y, e_ψ, e_y_t, e_ψ_t, κ₁, κ₂]."""
+        error, error_theta = self.get_vehicle_errors()
+        error_t, error_theta_t = self.get_trailer_errors()
+        hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
+        k1 = compute_curvature(self, lookahead_steps=10, max_curvature=config.curvature_observation)
+        k2 = compute_curvature(self, lookahead_steps=20, max_curvature=config.curvature_observation)
+        return np.array([
+            self.vehicle.s, hitch_angle, error, error_theta, error_t, error_theta_t, k1, k2,
+        ], dtype=np.float32)
+
+
+def _make_state_obs_bounds():
+    """Return (low, high) arrays for the 8-dim state observation space."""
+    low = np.array([
+        -config.steering_observation,
+        -config.hitch_angle_observation,
+        -config.cross_track_distance_observation,
+        -config.cross_track_angle_observation,
+        -config.cross_track_distance_observation,
+        -config.cross_track_angle_observation,
+        -config.curvature_observation,
+        -config.curvature_observation,
+    ], dtype=np.float32)
+    high = np.array([
+        config.steering_observation,
+        config.hitch_angle_observation,
+        config.cross_track_distance_observation,
+        config.cross_track_angle_observation,
+        config.cross_track_distance_observation,
+        config.cross_track_angle_observation,
+        config.curvature_observation,
+        config.curvature_observation,
+    ], dtype=np.float32)
+    return low, high
+
 
 class StateObservationLineFollowingEnv(LaneDrivingEnv):
     def __init__(self, render_mode="human", max_episode_steps=1000):
@@ -680,26 +715,7 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
         # Episode timeout to prevent deadlock
         self.max_episode_steps = max_episode_steps
 
-        self.obs_low = np.array([
-                -config.steering_observation,
-                -config.hitch_angle_observation,
-                -config.cross_track_distance_observation,
-                -config.cross_track_angle_observation,
-                -config.cross_track_distance_observation,
-                -config.cross_track_angle_observation,
-                -config.curvature_observation,
-                -config.curvature_observation
-            ])
-        self.obs_high = np.array([
-                config.steering_observation,
-                config.hitch_angle_observation,
-                config.cross_track_distance_observation,
-                config.cross_track_angle_observation,
-                config.cross_track_distance_observation,
-                config.cross_track_angle_observation,
-                config.curvature_observation,
-                config.curvature_observation
-            ])
+        self.obs_low, self.obs_high = _make_state_obs_bounds()
 
         # redefine observation space
         self.observation_space = spaces.Box(
@@ -715,21 +731,7 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
         return super()._get_trunc()
 
     def _get_obs(self):
-        error, error_theta = self.get_vehicle_errors()
-        error_t, error_theta_t = self.get_trailer_errors()
-        hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
-        k1 = compute_curvature(self, lookahead_steps=10, max_curvature=config.curvature_observation)
-        k2 = compute_curvature(self, lookahead_steps=20, max_curvature=config.curvature_observation)
-        self.observation = np.array([
-            self.vehicle.s,
-            hitch_angle,
-            error,
-            error_theta,
-            error_t,
-            error_theta_t,
-            k1,
-            k2
-        ], dtype=np.float32)
+        self.observation = self._get_state_vector_obs()
         return self.observation
 
 
@@ -805,6 +807,50 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
         # override the action to use a constant negative speed
         action = np.array([action[0], -1 * config.initial_xd])
         return super().step(action)
+
+
+class BevObservationLineFollowingEnv(LaneDrivingEnv):
+    """
+    Lane-following env with BOTH state vector AND BEV image observations.
+
+    Observation space (Dict):
+      'vector': 8-dim  [s, γ, e_y, e_ψ, e_y_t, e_ψ_t, κ_10, κ_20]
+               (same state as StateObservationLineFollowingEnv)
+      'image':  (84, 84, 1) uint8 grayscale BEV from LaneDrivingEnv._render_frame
+
+    This lets image-based agents (CNNFeatureExtractor) access explicit state cues
+    alongside the BEV, which is the fair comparison to lidar+state approaches.
+    """
+
+    def __init__(self, render_mode="human", max_episode_steps=1000):
+        super().__init__(render_mode=render_mode)
+        self.max_episode_steps = max_episode_steps
+
+        vec_low, vec_high = _make_state_obs_bounds()
+
+        self.observation_space = spaces.Dict({
+            'vector': spaces.Box(low=vec_low, high=vec_high, dtype=np.float32),
+            'image': self.image_observation_space,
+        })
+
+    def _get_trunc(self):
+        if self._step_count >= self.max_episode_steps:
+            return True
+        return super()._get_trunc()
+
+    def _get_obs(self):
+        from Environments.TractorTrailer import OBS_WIDTH, OBS_HEIGHT
+
+        full_frame = self._render_frame()
+        full_surface = pygame.surfarray.make_surface(
+            np.transpose(full_frame, axes=(1, 0, 2))
+        )
+        small_surface = pygame.transform.scale(full_surface, (OBS_WIDTH, OBS_HEIGHT))
+        small_rgb = pygame.surfarray.pixels3d(small_surface)
+        small_gray = small_rgb.mean(axis=2)
+        image_obs = np.expand_dims(small_gray, axis=-1).astype(np.uint8)
+
+        return {'image': image_obs, 'vector': self._get_state_vector_obs()}
 
 
 def compute_curvature(env, lookahead_steps=10, max_curvature=0.3):

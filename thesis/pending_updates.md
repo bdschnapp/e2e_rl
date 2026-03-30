@@ -15,3 +15,17 @@ Clear an entry once the relevant thesis chapter has been updated.
 2026-03-30 10:02: /home/ben/Ben/Thesis/e2e_rl/Models/UNet.py
 2026-03-30 10:02: /home/ben/Ben/Thesis/e2e_rl/Models/UNet.py
 2026-03-30 10:20: /home/ben/Ben/Thesis/e2e_rl/Environments/ObstacleAvoidance.py
+2026-03-30 12:06: /home/ben/Ben/Thesis/e2e_rl/Environments/LineFollowing.py
+2026-03-30 12:06: /home/ben/Ben/Thesis/e2e_rl/Environments/LineFollowing.py
+2026-03-30 12:06: /home/ben/Ben/Thesis/e2e_rl/Environments/LineFollowing.py
+2026-03-30 12:06: /home/ben/Ben/Thesis/e2e_rl/Environments/LineFollowing.py
+2026-03-30 12:06: /home/ben/Ben/Thesis/e2e_rl/Environments/LineFollowing.py
+2026-03-30 12:06: /home/ben/Ben/Thesis/e2e_rl/Models/AutoEncoder.py
+2026-03-30 12:56: /home/ben/Ben/Thesis/e2e_rl/Models/AutoEncoder.py
+2026-03-30 12:56: /home/ben/Ben/Thesis/e2e_rl/Models/AutoEncoder.py
+2026-03-30 13:16: /home/ben/Ben/Thesis/e2e_rl/Models/AutoEncoder.py
+2026-03-30 13:17: /home/ben/Ben/Thesis/e2e_rl/Models/AutoEncoder.py
+2026-03-30 13:17: /home/ben/Ben/Thesis/e2e_rl/Models/UNet.py
+2026-03-30 13:32: /home/ben/Ben/Thesis/e2e_rl/controllers/pure_pursuit.py
+2026-03-30 13:32: /home/ben/Ben/Thesis/e2e_rl/controllers/pid.py
+2026-03-30 13:32: /home/ben/Ben/Thesis/e2e_rl/controllers/mpc.py

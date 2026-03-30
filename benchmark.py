@@ -1,0 +1,460 @@
+"""
+Unified benchmark runner for the E2E-RL tractor-trailer controller.
+
+Runs one or more controllers on a fixed set of pre-generated test scenarios
+and exports per-step CSVs and a summary CSV for downstream analysis.
+
+Usage
+-----
+    # Forward path following — compare TD3 vs pure pursuit vs MPC vs PID
+    python benchmark.py --task forward --controllers td3,fpp,pid,mpc \\
+        --model models/Phase1/state_only/best_model.zip \\
+        --scenarios test_scenarios/
+
+    # Reverse — compare TD3 vs reverse pure pursuit
+    python benchmark.py --task reverse --controllers td3,rpp \\
+        --model models/.../best_model.zip
+
+    # Obstacle avoidance (forward)
+    python benchmark.py --task obstacle_fwd --controllers td3,fpp \\
+        --model models/.../best_model.zip
+
+Prerequisites
+-------------
+    python scripts/generate_test_scenarios.py   # builds test_scenarios/
+"""
+
+import argparse
+import csv
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from e2erl_utils.metrics import EpisodeMetricsLogger
+
+# -----------------------------------------------------------------------
+# Environment factories
+# -----------------------------------------------------------------------
+
+def _make_env(task: str):
+    if task == "forward":
+        from Environments.LineFollowing import StateObservationLineFollowingEnv
+        return StateObservationLineFollowingEnv(render_mode=None, max_episode_steps=1000)
+    elif task == "reverse":
+        from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv
+        return ReverseStateObservationLineFollowingEnv(render_mode=None, max_episode_steps=1000)
+    elif task == "obstacle_fwd":
+        from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv
+        env = ObstacleAvoidanceEnv(render_mode=None, max_episode_steps=1000)
+        env.obstacles_low = 5
+        env.obstacles_high = 10
+        return env
+    elif task == "obstacle_rev":
+        from Environments.ObstacleAvoidance import ReverseObstacleAvoidanceEnv
+        env = ReverseObstacleAvoidanceEnv(render_mode=None, max_episode_steps=1000)
+        env.obstacles_low = 5
+        env.obstacles_high = 10
+        return env
+    else:
+        raise ValueError(f"Unknown task: {task}")
+
+
+def _scenario_dir(scenarios_root: Path, task: str) -> Path:
+    mapping = {
+        "forward":      "forward",
+        "reverse":      "reverse",
+        "obstacle_fwd": "obstacles",
+        "obstacle_rev": "obstacles",
+    }
+    return scenarios_root / mapping[task]
+
+
+# -----------------------------------------------------------------------
+# Controller helpers
+# -----------------------------------------------------------------------
+
+def _load_td3(model_path: str, env):
+    from stable_baselines3 import TD3
+    model = TD3.load(model_path, env=env, device="auto")
+    dummy_obs = env.observation_space.sample()
+    for _ in range(100):
+        model.predict(dummy_obs, deterministic=True)
+    return model
+
+
+def _td3_step(model, obs):
+    t0 = time.perf_counter()
+    action, _ = model.predict(obs, deterministic=True)
+    return action, time.perf_counter() - t0
+
+
+def _fpp_step(env, ctrl):
+    """Forward pure pursuit step using PurePursuitController."""
+    from Environments.LineFollowing import compute_curvature
+    import e2erl_utils.config as config
+
+    t0 = time.perf_counter()
+    e_y, e_theta = env.get_vehicle_errors()
+    kappa = compute_curvature(env, lookahead_steps=10)
+    wheelbase = env.vehicle.lf + env.vehicle.lr
+    action = ctrl.step(
+        e_y=float(e_y),
+        e_theta=float(e_theta),
+        kappa=float(kappa),
+        wheelbase=float(wheelbase),
+        current_steer=float(env.vehicle.s),
+        dt=float(env.vehicle.dt),
+        max_steer_rate=float(np.deg2rad(config.steering_action)),
+    )
+    return action, time.perf_counter() - t0
+
+
+def _pid_step(env, ctrl):
+    """PID lane-following step using PIDLaneController."""
+    from Environments.LineFollowing import compute_curvature
+    import e2erl_utils.config as config
+
+    t0 = time.perf_counter()
+    e_y, e_theta = env.get_vehicle_errors()
+    e_y_t, _ = env.get_trailer_errors()
+    kappa = compute_curvature(env, lookahead_steps=10)
+    action = ctrl.step(
+        e_y=float(e_y),
+        e_theta=float(e_theta),
+        e_y_t=float(e_y_t),
+        kappa=float(kappa),
+        current_steer=float(env.vehicle.s),
+        dt=float(env.vehicle.dt),
+        max_steer_rate=float(np.deg2rad(config.steering_action)),
+    )
+    return action, time.perf_counter() - t0
+
+
+def _rpp_step(env):
+    """Reverse pure pursuit single-step action."""
+    import e2erl_utils.config as config
+
+    t0 = time.perf_counter()
+    error_t, error_theta_t = env.get_trailer_errors()
+    hitch = env.vehicle.p - env.vehicle.trailer.yaw
+
+    K_y_t, K_th_t = 1.2, 2.4
+    Kp_hitch = 3.0
+
+    phi_ref = float(np.clip(
+        -(K_y_t * error_t) - (K_th_t * error_theta_t),
+        -np.deg2rad(30), np.deg2rad(30),
+    ))
+    boost = 1.0 + 2.0 * max(0.0, (abs(hitch) - np.deg2rad(20)) / np.deg2rad(70))
+    steer_rate = float(np.clip(
+        boost * Kp_hitch * (phi_ref - hitch),
+        -np.deg2rad(config.steering_action),
+        np.deg2rad(config.steering_action),
+    ))
+    speed = -abs(float(config.initial_xd))
+    return np.array([steer_rate, speed], dtype=np.float32), time.perf_counter() - t0
+
+
+def _mpc_step(env, mpc, prev_steer: float):
+    """MPC single-step action. Returns (action, elapsed_s, new_prev_steer)."""
+    from controllers.mpc_traj_gen import generate_trajectory
+    import e2erl_utils.config as config
+
+    t0 = time.perf_counter()
+    traj = generate_trajectory(env.xx, env.yy, env.vehicle)
+    vx = float(env.vehicle.xd) if abs(float(env.vehicle.xd)) > 1e-3 else 1.0
+    delta_opt = float(mpc.solve(traj, state=(vx, prev_steer)))
+
+    steer_rate = float(np.clip(
+        (delta_opt - float(env.vehicle.s)) / float(env.vehicle.dt),
+        -np.deg2rad(config.steering_action),
+        np.deg2rad(config.steering_action),
+    ))
+    speed = float(env.vehicle.xd) if abs(float(env.vehicle.xd)) > 1e-3 else float(config.initial_xd)
+    return np.array([steer_rate, speed], dtype=np.float32), time.perf_counter() - t0, delta_opt
+
+
+# -----------------------------------------------------------------------
+# Scenario loading / patching
+# -----------------------------------------------------------------------
+
+def _load_scenario(npz_path: Path) -> dict:
+    data = np.load(npz_path, allow_pickle=False)
+    return {k: data[k] for k in data.files}
+
+
+def _patch_env(env, scenario: dict):
+    """Overwrite the environment's path (and obstacles if present) with stored scenario."""
+    env.xx = scenario["xx"].copy()
+    env.yy = scenario["yy"].copy()
+    if "obstacles" in scenario and hasattr(env, "obstacles"):
+        obs_arr = scenario["obstacles"]
+        env.obstacles = [(float(r[0]), float(r[1]), float(r[2])) for r in obs_arr]
+
+
+# -----------------------------------------------------------------------
+# Episode runner
+# -----------------------------------------------------------------------
+
+def run_episode(env, controller: str, model=None, mpc=None, fpp=None, pid=None) -> dict:
+    """Run one episode and return the summary metrics dict."""
+    logger = EpisodeMetricsLogger()
+    obs, _ = env.reset()
+
+    # Reset stateful controllers at episode start
+    if mpc is not None:
+        mpc.reset()
+    if fpp is not None:
+        fpp.reset()
+    if pid is not None:
+        pid.reset()
+
+    done = False
+    prev_steer = 0.0
+
+    while not done:
+        if controller == "td3":
+            action, elapsed = _td3_step(model, obs)
+        elif controller == "fpp":
+            action, elapsed = _fpp_step(env, fpp)
+        elif controller == "pid":
+            action, elapsed = _pid_step(env, pid)
+        elif controller == "rpp":
+            action, elapsed = _rpp_step(env)
+        elif controller == "mpc":
+            action, elapsed, prev_steer = _mpc_step(env, mpc, prev_steer)
+        else:
+            raise ValueError(f"Unknown controller: {controller!r}")
+
+        obs, reward, terminated, truncated, _ = env.step(action)
+        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        done = terminated or truncated
+
+    return logger.compute_summary(terminated=terminated, truncated=truncated)
+
+
+# -----------------------------------------------------------------------
+# Main benchmark loop
+# -----------------------------------------------------------------------
+
+def run_benchmark(
+    task: str,
+    controllers: list,
+    scenarios_root: Path,
+    model_path: str | None,
+    output_dir: Path,
+    fpp_params: dict | None = None,
+    pid_params: dict | None = None,
+    mpc_params: dict | None = None,
+):
+    scen_dir = _scenario_dir(scenarios_root, task)
+    scenario_files = sorted(scen_dir.glob("path_*.npz"))
+
+    if not scenario_files:
+        print(f"No scenario files found in {scen_dir}. Run scripts/generate_test_scenarios.py first.")
+        sys.exit(1)
+
+    print(f"Task: {task} | Controllers: {controllers} | Scenarios: {len(scenario_files)}")
+
+    env = _make_env(task)
+
+    td3_model = None
+    mpc_ctrl = None
+    fpp_ctrl = None
+    pid_ctrl = None
+
+    if "td3" in controllers:
+        if not model_path:
+            print("--model required for td3 controller")
+            sys.exit(1)
+        print(f"Loading TD3 model: {model_path}")
+        td3_model = _load_td3(model_path, env)
+
+    if "mpc" in controllers:
+        from controllers.mpc import TractorTrailerSteeringMPC
+        mpc_ctrl = TractorTrailerSteeringMPC()
+        if mpc_params:
+            for k, v in mpc_params.items():
+                setattr(mpc_ctrl, k, v)
+        print("MPC controller initialised.")
+
+    if "fpp" in controllers:
+        from controllers.pure_pursuit import PurePursuitController
+        fpp_ctrl = PurePursuitController(**(fpp_params or {}))
+        print(f"FPP controller: k_ff={fpp_ctrl.k_ff:.3f}  k_y={fpp_ctrl.k_y:.3f}  "
+              f"k_theta={fpp_ctrl.k_theta:.3f}  speed={fpp_ctrl.speed:.1f} m/s")
+
+    if "pid" in controllers:
+        from controllers.pid import PIDLaneController
+        pid_ctrl = PIDLaneController(**(pid_params or {}))
+        print(f"PID controller: Kp={pid_ctrl.Kp:.3f}  Ki={pid_ctrl.Ki:.4f}  "
+              f"Kd={pid_ctrl.Kd:.3f}  Kp_t={pid_ctrl.Kp_t:.3f}  "
+              f"k_ff={pid_ctrl.k_ff:.3f}  speed={pid_ctrl.speed:.1f} m/s")
+
+    raw_dir = output_dir / "raw" / task
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    summary_rows = []
+
+    for scen_idx, npz_path in enumerate(scenario_files):
+        scenario = _load_scenario(npz_path)
+        difficulty = scenario.get("difficulty", np.bytes_(b"unknown")).tobytes().decode()
+        seed = int(scenario.get("seed", np.array([scen_idx]))[0])
+
+        for ctrl in controllers:
+            print(
+                f"  [{scen_idx+1:3d}/{len(scenario_files)}] "
+                f"controller={ctrl:<6} difficulty={difficulty:<12} seed={seed}",
+                end="  ", flush=True,
+            )
+
+            env.reset(seed=seed)
+            _patch_env(env, scenario)
+
+            try:
+                summary = run_episode(
+                    env, ctrl,
+                    model=td3_model, mpc=mpc_ctrl, fpp=fpp_ctrl, pid=pid_ctrl,
+                )
+            except Exception as exc:
+                print(f"ERROR: {exc}")
+                summary = {"episode_length": 0, "total_reward": float("nan"), "completed": False}
+
+            summary.update({
+                "scenario_idx": scen_idx,
+                "scenario_file": npz_path.name,
+                "difficulty": difficulty,
+                "seed": seed,
+                "task": task,
+                "controller": ctrl,
+            })
+            summary_rows.append(summary)
+
+            print(
+                f"CTE_trailer={summary.get('mean_abs_cte_trailer', float('nan')):.3f}m  "
+                f"jackknife={summary.get('jackknifed', '?')}  "
+                f"completed={summary.get('completed', '?')}  "
+                f"steps={summary.get('episode_length', 0)}"
+            )
+
+    env.close()
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    summary_csv = output_dir / f"summary_{task}.csv"
+    if summary_rows:
+        all_keys = sorted({k for r in summary_rows for k in r.keys()})
+        with open(summary_csv, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=all_keys, extrasaction="ignore")
+            writer.writeheader()
+            for row in summary_rows:
+                writer.writerow({k: row.get(k, "") for k in all_keys})
+
+    print(f"\nSummary saved → {summary_csv}")
+    _print_aggregate(summary_rows, controllers)
+    return summary_rows
+
+
+def _print_aggregate(rows: list, controllers: list):
+    from collections import defaultdict
+    import statistics
+
+    metrics = [
+        "mean_abs_cte_trailer", "rms_cte_trailer", "max_abs_cte_trailer",
+        "mean_abs_cte_tractor",
+        "mean_abs_hitch_angle", "max_abs_hitch_angle",
+        "jackknifed", "collided", "completed",
+        "episode_length", "mean_inference_ms",
+    ]
+
+    grouped: dict = defaultdict(list)
+    for row in rows:
+        grouped[row["controller"]].append(row)
+
+    col_w = 26
+    header = f"{'Metric':<{col_w}}" + "".join(f"{c:>{col_w}}" for c in controllers)
+    print("\n" + "=" * len(header))
+    print(header)
+    print("=" * len(header))
+
+    for m in metrics:
+        line = f"{m:<{col_w}}"
+        for ctrl in controllers:
+            vals = [r[m] for r in grouped[ctrl] if m in r and r[m] == r[m]]
+            if not vals:
+                line += f"{'N/A':>{col_w}}"
+            elif isinstance(vals[0], bool):
+                line += f"{sum(vals)/len(vals)*100:>{col_w-1}.1f}%"
+            else:
+                line += f"{statistics.mean(vals):>{col_w}.4f}"
+        print(line)
+    print("=" * len(header) + "\n")
+
+
+# -----------------------------------------------------------------------
+# CLI
+# -----------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Benchmark E2E-RL tractor-trailer controller vs classical baselines"
+    )
+    parser.add_argument(
+        "--task",
+        choices=["forward", "reverse", "obstacle_fwd", "obstacle_rev"],
+        required=True,
+    )
+    parser.add_argument(
+        "--controllers",
+        default="td3",
+        help="Comma-separated list: td3, fpp, pid, rpp, mpc  (default: td3)",
+    )
+    parser.add_argument("--model", default=None, help="Path to TD3 .zip model")
+    parser.add_argument(
+        "--scenarios",
+        type=Path,
+        default=Path("test_scenarios"),
+        help="Root directory of pre-generated scenarios (default: test_scenarios/)",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("results"),
+        help="Output directory for CSVs (default: results/)",
+    )
+    parser.add_argument(
+        "--tuned_params",
+        type=Path,
+        default=None,
+        help="JSON file with tuned controller params from tune_controllers.py",
+    )
+
+    args = parser.parse_args()
+    controllers = [c.strip() for c in args.controllers.split(",")]
+
+    fpp_params = pid_params = mpc_params = None
+    if args.tuned_params and args.tuned_params.exists():
+        import json
+        with open(args.tuned_params) as f:
+            all_params = json.load(f)
+        fpp_params = all_params.get("fpp")
+        pid_params = all_params.get("pid")
+        mpc_params = all_params.get("mpc")
+        print(f"Loaded tuned params from {args.tuned_params}")
+
+    run_benchmark(
+        task=args.task,
+        controllers=controllers,
+        scenarios_root=args.scenarios,
+        model_path=args.model,
+        output_dir=args.output,
+        fpp_params=fpp_params,
+        pid_params=pid_params,
+        mpc_params=mpc_params,
+    )
+
+
+if __name__ == "__main__":
+    main()
