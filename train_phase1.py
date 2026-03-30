@@ -42,7 +42,7 @@ from stable_baselines3 import TD3
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import NormalActionNoise
-from stable_baselines3.common.vec_env import DummyVecEnv, VecTransposeImage
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecTransposeImage
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -95,6 +95,22 @@ def make_env(variant: str, render_mode=None, max_episode_steps: int = 1000):
         )
 
     raise ValueError(f"Unknown variant: {variant!r}. Choose from {VARIANTS}")
+
+
+def _make_env_fn(variant: str, rank: int, base_seed: int = 0):
+    """
+    Return a picklable factory for SubprocVecEnv.
+
+    Must be defined at module level (not inside a closure) so that Python's
+    pickle can serialise it for the subprocess workers.
+    Each worker gets a different seed via base_seed + rank.
+    """
+    def _init():
+        env = make_env(variant, render_mode=None)
+        env = Monitor(env)
+        env.reset(seed=base_seed + rank)
+        return env
+    return _init
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +236,7 @@ def make_td3(
     env,
     encoder_path: str | None = None,
     device: str = "auto",
+    n_envs: int = 1,
 ) -> TD3:
     """Build a TD3 model appropriate for the variant."""
     n_actions = env.action_space.shape[-1]
@@ -227,6 +244,11 @@ def make_td3(
         mean=np.zeros(n_actions),
         sigma=0.3 * np.ones(n_actions),
     )
+
+    # With a single env, train after each episode (matches original behaviour).
+    # With multiple envs, train every step — episode-based collection stalls
+    # until every worker finishes, which wastes parallelism.
+    train_freq = (1, "step") if n_envs > 1 else (1, "episode")
 
     common_kwargs = dict(
         env=env,
@@ -236,7 +258,7 @@ def make_td3(
         buffer_size=300_000,
         learning_starts=5_000,
         batch_size=256,
-        train_freq=(1, "episode"),
+        train_freq=train_freq,
         gradient_steps=-1,
     )
 
@@ -293,6 +315,7 @@ def train_variant(
     n_eval_episodes: int = 10,
     pretrain_collect_steps: int = 10_000,
     pretrain_epochs: int = 30,
+    n_envs: int = 1,
 ):
     save_dir = save_root / variant
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -300,7 +323,7 @@ def train_variant(
     log_dir.mkdir(exist_ok=True)
 
     print(f"\n{'='*60}")
-    print(f"  Training: {variant}  ({timesteps:,} steps)")
+    print(f"  Training: {variant}  ({timesteps:,} steps)  n_envs={n_envs}")
     print(f"  Save dir: {save_dir}")
     print(f"{'='*60}")
 
@@ -314,17 +337,23 @@ def train_variant(
             epochs=pretrain_epochs,
         )
 
-    # --- RL training ---
-    env      = Monitor(make_env(variant, render_mode=None))
-    _eval_mon = Monitor(make_env(variant, render_mode=None))
-    # BEV variants: SB3 wraps the training env in VecTransposeImage automatically;
-    # pre-wrap eval_env the same way so EvalCallback sees matching types.
-    if variant in _BEV_VARIANTS:
-        eval_env = VecTransposeImage(DummyVecEnv([lambda: _eval_mon]))
+    # --- Training env ---
+    if n_envs > 1:
+        env = SubprocVecEnv(
+            [_make_env_fn(variant, rank=i) for i in range(n_envs)],
+            start_method="fork",
+        )
     else:
-        eval_env = _eval_mon
+        env = Monitor(make_env(variant, render_mode=None))
 
-    model = make_td3(variant, env, encoder_path=encoder_path, device=device)
+    # --- Eval env (always single-process; pre-wrap BEV to match VecTransposeImage) ---
+    # SB3 auto-wraps the training env with VecTransposeImage for image obs.
+    # EvalCallback does not, so we pre-wrap manually for BEV variants.
+    eval_env = VecTransposeImage(DummyVecEnv([_make_env_fn(variant, rank=n_envs)])) \
+        if variant in _BEV_VARIANTS \
+        else Monitor(make_env(variant, render_mode=None))
+
+    model = make_td3(variant, env, encoder_path=encoder_path, device=device, n_envs=n_envs)
 
     eval_cb = EvalCallback(
         eval_env,
@@ -394,6 +423,17 @@ def main():
         default=30,
         help="Epochs for AE/UNet pretraining (default: 30)",
     )
+    parser.add_argument(
+        "--n_envs",
+        type=int,
+        default=1,
+        help=(
+            "Number of parallel environments (default: 1). "
+            "Values > 1 use SubprocVecEnv. Recommended: set to the number of "
+            "physical CPU cores available. Only meaningful for BEV variants where "
+            "the per-step render is the bottleneck."
+        ),
+    )
 
     args = parser.parse_args()
     to_train = VARIANTS if args.variant == "all" else [args.variant]
@@ -407,6 +447,7 @@ def main():
             n_eval_episodes=args.eval_episodes,
             pretrain_collect_steps=args.pretrain_steps,
             pretrain_epochs=args.pretrain_epochs,
+            n_envs=args.n_envs,
         )
 
     print("\nPhase 1 training complete.")
