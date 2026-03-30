@@ -1,0 +1,15 @@
+\begin{table}[H]
+\centering
+\caption{Controller performance comparison}
+\label{tab:benchmark_results}
+\begin{tabular}{lccc}
+\toprule
+Model & Avg.\ CTE (m) & Jackknife Events/100 & Latency (ms) \\
+\midrule
+PID                  & 0.784 & High   & $<5$    \\
+NMPC                 & 0.350 & Low    & 50--100 \\
+DDPG                 & 0.505 & Medium & 10--20  \\
+Decision Transformer & 1.717 & High   & 30--50  \\
+\bottomrule
+\end{tabular}
+\end{table}

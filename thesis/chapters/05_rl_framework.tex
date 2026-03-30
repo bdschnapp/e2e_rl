@@ -1,0 +1,46 @@
+\chapter{Reinforcement Learning Framework}
+\label{ch:rl_framework}
+
+\section{Deep Deterministic Policy Gradient (DDPG)}
+
+DDPG is an off-policy actor-critic algorithm specifically designed for continuous action spaces, making it well suited to steering and acceleration control. The actor network $\mu(s \mid \theta^\mu)$ maps states to deterministic actions, while the critic network $Q(s, a \mid \theta^Q)$ evaluates action quality via the Bellman equation:
+
+\begin{equation}
+    Q(s_t, a_t) = r_t + \gamma_d \, Q(s_{t+1},\, \mu(s_{t+1}))
+    \label{eq:bellman}
+\end{equation}
+
+Parameters are updated by minimising the temporal difference error in the critic and maximising the expected return through the actor using the deterministic policy gradient theorem.
+
+\subsection{Reward Function}
+\input{equations/reward_function}
+
+\subsection{Multiplicative vs.\ Additive Reward Structures}
+
+Prior results indicated that a multiplicative reward structure forces the agent to minimise both cross-track and heading errors simultaneously, preventing the policy from exploiting partial credit in the additive form. In this thesis, this logic is extended to include hitch articulation stability: the multiplicative penalty on $|\gamma|$ discourages the agent from trading path accuracy for a large articulation angle.
+
+\section{Decision Transformer}
+
+The Decision Transformer (DT) reformulates RL as a sequence-to-sequence problem. Given a context window of past states $s_{t-k:t}$, actions $a_{t-k:t-1}$, and returns-to-go $\hat{R}_{t-k:t}$, the model predicts the next action using the causal self-attention mechanism of the Transformer architecture:
+
+\begin{equation}
+    a_t = \pi_\theta(s_{t-k:t},\, a_{t-k:t-1},\, \hat{R}_{t-k:t})
+    \label{eq:dt}
+\end{equation}
+
+This architecture is particularly suited to reverse maneuvering, where an early steering error may only result in a jackknife several seconds later, requiring the model to reason over long-term dependencies.
+
+\subsection{Dataset Requirements}
+
+The ME~780 study revealed that DTs are prone to oscillation if the training dataset is too narrow. To address this, training data must include recovery manoeuvres obtained by:
+\begin{itemize}
+    \item injecting noise into a DDPG expert's actions during data collection;
+    \item explicitly including trajectories initialised from high-error states (e.g., $|e_y| > 1$\,m or $|\gamma| > 20^\circ$);
+    \item including step discontinuities in the reference path to force the model to learn re-acquisition behaviour.
+\end{itemize}
+
+\section{Hyperparameter Optimisation}
+
+Both the DDPG and DT agents require careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected via grid search over simulation rollouts. Full hyperparameter tables are provided in Appendix~\ref{app:hyperparameters}.
+
+% TODO: TD3 extension (twin critics, delayed policy updates), hyperparameter sweep results

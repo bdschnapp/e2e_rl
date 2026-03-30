@@ -1,0 +1,66 @@
+\chapter{Simulation and Experimental Implementation}
+\label{ch:simulation}
+
+\section{Gazebo Simulation Environment}
+
+Gazebo serves as the primary training environment. Unlike simple 2D simulators, Gazebo uses a physics engine to model the inertial properties, tire friction, and mechanical constraints of both the tractor and trailer. This is essential for simulating the jackknife condition, allowing the agent to experience the physical consequences of unstable reversing manoeuvres without risking damage to the Agilex hardware.
+
+The simulation environment includes:
+
+\begin{enumerate}
+    \item \textbf{URDF Modelling}: A detailed Unified Robot Description Format file for the Agilex tractor and its custom-built trailer, including the revolute joint at the hitch point.
+    \item \textbf{Obstacle Generation}: Randomly placed static and dynamic obstacles to train the obstacle avoidance module.
+    \item \textbf{Lane Markings}: Visual representations of lane boundaries to facilitate training of the CNN-based lane detection module.
+    \item \textbf{Collision Detection}: Contact sensors triggering episode termination and penalty on collision.
+    \item \textbf{Noisy Sensor Simulation}: Gaussian noise on LIDAR returns and camera images to model adverse weather conditions relevant to SOTIF analysis.
+\end{enumerate}
+
+\section{Autoware and ROS2 Integration}
+
+Autoware is an open-source software stack for self-driving vehicles providing modules for localisation, sensing, and planning. The RL agent interfaces with ROS2 nodes, subscribing to sensor data (LIDAR, cameras) and publishing steering and velocity commands to the Agilex motor controllers.
+
+The Waterloo MVS lab emphasises high-definition (HD) maps and robust localisation to provide a consistent reference frame. The HD map, generated from high-precision LIDAR data, allows the RL agent to determine its position relative to lane boundaries with sub-centimetre accuracy, serving as the global path reference.
+
+\section{Hardware Platform}
+
+Experimental validation is performed on:
+\begin{itemize}
+    \item \textbf{Agilex robotic platform}: The physical tractor unit, equipped with Robosense LIDAR and Basler cameras consistent with the WATonoBus sensor suite.
+    \item \textbf{Custom trailer}: A purpose-built trailer with a passive hitch joint, replicating the kinematic constraints of the simulated system.
+    \item \textbf{Sim-to-Real transfer}: Domain randomisation in Gazebo (varying friction coefficients, obstacle configurations, lighting) is used to reduce the reality gap.
+\end{itemize}
+
+\section{Testing Protocols}
+
+\subsection{Forward Motion and Obstacle Avoidance}
+
+\begin{table}[H]
+\centering
+\caption{Forward motion experiment definitions}
+\label{tab:forward_experiments}
+\begin{tabular}{p{4cm} p{5cm} p{4.5cm}}
+\toprule
+Experiment & Objective & Success Metric \\
+\midrule
+Path Fidelity            & Maintain low CTE on varying curvature paths & Mean Absolute CTE $< 0.2$\,m \\
+Dynamic Obstacle Avoidance & Divert from path to avoid moving actors and return safely & Zero collisions; minimum separation distance maintained \\
+Lane Detection Accuracy  & Identify lane boundaries via CNN under varied lighting & F1-score of lane segmentation mask \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Reverse Maneuvering and Jackknife Prevention}
+
+This is the most technically challenging test series. The research quantifies the ``Safe Articulation Zone'' and tests the agent's ability to remain within it during complex backing tasks:
+
+\begin{enumerate}
+    \item \textbf{Straight-line backing}: Reverse 20\,m without the articulation angle exceeding $5^\circ$.
+    \item \textbf{90-degree docking}: Reverse the trailer into a bay with width only 20\% greater than the trailer width.
+    \item \textbf{Jackknife recovery}: Initialise with $|\gamma| = 30^\circ$ (near-critical); recover to $|\gamma| < 5^\circ$ within 5\,m of travel.
+\end{enumerate}
+
+\subsection{Perception and Sensor Degradation}
+
+The CNN/autoencoder observation space enables robustness testing under simulated sensor degradation. Gazebo is configured to reduce image contrast and add LIDAR noise (simulating adverse weather), and the resulting increase in cross-track error is measured. This provides SOTIF-relevant insight into the operational design domain boundaries of the system.
+
+% TODO: Gazebo figures, ROS2 node graph, sensor noise parameter table

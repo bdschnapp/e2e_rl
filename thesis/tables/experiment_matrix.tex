@@ -1,0 +1,18 @@
+\begin{table}[H]
+\centering
+\caption{Experiment matrix: tasks, observations, and success criteria}
+\label{tab:experiment_matrix}
+\begin{tabular}{p{3.5cm} p{2.5cm} p{3cm} p{4cm}}
+\toprule
+Experiment & Task & Observation & Success Metric \\
+\midrule
+Path fidelity (forward)     & Path following & BEV image + vector state & Mean Abs.\ CTE $< 0.2$\,m \\
+Dynamic obstacle avoidance  & Avoidance      & BEV image + vector state & Zero collisions \\
+Lane detection              & Perception     & Camera image             & F1-score of lane mask \\
+Straight-line backing       & Reverse        & BEV image + vector state & $|\gamma| < 5^\circ$ over 20\,m \\
+90-degree docking           & Reverse        & BEV image + vector state & Trailer in bay; no collision \\
+Jackknife recovery          & Stability      & Vector state             & Recover to $|\gamma| < 5^\circ$ in 5\,m \\
+Sensor degradation          & Robustness     & Noisy BEV image          & CTE increase $< 50\%$ vs.\ clean \\
+\bottomrule
+\end{tabular}
+\end{table}

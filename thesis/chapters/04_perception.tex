@@ -1,0 +1,53 @@
+\chapter{Perception and Observation Space Design}
+\label{ch:perception}
+
+\section{CNN Encoder}
+
+A Convolutional Neural Network serves as the front-end of the RL agent, processing raw visual inputs or LIDAR-derived occupancy grids. This allows the agent to perceive the environment directly, facilitating lane detection and obstacle avoidance without requiring a pre-defined symbolic representation of every object. The WATonoBus project utilises a similar multi-modal sensor fusion approach, combining 3.2\,MP Basler cameras and Robosense LIDARs to detect snow-covered curbs and traffic participants.
+
+The CNN architecture extracts spatial features from:
+\begin{itemize}
+    \item occupancy grids derived from LIDAR point clouds
+    \item camera images (lane markings, obstacles)
+    \item lane boundary segmentation masks
+    \item BEV projections of the surrounding environment
+\end{itemize}
+
+These features are passed to the RL policy network. The ``curse of dimensionality'' is managed by focusing the CNN's receptive field on the area immediately surrounding the vehicle and its projected path. The CNN is trained in tandem with the DDPG actor, allowing the system to learn which visual features are most relevant for path maintenance and collision avoidance.
+
+\section{Autoencoder Latent Space}
+
+To improve RL training efficiency, an autoencoder compresses high-dimensional sensor observations into a compact latent representation. The encoder $E(\cdot)$ maps the observation $s$ to a latent vector $z$, and the decoder $D(\cdot)$ reconstructs the original observation:
+
+\begin{equation}
+    z = E(s)
+    \label{eq:encoder}
+\end{equation}
+\begin{equation}
+    \hat{s} = D(z)
+    \label{eq:decoder}
+\end{equation}
+
+By pre-training the autoencoder on a diverse dataset of driving scenarios---such as the DriveSOTIF dataset---the encoder learns to capture essential geometric features of the road and obstacles in a low-dimensional format. The RL agent then operates on $z$ rather than the raw observation, which reduces the number of parameters the policy network must learn, leading to faster convergence and better generalisation across environments.
+
+\section{Sensor Fusion}
+
+LIDAR point clouds are processed via ROS2 point cloud libraries and converted to 2D occupancy grids before being passed to the CNN. Camera data provides complementary lane boundary information. A collision module based on Time-to-Collision (TTC) provides a predictive safety signal that penalises imminent impacts.
+
+\begin{table}[H]
+\centering
+\caption{Perception stack components and their roles}
+\label{tab:perception_components}
+\begin{tabular}{p{3cm} p{4.5cm} p{5.5cm}}
+\toprule
+Component & Role & Implementation \\
+\midrule
+CNN Encoder    & Feature extraction from occupancy grids and camera feeds & Integrated as initial layers of the DDPG actor-critic network \\
+Autoencoder    & Dimensionality reduction of complex environmental observations & Pre-trained on Gazebo-generated datasets to establish latent state $z$ \\
+LIDAR Fusion   & Obstacle and lane boundary detection in 3D space & Processed via ROS2 point cloud libraries; converted to 2D grids \\
+Collision Module & Predictive safety layer to penalise imminent impacts & Based on Time-to-Collision (TTC) and safety stop requirements \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% TODO: architecture diagrams, UNet description, BEV camera anchor configuration, attention visualisation

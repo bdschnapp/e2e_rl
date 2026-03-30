@@ -77,11 +77,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    print("")
     print("Model:", args.model)
     print("Episodes:", args.episodes)
     print("Render:", args.render)
     print("Reverse:", args.reverse)
     print("Obstacles:", args.obstacles)
+    print("")
 
     if args.obstacles:
         if args.reverse:

@@ -1,0 +1,23 @@
+The proposed reward function is:
+
+\begin{equation}
+    R = w_1 e^{-|e_y|} + w_2 e^{-|e_\psi|} - w_3 |\gamma| - w_4 C
+    \label{eq:reward_additive}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $e_y$ = trailer cross-track error
+    \item $e_\psi$ = heading error
+    \item $\gamma$ = articulation angle
+    \item $C$ = collision penalty
+\end{itemize}
+
+A multiplicative alternative is also considered:
+
+\begin{equation}
+    R = e^{-|e_y|} \cdot e^{-|e_\psi|}
+    \label{eq:reward_multiplicative}
+\end{equation}
+
+% TODO: weight selection rationale, reward shaping analysis, appendix derivation reference

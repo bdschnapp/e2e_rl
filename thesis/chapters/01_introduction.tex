@@ -1,0 +1,53 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Motivation}
+
+The increasing demand for autonomous logistics and the growth of large-scale goods transportation have positioned articulated tractor-trailer vehicles as a critical target for autonomous control research. The transition from rigid-body autonomous navigation to the control of articulated tractor-trailer systems represents a significant escalation in mechanical complexity, perception requirements, and control instability, particularly during reverse maneuvering.
+
+Unlike single-body vehicles, tractor-trailer systems introduce non-holonomic constraints at the hitch point that fundamentally alter the stability characteristics of the vehicle. In reverse motion, the articulation angle $\gamma$ between the tractor and trailer exhibits open-loop instability: absent precise closed-loop control, any perturbation grows unbounded, culminating in the well-known jackknife condition from which no steering correction can recover the trailer's alignment. Classical approaches such as Nonlinear Model Predictive Control (NMPC) can manage this instability by optimising over a prediction horizon, but their computational demands and reliance on accurate system models limit their applicability in unstructured or sensor-rich environments.
+
+\section{Problem Definition}
+
+The core challenge addressed in this thesis is twofold. First, the kinematic and dynamic complexity of tractor-trailer systems makes it difficult to design reward functions and control policies that simultaneously optimise path tracking performance and hitch stability. Second, real-world autonomous deployment requires perception of lane boundaries and obstacles directly from high-dimensional sensor data, rather than from pre-computed symbolic state representations.
+
+Prior work in the ME~780 project evaluated Deep Deterministic Policy Gradient (DDPG) and Decision Transformer (DT) models for path following in single-vehicle systems. While DDPG achieved cross-track errors competitive with PID control, both learning-based methods showed significant degradation under novel conditions, and neither was tested on articulated dynamics or reverse motion.
+
+\section{Thesis Contributions}
+
+This thesis extends the ME~780 foundational work by:
+
+\begin{itemize}
+    \item developing a full kinematic and dynamic model of a tractor-trailer system including hitch instability analysis;
+    \item designing a vision-based RL observation space using CNN encoders and autoencoders operating on bird's-eye-view (BEV) occupancy grids;
+    \item engineering a reward function that balances cross-track error, heading error, hitch articulation stability, and collision avoidance;
+    \item implementing and benchmarking DDPG and Decision Transformer agents against PID and NMPC baselines across forward, reverse, and obstacle-avoidance tasks;
+    \item validating the trained policies in the Gazebo simulation environment and transferring to the Agilex hardware platform via ROS2 and Autoware.
+\end{itemize}
+
+The research aligns with the objectives of the Mechatronics Vehicle Systems (MVS) Lab and the WATonoBus project at the University of Waterloo.
+
+\section{Institutional Context}
+
+This work is submitted in partial fulfilment of the requirements for a Master of Applied Science (MASc) degree in the Department of Mechanical and Mechatronics Engineering at the University of Waterloo. The degree requires six terms of full-time registration, completion of 3--5 graduate-level courses, appointment of two additional faculty readers, and a mandatory 15-day public display period. The target completion date is early July, with a seminar scheduled for late July.
+
+\begin{table}[H]
+\centering
+\caption{MASc thesis requirements summary}
+\label{tab:masc_requirements}
+\begin{tabular}{ll}
+\toprule
+Element & Requirement \\
+\midrule
+Research Scope   & Substantial problem extending beyond existing laboratory results \\
+Literature Review & Comprehensive assessment of classical control and modern AI approaches \\
+Validation       & Both simulation (Gazebo) and hardware (Agilex) empirical evidence \\
+Length/Format    & Typically 80--120 pages; GSPA formatting and UWSpace submission \\
+Committee        & Supervisor plus two faculty readers; formal display period \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Thesis Organisation}
+
+The remainder of this thesis is structured as follows. Chapter~\ref{ch:literature_review} reviews classical and learning-based control methods for articulated vehicles, alongside relevant perception and safety literature. Chapter~\ref{ch:modeling} derives the state-space equations for the tractor-trailer system and analyses the jackknife instability. Chapter~\ref{ch:perception} presents the CNN and autoencoder-based perception stack. Chapter~\ref{ch:rl_framework} defines the MDP formulation and details the DDPG and Decision Transformer implementations. Chapter~\ref{ch:simulation} describes the Gazebo simulation environment and Agilex hardware integration. Chapter~\ref{ch:results} presents and discusses experimental results. Chapter~\ref{ch:conclusion} summarises the findings and outlines future work.

@@ -1,0 +1,34 @@
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+\section{Summary of Findings}
+
+This thesis presented a reinforcement learning framework for articulated autonomous vehicle control. The key contributions demonstrated are:
+\begin{itemize}
+    \item forward and reverse maneuvering with active hitch stability control;
+    \item perception-aware obstacle avoidance via CNN-based occupancy grid processing;
+    \item jackknife prevention through reward engineering and articulation angle penalties;
+    \item sim-to-real deployment on the Agilex platform via ROS2 and Autoware.
+\end{itemize}
+
+The integration of vision-based perception addresses the ``black box'' nature of earlier RL systems. By visualising the attention masks of the CNN encoder or the reconstruction accuracy of the autoencoder, it is possible to gain interpretable insight into the steering decisions of the policy. This interpretability is essential for eventual deployment in public environments such as the University of Waterloo campus, where the WATonoBus operates.
+
+\section{Limitations}
+
+The study is subject to the following constraints:
+\begin{itemize}
+    \item Experiments are conducted within a specific Operational Design Domain (ODD); performance outside these conditions is not characterised.
+    \item Sensor noise models in Gazebo approximate but do not fully replicate all real-world degradation modes (e.g., lens icing, LIDAR blooming).
+    \item The current framework assumes a fixed payload; hitch dynamics change significantly with varying trailer mass.
+\end{itemize}
+
+\section{Future Work}
+
+Several directions remain open for future investigation:
+\begin{itemize}
+    \item \textbf{Multi-trailer systems}: Extending the kinematic model and RL policy to double or B-train configurations.
+    \item \textbf{Online adaptation}: Updating the policy in real time to compensate for varying payloads and road conditions.
+    \item \textbf{Control Barrier Function overlays}: Implementing CBFs as a hard safety layer that overrides the RL agent when a collision or jackknife is imminent, bridging high-performance AI control with the deterministic safety requirements of mechatronics engineering.
+    \item \textbf{Formal verification}: Applying reachability analysis to provide provable bounds on the articulation angle under the learned policy.
+    \item \textbf{Multi-modal perception}: Incorporating radar and thermal imaging to improve perception robustness in adverse weather.
+\end{itemize}

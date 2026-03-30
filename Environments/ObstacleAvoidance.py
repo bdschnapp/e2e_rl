@@ -324,24 +324,24 @@ class ObstacleAvoidance:
         error_t, error_theta_t = self.get_trailer_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
         return super().get_reward(error, error_theta, error_t, error_theta_t)
 
-    # def _render_frame(self, surface=None):
-    #     # initialize pygame if it hasn't been already
-    #     if surface is None:
-    #         if self.canvas is None:
-    #             pygame.init()
-    #             self.canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-    #
-    #     surface = surface if surface else self.canvas
-    #
-    #     # render the vehicle
-    #     super()._render_frame(surface)
-    #
-    #     # render the path on top of the vehicle
-    #     self.render_path(surface)
-    #     # render the local path
-    #     self.render_path(surface, xx=self.local_path[:, 0], yy=self.local_path[:, 1], color=(255, 0, 0))
-    #
-    #     return np.transpose(np.array(pygame.surfarray.pixels3d(surface)), axes=(1, 0, 2))
+    def _render_frame(self, surface=None):
+        # initialize pygame if it hasn't been already
+        if surface is None:
+            if self.canvas is None:
+                pygame.init()
+                self.canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+        surface = surface if surface else self.canvas
+
+        # render the vehicle
+        super()._render_frame(surface)
+
+        # render the path on top of the vehicle
+        self.render_path(surface)
+        # render the local path
+        self.render_path(surface, xx=self.local_path[:, 0], yy=self.local_path[:, 1], color=(255, 0, 0))
+
+        return np.transpose(np.array(pygame.surfarray.pixels3d(surface)), axes=(1, 0, 2))
 
     def generate_path(self):
         super().generate_path()

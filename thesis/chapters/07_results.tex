@@ -1,0 +1,22 @@
+\chapter{Results and Discussion}
+\label{ch:results}
+
+\section{Path Following Performance}
+
+% TODO: training curves (episode return vs. timesteps), mean/std CTE per model
+
+\section{Reverse Maneuvering Success}
+
+% TODO: jackknife rate per model, safe articulation zone analysis, trajectory plots
+
+\section{Perception Robustness}
+
+% TODO: CTE degradation under sensor noise, F1-score vs. noise level curves
+
+\section{Benchmark Comparison}
+\input{tables/benchmark_results}
+
+The results must be understood in terms of multi-objective performance: in rigid-body systems, success is synonymous with minimising cross-track error. In articulated systems, hitch stability takes precedence over exact path following. An agent that maintains $|\gamma| < 5^\circ$ throughout a reverse task is more successful than one that achieves lower CTE but triggers jackknife events.
+
+% TODO: statistical significance (confidence intervals), ablation over reward weight choices
+\input{tables/experiment_matrix}

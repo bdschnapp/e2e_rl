@@ -160,15 +160,15 @@ if __name__ == "__main__":
     # main(render_mode=None,
     #      save_path="./models/LineFollowing/Reverse/",
     #      timesteps=60_000)
-    #
-    # # train forward model with obstacles
-    # from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv as LineFollowingEnv
-    # main(render_mode=None,
-    #      save_path="./models/ObstacleAvoidance/Forward/",
-    #      timesteps=90_000)
 
-    # train reverse model with obstacles
-    from Environments.ObstacleAvoidance import ReverseObstacleAvoidanceEnv as LineFollowingEnv
+    # train forward model with obstacles
+    from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv as LineFollowingEnv
     main(render_mode=None,
-         save_path="./models/ObstacleAvoidance/Reverse/",
+         save_path="./models/ObstacleAvoidance/Forward/",
          timesteps=180_000)
+
+    # # train reverse model with obstacles
+    # from Environments.ObstacleAvoidance import ReverseObstacleAvoidanceEnv as LineFollowingEnv
+    # main(render_mode=None,
+    #      save_path="./models/ObstacleAvoidance/Reverse/",
+    #      timesteps=180_000)

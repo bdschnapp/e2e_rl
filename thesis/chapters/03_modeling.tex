@@ -1,0 +1,28 @@
+\chapter{Mathematical Modeling and Problem Formulation}
+\label{ch:modeling}
+
+\section{Tractor Dynamics}
+\input{equations/tractor_model}
+
+\section{Trailer Articulation and Reverse Instability}
+\input{equations/trailer_reverse_stability}
+
+\section{Challenges of Reverse Maneuvering}
+
+Reverse motion is characterised by a sign reversal in the kinematic equations, which transforms the stabilising effect of forward velocity into a destabilising force. Numerical experiments using NMPC have shown that successful reverse maneuvering requires optimisation of the steering input over a prediction horizon to prevent $\gamma$ from reaching its mechanical limits. The RL agent developed in this thesis must learn analogous foresight: rewarding actions that keep the trailer aligned with the target path while maintaining $\gamma$ within a safe operational envelope.
+
+\section{MDP Formulation}
+
+The control problem is cast as a Markov Decision Process (MDP) $(\mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \gamma_d)$ where:
+
+\begin{itemize}
+    \item $\mathcal{S}$: observation space consisting of a vector of state variables (steering angle, articulation angle, cross-track error, heading error) and an $84\times84$ grayscale BEV image;
+    \item $\mathcal{A}$: continuous action space $[\dot{\delta}, v] \in [-15^\circ/\text{s},\, 15^\circ/\text{s}] \times [0,\, 2\,\text{m/s}]$;
+    \item $\mathcal{T}$: transition dynamics simulated in Gazebo;
+    \item $\mathcal{R}$: reward function defined in Chapter~\ref{ch:rl_framework};
+    \item $\gamma_d$: discount factor.
+\end{itemize}
+
+Episodes terminate on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion.
+
+% TODO: full state-space derivation, slip angle dynamics, linearisation, phase portrait

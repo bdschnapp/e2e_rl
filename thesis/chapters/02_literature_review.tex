@@ -1,0 +1,62 @@
+\chapter{Literature Review}
+\label{ch:literature_review}
+
+\section{Articulated Vehicle Control}
+
+\subsection{Classical Stabilisation Techniques}
+Classical articulated vehicle control methods address the hitch instability through structured model-based approaches:
+
+\begin{itemize}
+    \item \textbf{PID control}: Simple to implement and computationally negligible, but incapable of anticipating the jackknife condition. Gains must be re-tuned for different payloads and path curvatures.
+    \item \textbf{Model Predictive Control (MPC)}: Optimises steering over a receding horizon subject to state and input constraints. Linear MPC can enforce hard bounds on the articulation angle $\gamma$.
+    \item \textbf{Nonlinear MPC (NMPC)}: Captures the full nonlinear kinematics including reverse instability. Projected to achieve cross-track errors near 0.35\,m, but incurs 50--100\,ms latency per control step.
+    \item \textbf{Active hitch stabilisation}: Applies an additional actuated degree of freedom at the hitch to damp articulation oscillations. Research at Waterloo into trailer sway control and active hitches demonstrates that lateral articulation at the hitch can mitigate oscillations, but for a standard autonomous tractor-trailer this must be managed purely through the tractor's steering angle $\delta$.
+\end{itemize}
+
+\subsection{Kinematic Models}
+The bicycle model provides a baseline for rigid-body longitudinal and lateral dynamics. For an articulated system, the state vector must be expanded to include the trailer heading and articulation angle, as detailed in Chapter~\ref{ch:modeling}.
+
+\section{Reinforcement Learning in Autonomous Driving}
+
+\subsection{Policy Gradient Methods}
+Deep Deterministic Policy Gradient (DDPG) is an off-policy actor-critic algorithm designed for continuous action spaces. Prior work in ME~780 established that DDPG achieves a cross-track error of approximately 0.505\,m for rigid-body path following, outperforming a PID baseline of 0.784\,m on the same task.
+
+Proximal Policy Optimisation (PPO) offers improved stability over DDPG through clipped probability ratios, but its on-policy sample efficiency is lower, which is a significant consideration when simulation rollouts are expensive.
+
+\subsection{Transformer-Based Methods}
+Decision Transformers (DT) reformulate RL as sequence modelling: an action is predicted from a context window of past states, actions, and returns-to-go using a causal self-attention mechanism. The ME~780 study found that DTs achieve a cross-track error of 1.717\,m and are prone to oscillation if the training dataset is insufficiently diverse. To address this, the MASc research must utilise a dataset that includes recovery maneuvers, either by injecting noise into a DDPG expert's actions or by explicitly including high-error-state trajectories.
+
+\section{Perception and Representation Learning}
+
+\subsection{Convolutional Neural Networks for Driving}
+CNNs have become the standard front-end for autonomous driving perception, extracting spatial features from camera images and LIDAR-derived occupancy grids. The WATonoBus project at Waterloo utilises 3.2\,MP Basler cameras and Robosense LIDARs to detect snow-covered curbs and traffic participants, providing an operational context directly relevant to this thesis.
+
+\subsection{Autoencoders for State Compression}
+Autoencoders compress high-dimensional observations into a compact latent representation, mitigating the curse of dimensionality for RL training. By pre-training an autoencoder on a diverse dataset of driving scenarios—such as the DriveSOTIF dataset—the encoder learns to capture essential geometric features of the road and obstacles. The RL agent then operates on the latent vector $z$, which reduces policy network parameters, accelerates convergence, and improves generalisation across environments.
+
+\section{Safety in Autonomous Systems}
+
+Safety of the Intended Functionality (SOTIF) defines the safety boundary for autonomous systems operating under nominal sensor and actuator conditions. For articulated vehicles, SOTIF analysis requires characterising the conditions under which the RL policy produces unsafe actions (e.g., allowing $\gamma$ to approach the jackknife threshold). Control Barrier Functions (CBFs) offer a formal mechanism to overlay hard safety constraints on top of a learned policy, effectively bridging high-performance AI control with the deterministic safety requirements of mechatronics engineering.
+
+\section{Benchmarking Against Recent Waterloo Theses}
+
+To contextualise the expected level of rigor, Table~\ref{tab:waterloo_theses} summarises recent MASc theses from the Mechatronics domain at the University of Waterloo.
+
+\begin{table}[H]
+\centering
+\caption{Selected recent MASc theses, University of Waterloo Mechatronics Engineering}
+\label{tab:waterloo_theses}
+\begin{tabular}{p{2.2cm} p{3.5cm} p{3.5cm} p{4.5cm}}
+\toprule
+Author (Year) & Topic & Methodology & Rigor Highlights \\
+\midrule
+Joseph (2025)    & Gaze-enabled grasping assistance      & ROS2, Kinova Arm, Meta Quest Pro       & User study with 30 participants; workload and performance metrics \\
+Thibault (2022)  & Humanoid robotic manipulation         & EUROBENCH, REEM-C robot                & Defined ``loco-manipulation''; new manipulability--stability metrics \\
+Hart (2023)      & Gait detection via machine learning   & Wearable sensors, ternary classification & 6 classical + 1 Transformer model; grid-search hyperparameter optimisation \\
+Wei (2021)       & Path following for manipulators       & Transpose Jacobian control             & Free of inverse transformations; validated on 2-DoF and 4-DoF robots \\
+Bickford (2019)  & Autonomous bicycle stabilisation      & Linear control, Whipple model          & Multi-loop architecture; ``virtual paths'' for high-error recovery \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Common themes include strong mathematical modelling foundations and comprehensive validation datasets. For this thesis, a simple ``it works'' result is insufficient; the candidate must quantify stability limits, evaluate performance across varied paths, and compare against classical benchmarks.

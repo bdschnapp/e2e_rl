@@ -1,0 +1,101 @@
+\documentclass[12pt]{report}
+
+% Page layout
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% Math
+\usepackage{amsmath,amssymb,amsfonts}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{longtable}
+
+% Figures
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{caption}
+
+% Lists
+\usepackage{enumitem}
+
+% Links
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+% Algorithms
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Code listings
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Plots
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% Bibliography
+\usepackage{cite}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\title{Autonomous Articulated Vehicle Control via Deep Reinforcement Learning and High-Dimensional Perception}
+\author{Your Name}
+\date{\today}
+
+% =====================================================
+% THESIS TODO NOTES
+% =====================================================
+% - Choose 2 readers
+% - Schedule seminar
+% - Apply reader suggestions
+% - Target thesis complete by early July
+% - Schedule seminar for late July
+%
+% Environment updates:
+% 1. Terminate and reward when vehicle stops if path infeasible
+% 2. On collision, teleport to start and retry with lower-speed reward
+% 3. Reward percentage completion instead of terminal-only reward
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+% Chapters
+\include{chapters/01_introduction}
+\include{chapters/02_literature_review}
+\include{chapters/03_modeling}
+\include{chapters/04_perception}
+\include{chapters/05_rl_framework}
+\include{chapters/06_simulation}
+\include{chapters/07_results}
+\include{chapters/08_conclusion}
+
+% Appendices
+\appendix
+\include{appendices/appendix_ros2_stack}
+\include{appendices/appendix_hyperparameters}
+\include{appendices/appendix_additional_plots}
+\include{chapters/appendix_a_reward_derivation}
+
+% Bibliography
+\bibliographystyle{ieeetr}
+\bibliography{bibliography/references,bibliography/thesis_refs}
+
+\end{document}

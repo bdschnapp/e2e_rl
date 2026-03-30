@@ -1,0 +1,8 @@
+# latexmkrc — latexmk configuration
+
+$pdf_mode = 1;          # Use pdflatex
+$pdflatex = 'pdflatex -interaction=nonstopmode -synctex=1 %O %S';
+$out_dir = 'build';
+
+# Additional file extensions to clean
+@generated_exts = (@generated_exts, 'synctex.gz', 'nav', 'snm', 'vrb');

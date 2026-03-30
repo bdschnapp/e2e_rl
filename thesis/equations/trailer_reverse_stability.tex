@@ -1,0 +1,16 @@
+The articulated system introduces hitch geometry defined by:
+\begin{itemize}
+    \item $L_h$: distance from tractor rear axle to hitch point
+    \item $L_t$: distance from hitch point to trailer axle
+    \item $\gamma$: articulation angle between tractor and trailer
+\end{itemize}
+
+The hitch angle kinematics during reverse motion are:
+\begin{equation}
+    \dot{\gamma} = \frac{v}{L_t} \sin\gamma - \frac{v}{L_h} \tan\delta \cos\gamma
+    \label{eq:hitch_kinematics}
+\end{equation}
+
+Reverse motion introduces instability as $\gamma$ approaches the jackknife threshold.
+
+% TODO: stability analysis, linearisation about equilibrium, phase portrait
