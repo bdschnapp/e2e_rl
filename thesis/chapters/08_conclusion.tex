@@ -3,32 +3,35 @@
 
 \section{Summary of Findings}
 
-This thesis presented a reinforcement learning framework for articulated autonomous vehicle control. The key contributions demonstrated are:
+This thesis presented a reinforcement learning framework for articulated autonomous vehicle control, building on the foundational work from ME~780 (DDPG and Decision Transformer for single-vehicle path following) and ECE~682 (LQR control of the vehicle bicycle model with tractor-trailer kinematics). The key contributions demonstrated are:
 \begin{itemize}
-    \item forward and reverse maneuvering with active hitch stability control;
-    \item perception-aware obstacle avoidance via CNN-based occupancy grid processing;
-    \item jackknife prevention through reward engineering and articulation angle penalties;
-    \item sim-to-real deployment on the Agilex platform via ROS2 and Autoware.
+    \item a combined dynamic tractor and kinematic trailer model implemented in a custom Gymnasium simulation environment, extending the single-vehicle bicycle model from prior work;
+    \item a vision-based observation space incorporating BEV images rendered from the Pygame simulation, enabling spatial perception of lane boundaries and obstacles;
+    \item a TD3 reinforcement learning agent trained on lane-following and obstacle avoidance tasks with a multiplicative reward function penalising cross-track error, heading error, and hitch articulation angle;
+    \item comparison of TD3 performance against PID and MPC classical control baselines and the prior ME~780 DDPG results.
 \end{itemize}
 
-The integration of vision-based perception addresses the ``black box'' nature of earlier RL systems. By visualising the attention masks of the CNN encoder or the reconstruction accuracy of the autoencoder, it is possible to gain interpretable insight into the steering decisions of the policy. This interpretability is essential for eventual deployment in public environments such as the University of Waterloo campus, where the WATonoBus operates.
+The integration of visual perception via BEV imagery extends the state-only approach of the ME~780 work. By processing rendered BEV images through a CNN feature extractor, the agent gains spatial context about lane geometry and obstacle positions that vector state observations alone cannot provide.
 
 \section{Limitations}
 
 The study is subject to the following constraints:
 \begin{itemize}
-    \item Experiments are conducted within a specific Operational Design Domain (ODD); performance outside these conditions is not characterised.
-    \item Sensor noise models in Gazebo approximate but do not fully replicate all real-world degradation modes (e.g., lens icing, LIDAR blooming).
+    \item Experiments are conducted entirely within the custom 2D Pygame/Gymnasium simulation environment; performance in higher-fidelity simulators or on physical hardware has not yet been characterised.
+    \item The 2D simulation approximates the vehicle dynamics but does not capture all effects present in a real tractor-trailer system, such as load transfer, tire saturation at high slip angles, or hitch joint compliance.
     \item The current framework assumes a fixed payload; hitch dynamics change significantly with varying trailer mass.
+    \item Obstacle avoidance is limited to static obstacles; dynamic obstacle handling is not addressed.
 \end{itemize}
 
 \section{Future Work}
 
 Several directions remain open for future investigation:
 \begin{itemize}
+    \item \textbf{Higher-fidelity simulation}: Validating the trained policies in a physics-based 3D simulator (e.g., Gazebo) with a detailed URDF model of the tractor-trailer system, including realistic tire and hitch dynamics.
+    \item \textbf{Hardware deployment}: Transferring trained policies to a physical robotic platform, requiring sim-to-real transfer techniques such as domain randomisation and system identification.
+    \item \textbf{Decision Transformer for tractor-trailer}: Applying the DT approach from ME~780 to the articulated vehicle setting, with training data generated from the TD3 expert policy and augmented with high-error recovery trajectories.
     \item \textbf{Multi-trailer systems}: Extending the kinematic model and RL policy to double or B-train configurations.
     \item \textbf{Online adaptation}: Updating the policy in real time to compensate for varying payloads and road conditions.
-    \item \textbf{Control Barrier Function overlays}: Implementing CBFs as a hard safety layer that overrides the RL agent when a collision or jackknife is imminent, bridging high-performance AI control with the deterministic safety requirements of mechatronics engineering.
-    \item \textbf{Formal verification}: Applying reachability analysis to provide provable bounds on the articulation angle under the learned policy.
-    \item \textbf{Multi-modal perception}: Incorporating radar and thermal imaging to improve perception robustness in adverse weather.
+    \item \textbf{Control Barrier Function overlays}: Implementing CBFs as a hard safety layer that overrides the RL agent when a collision or jackknife is imminent.
+    \item \textbf{Dynamic obstacles}: Extending the obstacle avoidance environment to include moving obstacles and integrating predictive collision avoidance.
 \end{itemize}

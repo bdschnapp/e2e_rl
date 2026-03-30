@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, sys, re\nfrom datetime import datetime\ntry:\n    d = json.load(sys.stdin)\n    f = d.get('tool_input', {}).get('file_path', '')\n    if re.search(r'/(Environments|VehicleModels|Models|controllers|e2erl_utils)/', f):\n        entry = datetime.now().strftime('%Y-%m-%d %H:%M') + ': ' + f + '\\n'\n        with open('/home/ben/Ben/Thesis/e2e_rl/thesis/pending_updates.md', 'a') as fh:\n            fh.write(entry)\nexcept Exception:\n    pass\n\" 2>/dev/null || true",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

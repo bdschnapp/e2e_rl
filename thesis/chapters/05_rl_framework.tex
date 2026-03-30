@@ -1,23 +1,27 @@
 \chapter{Reinforcement Learning Framework}
 \label{ch:rl_framework}
 
-\section{Deep Deterministic Policy Gradient (DDPG)}
+\section{Twin Delayed Deep Deterministic Policy Gradient (TD3)}
 
-DDPG is an off-policy actor-critic algorithm specifically designed for continuous action spaces, making it well suited to steering and acceleration control. The actor network $\mu(s \mid \theta^\mu)$ maps states to deterministic actions, while the critic network $Q(s, a \mid \theta^Q)$ evaluates action quality via the Bellman equation:
+Twin Delayed Deep Deterministic Policy Gradient (TD3) is an off-policy actor-critic algorithm designed for continuous action spaces. TD3 extends the Deep Deterministic Policy Gradient (DDPG) algorithm from the ME~780 prior work with three key improvements: twin critic networks (to reduce overestimation bias), delayed policy updates (to improve stability), and target policy smoothing (to reduce variance in critic updates).
+
+Like DDPG, the TD3 actor network $\mu(s \mid \theta^\mu)$ maps states to deterministic actions, while the critic networks $Q_1, Q_2(s, a \mid \theta^{Q_1}, \theta^{Q_2})$ evaluate action quality. The target value is computed using the minimum of the two critic estimates:
 
 \begin{equation}
-    Q(s_t, a_t) = r_t + \gamma_d \, Q(s_{t+1},\, \mu(s_{t+1}))
-    \label{eq:bellman}
+    y = r_t + \gamma_d \min_{i=1,2} Q_i(s_{t+1},\, \mu(s_{t+1}) + \epsilon)
+    \label{eq:td3_target}
 \end{equation}
 
-Parameters are updated by minimising the temporal difference error in the critic and maximising the expected return through the actor using the deterministic policy gradient theorem.
+where $\epsilon \sim \text{clip}(\mathcal{N}(0, \sigma), -c, c)$ is clipped Gaussian noise added to the target action for smoothing. Parameters are updated by minimising the temporal difference error in the critics and maximising the expected return through the actor using the deterministic policy gradient theorem.
+
+TD3 is implemented using the Stable Baselines3 library, which provides a reliable implementation integrated with the Gymnasium environment API.
 
 \subsection{Reward Function}
 \input{equations/reward_function}
 
 \subsection{Multiplicative vs.\ Additive Reward Structures}
 
-Prior results indicated that a multiplicative reward structure forces the agent to minimise both cross-track and heading errors simultaneously, preventing the policy from exploiting partial credit in the additive form. In this thesis, this logic is extended to include hitch articulation stability: the multiplicative penalty on $|\gamma|$ discourages the agent from trading path accuracy for a large articulation angle.
+Prior ME~780 results indicated that a multiplicative reward structure forces the agent to minimise both cross-track and heading errors simultaneously, preventing the policy from exploiting partial credit in the additive form. In this thesis, this logic is extended to include hitch articulation stability: the multiplicative penalty on $|\gamma|$ discourages the agent from trading path accuracy for a large articulation angle.
 
 \section{Decision Transformer}
 
@@ -28,19 +32,19 @@ The Decision Transformer (DT) reformulates RL as a sequence-to-sequence problem.
     \label{eq:dt}
 \end{equation}
 
-This architecture is particularly suited to reverse maneuvering, where an early steering error may only result in a jackknife several seconds later, requiring the model to reason over long-term dependencies.
+Decision transformers are an offline reinforcement learning approach: rather than training by interacting with the environment, they are trained on recorded trajectories of an agent (such as the TD3 policy) interacting with the environment. This architecture is relevant for the tractor-trailer setting, where early steering errors may only result in a jackknife condition several seconds later, requiring the model to reason over long-term dependencies.
 
 \subsection{Dataset Requirements}
 
-The ME~780 study revealed that DTs are prone to oscillation if the training dataset is too narrow. To address this, training data must include recovery manoeuvres obtained by:
+The ME~780 study revealed that DTs are prone to oscillation if the training dataset is too narrow in state diversity. To address this, training data should include recovery manoeuvres obtained by:
 \begin{itemize}
-    \item injecting noise into a DDPG expert's actions during data collection;
+    \item injecting noise into a TD3 expert's actions during data collection;
     \item explicitly including trajectories initialised from high-error states (e.g., $|e_y| > 1$\,m or $|\gamma| > 20^\circ$);
-    \item including step discontinuities in the reference path to force the model to learn re-acquisition behaviour.
+    \item including step discontinuities in the reference path to force the model to learn re-acquisition behaviour, as demonstrated in the ME~780 work.
 \end{itemize}
 
 \section{Hyperparameter Optimisation}
 
-Both the DDPG and DT agents require careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected via grid search over simulation rollouts. Full hyperparameter tables are provided in Appendix~\ref{app:hyperparameters}.
+Both the TD3 and DT agents require careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected via grid search over simulation rollouts. Full hyperparameter tables are provided in Appendix~\ref{app:hyperparameters}.
 
-% TODO: TD3 extension (twin critics, delayed policy updates), hyperparameter sweep results
+% TODO: TD3 hyperparameter sweep results, comparison with ME780 DDPG hyperparameters

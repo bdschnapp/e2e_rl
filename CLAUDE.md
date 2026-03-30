@@ -76,3 +76,44 @@ All tunable parameters are in `e2erl_utils/config.py`:
 - Action/observation scaling factors
 - BEV camera settings (anchor, offset, zoom)
 - Lane geometry parameters
+
+## Thesis Integration
+
+### Default: Use Summaries, Not Raw .tex Files
+
+**Do NOT read `.tex` files by default.** Use this three-level escalation instead:
+
+1. **Level 1 — always available**: `THESIS_CONTEXT.md` (root). Contains scope, notation, parameters, chapter map, baseline numbers. Read this for any thesis-related question.
+2. **Level 2 — chapter detail**: `thesis/summaries/ch0N.md`. One per chapter, ~20 lines. Read before editing a chapter.
+3. **Level 3 — edit target only**: Read the specific `.tex` file (or the relevant section with a line offset) only when you are about to edit it.
+
+**Never read a `.tex` file just for context.** Never read multiple chapters in one session unless each is being edited.
+
+### When to Update the Thesis
+
+Only update thesis content when a code change affects one of:
+- **Notation or equations** (vehicle model, reward, observation)
+- **Architecture or design** (CNN structure, action space, environment behaviour)
+- **Experiment results** (new benchmark numbers, training curves)
+- **Scope or assumptions** (what is/isn't implemented)
+
+Cosmetic refactors, bug fixes that don't change behaviour, and internal implementation details do not need thesis updates.
+
+### Code → Thesis Chapter (use Level 2 summary first)
+
+| Code area | Summary | .tex (edit only) |
+|---|---|---|
+| `VehicleModels/` | `summaries/ch03.md` | `chapters/03_modeling.tex` |
+| `Environments/TractorTrailer.py` | `summaries/ch06.md` | `chapters/06_simulation.tex` |
+| `Environments/LineFollowing.py` (reward) | `summaries/ch05.md` + `ch06.md` | `chapters/05_rl_framework.tex` |
+| `Environments/ObstacleAvoidance.py` | `summaries/ch06.md` | `chapters/06_simulation.tex` |
+| `Models/CNN*.py`, `Models/UNet*.py` | `summaries/ch04.md` | `chapters/04_perception.tex` |
+| `Models/AutoEncoder.py` | `summaries/ch04.md` | `chapters/04_perception.tex` |
+| `controllers/` | `summaries/ch06.md` | `chapters/06_simulation.tex` |
+| `e2erl_utils/config.py` | `summaries/ch06.md` | `chapters/06_simulation.tex` |
+| Reward functions | `summaries/ch05.md` | `chapters/05_rl_framework.tex` |
+| Experiment results | `summaries/ch07.md` | `chapters/07_results.tex` |
+
+### Pending Thesis Updates
+
+`thesis/pending_updates.md` — auto-populated by a hook when code files are edited. Check at session start; clear entries once the thesis has been updated.

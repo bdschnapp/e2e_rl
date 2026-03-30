@@ -9,7 +9,7 @@ Classical articulated vehicle control methods address the hitch instability thro
 \begin{itemize}
     \item \textbf{PID control}: Simple to implement and computationally negligible, but incapable of anticipating the jackknife condition. Gains must be re-tuned for different payloads and path curvatures.
     \item \textbf{Model Predictive Control (MPC)}: Optimises steering over a receding horizon subject to state and input constraints. Linear MPC can enforce hard bounds on the articulation angle $\gamma$.
-    \item \textbf{Nonlinear MPC (NMPC)}: Captures the full nonlinear kinematics including reverse instability. Projected to achieve cross-track errors near 0.35\,m, but incurs 50--100\,ms latency per control step.
+    \item \textbf{Nonlinear MPC (NMPC)}: Captures the full nonlinear kinematics including reverse instability. Optimises steering over a receding horizon subject to state and input constraints, enabling hard bounds on the articulation angle $\gamma$, but with higher computational cost than linear methods.
     \item \textbf{Active hitch stabilisation}: Applies an additional actuated degree of freedom at the hitch to damp articulation oscillations. Research at Waterloo into trailer sway control and active hitches demonstrates that lateral articulation at the hitch can mitigate oscillations, but for a standard autonomous tractor-trailer this must be managed purely through the tractor's steering angle $\delta$.
 \end{itemize}
 
@@ -29,14 +29,14 @@ Decision Transformers (DT) reformulate RL as sequence modelling: an action is pr
 \section{Perception and Representation Learning}
 
 \subsection{Convolutional Neural Networks for Driving}
-CNNs have become the standard front-end for autonomous driving perception, extracting spatial features from camera images and LIDAR-derived occupancy grids. The WATonoBus project at Waterloo utilises 3.2\,MP Basler cameras and Robosense LIDARs to detect snow-covered curbs and traffic participants, providing an operational context directly relevant to this thesis.
+CNNs have become the standard front-end for autonomous driving perception, extracting spatial features from camera images and occupancy grids. End-to-end learning approaches train CNNs directly from sensor inputs to control outputs, allowing the network to learn which visual features are most relevant for the control task. In the simulation setting of this thesis, CNNs process bird's-eye view images rendered from the Pygame environment to extract lane geometry and obstacle information.
 
 \subsection{Autoencoders for State Compression}
-Autoencoders compress high-dimensional observations into a compact latent representation, mitigating the curse of dimensionality for RL training. By pre-training an autoencoder on a diverse dataset of driving scenarios—such as the DriveSOTIF dataset—the encoder learns to capture essential geometric features of the road and obstacles. The RL agent then operates on the latent vector $z$, which reduces policy network parameters, accelerates convergence, and improves generalisation across environments.
+Autoencoders compress high-dimensional observations into a compact latent representation, mitigating the curse of dimensionality for RL training. By pre-training an autoencoder on images collected from simulation rollouts, the encoder learns to capture essential geometric features of the road and obstacles. The RL agent then operates on the latent vector $z$, which reduces policy network parameters, accelerates convergence, and improves generalisation across environments.
 
 \section{Safety in Autonomous Systems}
 
-Safety of the Intended Functionality (SOTIF) defines the safety boundary for autonomous systems operating under nominal sensor and actuator conditions. For articulated vehicles, SOTIF analysis requires characterising the conditions under which the RL policy produces unsafe actions (e.g., allowing $\gamma$ to approach the jackknife threshold). Control Barrier Functions (CBFs) offer a formal mechanism to overlay hard safety constraints on top of a learned policy, effectively bridging high-performance AI control with the deterministic safety requirements of mechatronics engineering.
+Safety of the Intended Functionality (SOTIF) defines the safety boundary for autonomous systems operating under nominal sensor and actuator conditions. For articulated vehicles, a key safety concern is the jackknife condition: the RL reward function must penalise large articulation angles to discourage the agent from entering unstable configurations. Control Barrier Functions (CBFs) offer a formal mechanism to overlay hard safety constraints on top of a learned policy, and are identified as a direction for future work beyond the simulation-based experiments of this thesis.
 
 \section{Benchmarking Against Recent Waterloo Theses}
 

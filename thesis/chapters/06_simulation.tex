@@ -1,66 +1,102 @@
-\chapter{Simulation and Experimental Implementation}
+\chapter{Simulation Environment}
 \label{ch:simulation}
 
-\section{Gazebo Simulation Environment}
+\section{Custom Pygame/Gymnasium Environment}
 
-Gazebo serves as the primary training environment. Unlike simple 2D simulators, Gazebo uses a physics engine to model the inertial properties, tire friction, and mechanical constraints of both the tractor and trailer. This is essential for simulating the jackknife condition, allowing the agent to experience the physical consequences of unstable reversing manoeuvres without risking damage to the Agilex hardware.
+The training and evaluation environment is a custom 2D simulation built on the Farama Foundation Gymnasium library, consistent with the approach taken in the ME~780 prior work. Gymnasium provides a standardised API for implementing environments that integrate directly with reinforcement learning algorithm libraries, including Stable Baselines3.
+
+The simulation is implemented using Pygame for rendering and physics integration. At each timestep, the discrete-time tractor-trailer state-space equations are re-evaluated using the previous state and control inputs, updating the vehicle position, heading, hitch angle, and associated error signals. Pygame renders the scene as a 2D top-down view, from which the BEV image observation is captured.
 
 The simulation environment includes:
 
 \begin{enumerate}
-    \item \textbf{URDF Modelling}: A detailed Unified Robot Description Format file for the Agilex tractor and its custom-built trailer, including the revolute joint at the hitch point.
-    \item \textbf{Obstacle Generation}: Randomly placed static and dynamic obstacles to train the obstacle avoidance module.
-    \item \textbf{Lane Markings}: Visual representations of lane boundaries to facilitate training of the CNN-based lane detection module.
-    \item \textbf{Collision Detection}: Contact sensors triggering episode termination and penalty on collision.
-    \item \textbf{Noisy Sensor Simulation}: Gaussian noise on LIDAR returns and camera images to model adverse weather conditions relevant to SOTIF analysis.
+    \item \textbf{Vehicle Model}: A combined dynamic tractor (bicycle model with Pacejka tire dynamics) and kinematic trailer with hitch constraints, using Tesla Model S parameters as in the ME~780 and ECE~682 prior work.
+    \item \textbf{Lane Generation}: Randomly generated lane paths using cubic spline interpolation, producing varying curvature paths for training and evaluation.
+    \item \textbf{Obstacle Placement}: Randomly placed static obstacles within the lane, used in the obstacle avoidance task.
+    \item \textbf{Collision Detection}: Pygame sprite mask-based collision detection, providing pixel-precise contact sensing between the vehicle body and obstacles or lane boundaries.
+    \item \textbf{BEV Camera}: A configurable bird's-eye view camera anchored to the tractor's rear axle, rendering an $84 \times 84$ grayscale image of the vehicle and its surroundings.
 \end{enumerate}
 
-\section{Autoware and ROS2 Integration}
+\section{Environment Tasks}
 
-Autoware is an open-source software stack for self-driving vehicles providing modules for localisation, sensing, and planning. The RL agent interfaces with ROS2 nodes, subscribing to sensor data (LIDAR, cameras) and publishing steering and velocity commands to the Agilex motor controllers.
+Two distinct Gymnasium environments are implemented, corresponding to the two primary research tasks:
 
-The Waterloo MVS lab emphasises high-definition (HD) maps and robust localisation to provide a consistent reference frame. The HD map, generated from high-precision LIDAR data, allows the RL agent to determine its position relative to lane boundaries with sub-centimetre accuracy, serving as the global path reference.
+\subsection{Line Following}
 
-\section{Hardware Platform}
+The lane-following environment extends the base tractor-trailer environment to present a lane-tracking task. A reference lane is generated at the start of each episode using cubic spline interpolation through randomly placed waypoints. The reward function encourages the agent to keep both the tractor and trailer within the lane boundaries while maintaining forward progress.
 
-Experimental validation is performed on:
+The observation at each timestep includes:
 \begin{itemize}
-    \item \textbf{Agilex robotic platform}: The physical tractor unit, equipped with Robosense LIDAR and Basler cameras consistent with the WATonoBus sensor suite.
-    \item \textbf{Custom trailer}: A purpose-built trailer with a passive hitch joint, replicating the kinematic constraints of the simulated system.
-    \item \textbf{Sim-to-Real transfer}: Domain randomisation in Gazebo (varying friction coefficients, obstacle configurations, lighting) is used to reduce the reality gap.
+    \item \texttt{vector}: steering angle $\delta$, hitch articulation angle $\gamma$, cross-track error $e_y$, heading error $e_\psi$, and their time derivatives;
+    \item \texttt{image}: an $84 \times 84$ grayscale BEV image rendered from the tractor rear axle anchor point.
 \end{itemize}
 
-\section{Testing Protocols}
+\subsection{Obstacle Avoidance}
 
-\subsection{Forward Motion and Obstacle Avoidance}
+The obstacle avoidance environment adds static obstacles within the lane. The agent must navigate the tractor-trailer through the lane while avoiding obstacles, which requires both path-following behaviour and collision avoidance. Episode termination occurs on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion.
+
+\section{Vehicle Parameters}
+
+The simulation uses the same vehicle parameters as the ME~780 and ECE~682 prior work, based on Tesla Model S specifications:
 
 \begin{table}[H]
 \centering
-\caption{Forward motion experiment definitions}
+\caption{Vehicle parameters used in simulation}
+\label{tab:vehicle_params}
+\begin{tabular}{llll}
+\toprule
+Parameter & Value & Parameter & Value \\
+\midrule
+$m$ & 1500\,kg & $l_f$ & 1.2\,m \\
+$I_z$ & 3000\,kg\,m$^2$ & $l_r$ & 1.6\,m \\
+$C_f$ & 80000\,N/rad & $C_d$ & 0.208 \\
+$C_r$ & 80000\,N/rad & $A$ & 2.4\,m$^2$ \\
+$\Delta t$ & 0.1\,s & $\rho$ & 1.225\,kg/m$^3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Action Space}
+
+The agent controls the vehicle through a continuous two-dimensional action space:
+\begin{equation}
+    \mathbf{a} = [\dot{\delta},\, v] \in [-15^\circ/\text{s},\, 15^\circ/\text{s}] \times [0,\, 2\,\text{m/s}]
+    \label{eq:action_space}
+\end{equation}
+
+where $\dot{\delta}$ is the steering rate (rate of change of steering angle) and $v$ is the commanded speed. This action parameterisation is consistent with the observation from the ECE~682 work that the steering angle cannot be set instantaneously on a physical vehicle; controlling the rate of change is more physically realistic.
+
+\section{Testing Protocols}
+
+\subsection{Lane Following Performance}
+
+\begin{table}[H]
+\centering
+\caption{Lane following experiment definitions}
 \label{tab:forward_experiments}
 \begin{tabular}{p{4cm} p{5cm} p{4.5cm}}
 \toprule
 Experiment & Objective & Success Metric \\
 \midrule
-Path Fidelity            & Maintain low CTE on varying curvature paths & Mean Absolute CTE $< 0.2$\,m \\
-Dynamic Obstacle Avoidance & Divert from path to avoid moving actors and return safely & Zero collisions; minimum separation distance maintained \\
-Lane Detection Accuracy  & Identify lane boundaries via CNN under varied lighting & F1-score of lane segmentation mask \\
+Path Fidelity (Tractor)  & Maintain low CTE for tractor on varying curvature paths & Mean Absolute CTE \\
+Path Fidelity (Trailer)  & Maintain low CTE for trailer, ensuring full vehicle stays in lane & Mean Absolute CTE \\
+Hitch Stability          & Keep articulation angle within safe bounds & Max $|\gamma|$ per episode \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Reverse Maneuvering and Jackknife Prevention}
+\subsection{Obstacle Avoidance}
 
-This is the most technically challenging test series. The research quantifies the ``Safe Articulation Zone'' and tests the agent's ability to remain within it during complex backing tasks:
+The obstacle avoidance task tests the agent's ability to navigate through a lane containing static obstacles. Success is measured by collision rate and the agent's ability to complete the lane while maintaining hitch stability.
 
-\begin{enumerate}
-    \item \textbf{Straight-line backing}: Reverse 20\,m without the articulation angle exceeding $5^\circ$.
-    \item \textbf{90-degree docking}: Reverse the trailer into a bay with width only 20\% greater than the trailer width.
-    \item \textbf{Jackknife recovery}: Initialise with $|\gamma| = 30^\circ$ (near-critical); recover to $|\gamma| < 5^\circ$ within 5\,m of travel.
-\end{enumerate}
+\subsection{Comparison with Prior Work}
 
-\subsection{Perception and Sensor Degradation}
+Results are compared against:
+\begin{itemize}
+    \item the DDPG model from ME~780 (cross-track error 0.505\,m on single-vehicle path following);
+    \item a PID baseline from ME~780 (cross-track error 0.784\,m);
+    \item an LQR-based baseline from ECE~682;
+    \item an MPC controller implemented using OSQP.
+\end{itemize}
 
-The CNN/autoencoder observation space enables robustness testing under simulated sensor degradation. Gazebo is configured to reduce image contrast and add LIDAR noise (simulating adverse weather), and the resulting increase in cross-track error is measured. This provides SOTIF-relevant insight into the operational design domain boundaries of the system.
-
-% TODO: Gazebo figures, ROS2 node graph, sensor noise parameter table
+% TODO: training curves, performance comparison figures, episode trajectory plots

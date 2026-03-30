@@ -15,14 +15,14 @@ Prior work in the ME~780 project evaluated Deep Deterministic Policy Gradient (D
 
 \section{Thesis Contributions}
 
-This thesis extends the ME~780 foundational work by:
+This thesis extends the ME~780 and ECE~682 foundational work by:
 
 \begin{itemize}
-    \item developing a full kinematic and dynamic model of a tractor-trailer system including hitch instability analysis;
-    \item designing a vision-based RL observation space using CNN encoders and autoencoders operating on bird's-eye-view (BEV) occupancy grids;
+    \item developing a full kinematic and dynamic model of a tractor-trailer system including hitch instability analysis, building on the bicycle model and Pacejka tire dynamics established in prior work;
+    \item designing a vision-based RL observation space using CNN encoders and autoencoders operating on bird's-eye-view (BEV) images rendered from a custom Pygame simulation environment;
     \item engineering a reward function that balances cross-track error, heading error, hitch articulation stability, and collision avoidance;
-    \item implementing and benchmarking DDPG and Decision Transformer agents against PID and NMPC baselines across forward, reverse, and obstacle-avoidance tasks;
-    \item validating the trained policies in the Gazebo simulation environment and transferring to the Agilex hardware platform via ROS2 and Autoware.
+    \item implementing and benchmarking Twin Delayed DDPG (TD3) agents in lane-following and obstacle-avoidance tasks within a custom Gymnasium-based simulation environment;
+    \item comparing TD3 performance with classical control baselines (PID, MPC) and the prior ME~780 DDPG results across path-following metrics.
 \end{itemize}
 
 The research aligns with the objectives of the Mechatronics Vehicle Systems (MVS) Lab and the WATonoBus project at the University of Waterloo.
@@ -41,7 +41,7 @@ Element & Requirement \\
 \midrule
 Research Scope   & Substantial problem extending beyond existing laboratory results \\
 Literature Review & Comprehensive assessment of classical control and modern AI approaches \\
-Validation       & Both simulation (Gazebo) and hardware (Agilex) empirical evidence \\
+Validation       & Simulation-based empirical evidence across multiple environment configurations \\
 Length/Format    & Typically 80--120 pages; GSPA formatting and UWSpace submission \\
 Committee        & Supervisor plus two faculty readers; formal display period \\
 \bottomrule
@@ -50,4 +50,4 @@ Committee        & Supervisor plus two faculty readers; formal display period \\
 
 \section{Thesis Organisation}
 
-The remainder of this thesis is structured as follows. Chapter~\ref{ch:literature_review} reviews classical and learning-based control methods for articulated vehicles, alongside relevant perception and safety literature. Chapter~\ref{ch:modeling} derives the state-space equations for the tractor-trailer system and analyses the jackknife instability. Chapter~\ref{ch:perception} presents the CNN and autoencoder-based perception stack. Chapter~\ref{ch:rl_framework} defines the MDP formulation and details the DDPG and Decision Transformer implementations. Chapter~\ref{ch:simulation} describes the Gazebo simulation environment and Agilex hardware integration. Chapter~\ref{ch:results} presents and discusses experimental results. Chapter~\ref{ch:conclusion} summarises the findings and outlines future work.
+The remainder of this thesis is structured as follows. Chapter~\ref{ch:literature_review} reviews classical and learning-based control methods for articulated vehicles, alongside relevant perception and safety literature. Chapter~\ref{ch:modeling} derives the state-space equations for the tractor-trailer system and analyses the jackknife instability. Chapter~\ref{ch:perception} presents the CNN and autoencoder-based perception stack. Chapter~\ref{ch:rl_framework} defines the MDP formulation and details the DDPG and Decision Transformer implementations. Chapter~\ref{ch:simulation} describes the custom Pygame/Gymnasium simulation environment and experimental setup. Chapter~\ref{ch:results} presents and discusses experimental results. Chapter~\ref{ch:conclusion} summarises the findings and outlines future work.
