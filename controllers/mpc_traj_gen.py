@@ -2,18 +2,26 @@ import numpy as np
 from VehicleModels.tractor_trailer import StateSpaceTractorTrailer
 
 
-def generate_trajectory(x, y, vehicle: StateSpaceTractorTrailer):
+def generate_trajectory(x, y, vehicle: StateSpaceTractorTrailer, reverse: bool = False):
     """
     Build (N+1, 4) trajectory rows = [X, Y, psi1, psi2] for TractorTrailerSteeringMPC.
       - Row 0 is the current measured state from `vehicle`:
           X,Y        -> trailer axle position
           psi1       -> trailer yaw
           psi2       -> hitch angle = tractor_yaw - trailer_yaw (wrapped)
-      - Rows 1..N are path-based references sampled ahead along (x,y)
+      - Rows 1..N are path-based references sampled ahead (forward) or behind (reverse).
+
+    Parameters
+    ----------
+    reverse : bool
+        If True, sample path points behind the current position (vehicle is reversing).
+        The heading reference is flipped by π and the effective curvature is negated so
+        that solve_psi2 / delta_ff inside the MPC receive the correct reverse-direction
+        values without any further modification.
 
     Uses:
       vehicle.dt      (sampling time)
-      vehicle.xd      (longitudinal speed, m/s)
+      vehicle.xd      (longitudinal speed, m/s — may be negative when reversing)
       vehicle.p       (tractor yaw)
       vehicle.trailer.x, .y, .yaw
       vehicle.lf, vehicle.lr  (to compute L1 = wheelbase)
@@ -29,7 +37,7 @@ def generate_trajectory(x, y, vehicle: StateSpaceTractorTrailer):
 
     # --- model params from your classes ---
     Ts = float(getattr(vehicle, "dt", 0.1))
-    vx = float(max(1e-6, getattr(vehicle, "xd", 1.0)))               # forward speed for spacing
+    vx_abs = max(1e-6, abs(float(getattr(vehicle, "xd", 1.0))))  # speed magnitude for spacing
     L1 = float(getattr(vehicle, "lf", 1.2) + getattr(vehicle, "lr", 1.6))  # tractor wheelbase
     L2C = np.finfo(float).eps  # hitch at rear axle -> ~0 to avoid singularities
     N = 40
@@ -51,16 +59,33 @@ def generate_trajectory(x, y, vehicle: StateSpaceTractorTrailer):
     i0 = int(np.argmin(dists))
     s0 = float(s[i0])
 
-    # sampling step ahead along path ~ how far the trailer moves in one MPC step
-    ds = max(1e-3, vx * Ts)
+    # sampling step size (always positive; direction chosen below)
+    ds = max(1e-3, vx_abs * Ts)
 
-    # build N reference samples ahead (row 0 is measured, so we produce N future rows)
-    s_targets = np.clip(s0 + ds * np.arange(1, N + 1), 0.0, total_len)
+    if reverse:
+        # Sample behind current position — these are the path points the trailer will
+        # reach as it backs up.
+        s_targets = np.clip(s0 - ds * np.arange(1, N + 1), 0.0, total_len)
+    else:
+        s_targets = np.clip(s0 + ds * np.arange(1, N + 1), 0.0, total_len)
+
     x_ref = np.interp(s_targets, s, x)
     y_ref = np.interp(s_targets, s, y)
 
-    # --- compute path tangent heading psi1 and curvature kappa on the resampled points ---
-    psi1_path, kappa = _heading_and_curvature(x_ref, y_ref)
+    # --- compute heading and curvature from the full original path, then interpolate ---
+    # This is more robust than finite-differencing the resampled sequence, especially
+    # when many s_targets clamp to the path boundary (common during reverse near s=0).
+    psi1_full, kappa_full = _heading_and_curvature(x, y)
+    # Interpolate using sin/cos to avoid angle-wraparound artefacts.
+    sin_p = np.interp(s_targets, s, np.sin(psi1_full))
+    cos_p = np.interp(s_targets, s, np.cos(psi1_full))
+    psi1_path = np.arctan2(sin_p, cos_p)
+    kappa = np.interp(s_targets, s, kappa_full)
+
+    if reverse:
+        # Vehicle heading is path tangent + π when reversing; effective curvature negated.
+        psi1_path = _wrap_to_pi(psi1_path + np.pi)
+        kappa = -kappa
 
     # --- solve psi2 from curvature using same closed-form as your MPC (continuity branch) ---
     psi2_1, psi2_2 = _solve_psi2_batch(kappa, L1, L2C)

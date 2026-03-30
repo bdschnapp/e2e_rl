@@ -8,19 +8,27 @@ For each classical controller (fpp, pid, mpc) this script:
      (for thesis figures showing the controller is properly tuned)
   4. Saves optimised parameters to results/tuned_params.json
 
+Reverse controllers (fpp_rev, pid_rev, mpc_rev) follow the same pipeline but use
+ReverseStateObservationLineFollowingEnv and the hitch-stabilising variants.
+
 Usage
 -----
-    python tune_controllers.py                    # tune all three
+    python tune_controllers.py                             # tune all forward controllers
     python tune_controllers.py --controllers fpp
     python tune_controllers.py --controllers pid,mpc
-    python tune_controllers.py --quick            # fewer episodes, faster
+    python tune_controllers.py --controllers fpp_rev,pid_rev,mpc_rev   # reverse only
+    python tune_controllers.py --controllers all           # forward + reverse
+    python tune_controllers.py --quick                     # fewer episodes, faster
 
 Outputs
 -------
-    results/tuned_params.json          — best params per controller
-    results/sensitivity_fpp.csv        — 2-D grid sweep data (FPP)
-    results/sensitivity_pid.csv        — 2-D grid sweep data (PID)
-    results/sensitivity_mpc.csv        — 2-D grid sweep data (MPC)
+    results/tuned_params.json           — best params per controller
+    results/sensitivity_fpp.csv         — 2-D grid sweep data (FPP, forward)
+    results/sensitivity_pid.csv         — 2-D grid sweep data (PID, forward)
+    results/sensitivity_mpc.csv         — 2-D grid sweep data (MPC, forward)
+    results/sensitivity_fpp_rev.csv     — 2-D grid sweep data (FPP, reverse)
+    results/sensitivity_pid_rev.csv     — 2-D grid sweep data (PID, reverse)
+    results/sensitivity_mpc_rev.csv     — 2-D grid sweep data (MPC, reverse)
 """
 
 import argparse
@@ -43,6 +51,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 def _make_forward_env():
     from Environments.LineFollowing import StateObservationLineFollowingEnv
     return StateObservationLineFollowingEnv(render_mode=None, max_episode_steps=1000)
+
+
+def _make_reverse_env():
+    from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv
+    return ReverseStateObservationLineFollowingEnv(render_mode=None, max_episode_steps=1000)
 
 
 def _run_episode_fpp(env, ctrl, seed=None) -> dict:
@@ -131,6 +144,112 @@ def _run_episode_mpc(env, mpc, seed=None) -> dict:
             np.deg2rad(config.steering_action),
         ))
         speed = float(env.vehicle.xd) if abs(float(env.vehicle.xd)) > 1e-3 else float(config.initial_xd)
+        action = np.array([steer_rate, speed], dtype=np.float32)
+        elapsed = time.perf_counter() - t0
+        obs, reward, terminated, truncated, _ = env.step(action)
+        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        done = terminated or truncated
+
+    return logger.compute_summary(terminated=terminated, truncated=truncated)
+
+
+def _run_episode_fpp_reverse(env, ctrl, seed=None) -> dict:
+    from Environments.LineFollowing import compute_curvature
+    import e2erl_utils.config as config
+    from e2erl_utils.metrics import EpisodeMetricsLogger
+
+    logger = EpisodeMetricsLogger()
+    ctrl.reset()
+    obs, _ = env.reset(seed=seed)
+    done = False
+
+    while not done:
+        import time
+        t0 = time.perf_counter()
+        psi2 = float(env.vehicle.p - env.vehicle.trailer.yaw)
+        e_y_t, e_theta_t = env.get_trailer_errors()
+        kappa = compute_curvature(env, lookahead_steps=10)
+        action = ctrl.step(
+            psi2=psi2,
+            e_y_t=float(e_y_t),
+            e_theta_t=float(e_theta_t),
+            kappa=float(kappa),
+            current_steer=float(env.vehicle.s),
+            dt=float(env.vehicle.dt),
+            max_steer_rate=float(np.deg2rad(config.steering_action)),
+        )
+        elapsed = time.perf_counter() - t0
+        obs, reward, terminated, truncated, _ = env.step(action)
+        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        done = terminated or truncated
+
+    return logger.compute_summary(terminated=terminated, truncated=truncated)
+
+
+def _run_episode_pid_reverse(env, ctrl, seed=None) -> dict:
+    from Environments.LineFollowing import compute_curvature
+    import e2erl_utils.config as config
+    from e2erl_utils.metrics import EpisodeMetricsLogger
+
+    logger = EpisodeMetricsLogger()
+    ctrl.reset()
+    obs, _ = env.reset(seed=seed)
+    done = False
+
+    while not done:
+        import time
+        t0 = time.perf_counter()
+        psi2 = float(env.vehicle.p - env.vehicle.trailer.yaw)
+        e_y_t, e_theta_t = env.get_trailer_errors()
+        kappa = compute_curvature(env, lookahead_steps=10)
+        action = ctrl.step(
+            psi2=psi2,
+            e_y_t=float(e_y_t),
+            e_theta_t=float(e_theta_t),
+            kappa=float(kappa),
+            current_steer=float(env.vehicle.s),
+            dt=float(env.vehicle.dt),
+            max_steer_rate=float(np.deg2rad(config.steering_action)),
+        )
+        elapsed = time.perf_counter() - t0
+        obs, reward, terminated, truncated, _ = env.step(action)
+        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        done = terminated or truncated
+
+    return logger.compute_summary(terminated=terminated, truncated=truncated)
+
+
+def _run_episode_mpc_reverse(env, mpc, seed=None) -> dict:
+    from controllers.mpc_traj_gen import generate_trajectory
+    import e2erl_utils.config as config
+    from e2erl_utils.metrics import EpisodeMetricsLogger
+
+    logger = EpisodeMetricsLogger()
+    mpc.reset()
+    obs, _ = env.reset(seed=seed)
+    done = False
+    prev_steer = 0.0
+
+    while not done:
+        import time
+        t0 = time.perf_counter()
+        try:
+            traj = generate_trajectory(env.xx, env.yy, env.vehicle, reverse=True)
+            vx = float(env.vehicle.xd)
+            # Ensure vx is negative (reverse); fall back to -initial_xd if near zero
+            if abs(vx) < 1e-3:
+                vx = -float(config.initial_xd)
+            delta_opt = float(mpc.solve(traj, state=(vx, prev_steer)))
+            prev_steer = delta_opt
+        except Exception:
+            delta_opt = prev_steer
+        steer_rate = float(np.clip(
+            (delta_opt - float(env.vehicle.s)) / float(env.vehicle.dt),
+            -np.deg2rad(config.steering_action),
+            np.deg2rad(config.steering_action),
+        ))
+        # Speed is constant negative (env.step overrides anyway, but set explicitly)
+        speed = -float(config.initial_xd)
         action = np.array([steer_rate, speed], dtype=np.float32)
         elapsed = time.perf_counter() - t0
         obs, reward, terminated, truncated, _ = env.step(action)
@@ -370,6 +489,213 @@ def tune_mpc(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
 
 
 # -----------------------------------------------------------------------
+# Reverse controller tuning
+# -----------------------------------------------------------------------
+
+def tune_fpp_reverse(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
+    """
+    Tune ReverseHitchPurePursuitController via differential_evolution.
+
+    Parameters optimised
+    --------------------
+    k_hitch [0.1, 3.0]  hitch-angle stabilisation gain
+    k_y     [0.0, 1.5]  trailer lateral error gain
+    k_theta [0.0, 2.0]  trailer heading error gain
+    k_ff    [-2.0, 2.0] signed curvature feed-forward (can be negative)
+    speed   [0.5, 3.0]  reverse speed magnitude (m/s)
+    """
+    from controllers.pure_pursuit import ReverseHitchPurePursuitController
+
+    env = _make_reverse_env()
+    rng = np.random.default_rng(10)
+    opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
+    val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
+
+    call_count = [0]
+
+    def objective(x):
+        k_hitch, k_y, k_theta, k_ff, speed = x
+        ctrl = ReverseHitchPurePursuitController(
+            k_hitch=k_hitch, k_y=k_y, k_theta=k_theta, k_ff=k_ff, speed=speed,
+        )
+        summaries = [_run_episode_fpp_reverse(env, ctrl, seed=int(s)) for s in opt_seeds]
+        score = _objective_score(summaries)
+        call_count[0] += 1
+        if call_count[0] % 10 == 0:
+            print(f"  [FPP-rev opt] eval {call_count[0]:4d}  score={score:.4f}  "
+                  f"k_hitch={k_hitch:.3f} k_y={k_y:.3f} k_theta={k_theta:.3f} "
+                  f"k_ff={k_ff:.3f} speed={speed:.2f}")
+        return score
+
+    bounds = [(0.1, 3.0), (0.0, 1.5), (0.0, 2.0), (-2.0, 2.0), (0.5, 3.0)]
+    print("\n[FPP-rev] Starting differential_evolution optimisation …")
+    result = differential_evolution(
+        objective, bounds,
+        seed=42, maxiter=30, popsize=8, tol=1e-3,
+        mutation=(0.5, 1.0), recombination=0.7,
+        workers=1, disp=False,
+    )
+
+    k_hitch_opt, k_y_opt, k_theta_opt, k_ff_opt, speed_opt = result.x
+    best_params = dict(k_hitch=k_hitch_opt, k_y=k_y_opt, k_theta=k_theta_opt,
+                       k_ff=k_ff_opt, speed=speed_opt)
+    print(f"[FPP-rev] Best: {best_params}  (obj={result.fun:.4f})")
+
+    ctrl_best = ReverseHitchPurePursuitController(**best_params)
+    val_summaries = [_run_episode_fpp_reverse(env, ctrl_best, seed=int(s)) for s in val_seeds]
+    cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
+    comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
+    print(f"[FPP-rev] Validation ({n_val_episodes} episodes): "
+          f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
+          f"completion={comp_rate*100:.1f}%")
+
+    env.close()
+    return best_params
+
+
+def tune_pid_reverse(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
+    """
+    Tune ReverseHitchPIDController via differential_evolution.
+
+    Parameters optimised
+    --------------------
+    k_hitch [0.1, 3.0]  hitch-angle stabilisation gain
+    Kp      [0.0, 2.0]  trailer CTE proportional gain
+    Ki      [0.0, 0.2]  trailer CTE integral gain
+    Kd      [0.0, 2.0]  trailer heading derivative gain
+    k_ff    [-2.0, 2.0] signed curvature feed-forward
+    speed   [0.5, 3.0]  reverse speed magnitude (m/s)
+    """
+    from controllers.pid import ReverseHitchPIDController
+
+    env = _make_reverse_env()
+    rng = np.random.default_rng(11)
+    opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
+    val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
+
+    call_count = [0]
+
+    def objective(x):
+        k_hitch, Kp, Ki, Kd, k_ff, speed = x
+        ctrl = ReverseHitchPIDController(
+            k_hitch=k_hitch, Kp=Kp, Ki=Ki, Kd=Kd, k_ff=k_ff, speed=speed,
+        )
+        summaries = [_run_episode_pid_reverse(env, ctrl, seed=int(s)) for s in opt_seeds]
+        score = _objective_score(summaries)
+        call_count[0] += 1
+        if call_count[0] % 10 == 0:
+            print(f"  [PID-rev opt] eval {call_count[0]:4d}  score={score:.4f}  "
+                  f"k_hitch={k_hitch:.3f} Kp={Kp:.3f} Ki={Ki:.4f} "
+                  f"Kd={Kd:.3f} k_ff={k_ff:.3f} speed={speed:.2f}")
+        return score
+
+    bounds = [(0.1, 3.0), (0.0, 2.0), (0.0, 0.2), (0.0, 2.0), (-2.0, 2.0), (0.5, 3.0)]
+    print("\n[PID-rev] Starting differential_evolution optimisation …")
+    result = differential_evolution(
+        objective, bounds,
+        seed=42, maxiter=30, popsize=8, tol=1e-3,
+        mutation=(0.5, 1.0), recombination=0.7,
+        workers=1, disp=False,
+    )
+
+    k_hitch_opt, Kp_opt, Ki_opt, Kd_opt, k_ff_opt, speed_opt = result.x
+    best_params = dict(k_hitch=k_hitch_opt, Kp=Kp_opt, Ki=Ki_opt, Kd=Kd_opt,
+                       k_ff=k_ff_opt, speed=speed_opt)
+    print(f"[PID-rev] Best: {best_params}  (obj={result.fun:.4f})")
+
+    ctrl_best = ReverseHitchPIDController(**best_params)
+    val_summaries = [_run_episode_pid_reverse(env, ctrl_best, seed=int(s)) for s in val_seeds]
+    cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
+    comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
+    print(f"[PID-rev] Validation ({n_val_episodes} episodes): "
+          f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
+          f"completion={comp_rate*100:.1f}%")
+
+    env.close()
+    return best_params
+
+
+def tune_mpc_reverse(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
+    """
+    Tune ReverseTractorTrailerMPC cost weights via differential_evolution.
+
+    The hitch-angle weight q_psi2 starts from a much higher base (5000 vs 500)
+    because the reverse system is open-loop unstable.
+
+    Optimised scale factors (log10)
+    --------------------------------
+    log10_q_y    [-2, 2]  → Q[1,1] = 2000  * 10^x
+    log10_q_psi1 [-2, 2]  → Q[2,2] = 2000  * 10^x
+    log10_q_psi2 [-2, 2]  → Q[3,3] = 5000  * 10^x   (higher base than forward)
+    log10_r      [-2, 2]  → R[0,0] =    1  * 10^x
+    log10_p      [-2, 2]  → P[0,0] = 1e5   * 10^x
+    """
+    from controllers.mpc import ReverseTractorTrailerMPC
+
+    env = _make_reverse_env()
+    rng = np.random.default_rng(12)
+    opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
+    val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
+
+    call_count = [0]
+
+    def objective(x):
+        lq_y, lq_psi1, lq_psi2, lr, lp = x
+        mpc = ReverseTractorTrailerMPC()
+        mpc.Q = np.diag([0.0,
+                         2000.0 * 10**lq_y,
+                         2000.0 * 10**lq_psi1,
+                         5000.0 * 10**lq_psi2])
+        mpc.R = np.diag([1.0 * 10**lr])
+        mpc.P = np.diag([1e5 * 10**lp])
+
+        summaries = [_run_episode_mpc_reverse(env, mpc, seed=int(s)) for s in opt_seeds]
+        score = _objective_score(summaries)
+        call_count[0] += 1
+        if call_count[0] % 5 == 0:
+            print(f"  [MPC-rev opt] eval {call_count[0]:4d}  score={score:.4f}  "
+                  f"lq_y={lq_y:.2f} lq_psi1={lq_psi1:.2f} "
+                  f"lq_psi2={lq_psi2:.2f} lr={lr:.2f} lp={lp:.2f}")
+        return score
+
+    bounds = [(-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2)]
+    print("\n[MPC-rev] Starting differential_evolution optimisation …")
+    result = differential_evolution(
+        objective, bounds,
+        seed=42, maxiter=20, popsize=6, tol=1e-3,
+        mutation=(0.5, 1.0), recombination=0.7,
+        workers=1, disp=False,
+    )
+
+    lq_y_opt, lq_psi1_opt, lq_psi2_opt, lr_opt, lp_opt = result.x
+    best_params = dict(
+        Q=np.diag([0.0,
+                   2000.0 * 10**lq_y_opt,
+                   2000.0 * 10**lq_psi1_opt,
+                   5000.0 * 10**lq_psi2_opt]).tolist(),
+        R=np.diag([1.0 * 10**lr_opt]).tolist(),
+        P=np.diag([1e5 * 10**lp_opt]).tolist(),
+    )
+    print(f"[MPC-rev] Best scale factors: lq_y={lq_y_opt:.3f}  lq_psi1={lq_psi1_opt:.3f}  "
+          f"lq_psi2={lq_psi2_opt:.3f}  lr={lr_opt:.3f}  lp={lp_opt:.3f}  "
+          f"(obj={result.fun:.4f})")
+
+    mpc_best = ReverseTractorTrailerMPC()
+    mpc_best.Q = np.array(best_params["Q"])
+    mpc_best.R = np.array(best_params["R"])
+    mpc_best.P = np.array(best_params["P"])
+    val_summaries = [_run_episode_mpc_reverse(env, mpc_best, seed=int(s)) for s in val_seeds]
+    cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
+    comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
+    print(f"[MPC-rev] Validation ({n_val_episodes} episodes): "
+          f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
+          f"completion={comp_rate*100:.1f}%")
+
+    env.close()
+    return best_params
+
+
+# -----------------------------------------------------------------------
 # 2-D sensitivity sweeps  (thesis figures)
 # -----------------------------------------------------------------------
 
@@ -505,16 +831,155 @@ def sensitivity_sweep_mpc(best: dict, output_path: Path, n_episodes: int = 4):
     print(f"[MPC] Sensitivity sweep saved → {output_path}")
 
 
+def sensitivity_sweep_fpp_reverse(best: dict, output_path: Path, n_episodes: int = 5):
+    """
+    2-D grid: k_hitch × k_y for the reverse FPP controller.
+    """
+    from controllers.pure_pursuit import ReverseHitchPurePursuitController
+
+    env = _make_reverse_env()
+    rng = np.random.default_rng(110)
+    seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
+
+    k_hitch_vals = np.linspace(0.1, 2.0, 10)
+    k_y_vals = np.linspace(0.0, 1.0, 10)
+
+    rows = []
+    total = len(k_hitch_vals) * len(k_y_vals)
+    done = 0
+    for k_hitch in k_hitch_vals:
+        for k_y in k_y_vals:
+            ctrl = ReverseHitchPurePursuitController(
+                k_hitch=k_hitch, k_y=k_y,
+                k_theta=best["k_theta"], k_ff=best["k_ff"], speed=best["speed"],
+            )
+            sums = [_run_episode_fpp_reverse(env, ctrl, seed=int(s)) for s in seeds]
+            cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
+            comp = sum(s["completed"] for s in sums) / len(sums)
+            rows.append({"k_hitch": k_hitch, "k_y": k_y,
+                         "mean_cte": np.mean(cte_vals), "completion_rate": comp})
+            done += 1
+            if done % 10 == 0:
+                print(f"  [FPP-rev sweep] {done}/{total}")
+
+    env.close()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["k_hitch", "k_y", "mean_cte", "completion_rate"])
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"[FPP-rev] Sensitivity sweep saved → {output_path}")
+
+
+def sensitivity_sweep_pid_reverse(best: dict, output_path: Path, n_episodes: int = 5):
+    """
+    2-D grid: k_hitch × Kp for the reverse PID controller.
+    """
+    from controllers.pid import ReverseHitchPIDController
+
+    env = _make_reverse_env()
+    rng = np.random.default_rng(111)
+    seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
+
+    k_hitch_vals = np.linspace(0.1, 2.0, 10)
+    Kp_vals = np.linspace(0.0, 1.0, 10)
+
+    rows = []
+    total = len(k_hitch_vals) * len(Kp_vals)
+    done = 0
+    for k_hitch in k_hitch_vals:
+        for Kp in Kp_vals:
+            ctrl = ReverseHitchPIDController(
+                k_hitch=k_hitch, Kp=Kp,
+                Ki=best["Ki"], Kd=best["Kd"], k_ff=best["k_ff"], speed=best["speed"],
+            )
+            sums = [_run_episode_pid_reverse(env, ctrl, seed=int(s)) for s in seeds]
+            cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
+            comp = sum(s["completed"] for s in sums) / len(sums)
+            rows.append({"k_hitch": k_hitch, "Kp": Kp,
+                         "mean_cte": np.mean(cte_vals), "completion_rate": comp})
+            done += 1
+            if done % 10 == 0:
+                print(f"  [PID-rev sweep] {done}/{total}")
+
+    env.close()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["k_hitch", "Kp", "mean_cte", "completion_rate"])
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"[PID-rev] Sensitivity sweep saved → {output_path}")
+
+
+def sensitivity_sweep_mpc_reverse(best: dict, output_path: Path, n_episodes: int = 4):
+    """
+    2-D grid: Q_psi2 × R for the reverse MPC (same axes as forward MPC sweep).
+    """
+    from controllers.mpc import ReverseTractorTrailerMPC
+
+    env = _make_reverse_env()
+    rng = np.random.default_rng(112)
+    seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
+
+    q_psi2_base = float(np.array(best["Q"])[3, 3])
+    r_base = float(np.array(best["R"])[0, 0])
+
+    log_q_psi2_offsets = np.linspace(-1.5, 1.5, 8)
+    log_r_offsets = np.linspace(-1.5, 1.5, 8)
+
+    rows = []
+    total = len(log_q_psi2_offsets) * len(log_r_offsets)
+    done = 0
+    for lq in log_q_psi2_offsets:
+        for lr in log_r_offsets:
+            mpc = ReverseTractorTrailerMPC()
+            Q = np.array(best["Q"])
+            Q[3, 3] = q_psi2_base * 10**lq
+            mpc.Q = Q
+            mpc.R = np.diag([r_base * 10**lr])
+            mpc.P = np.array(best["P"])
+
+            sums = [_run_episode_mpc_reverse(env, mpc, seed=int(s)) for s in seeds]
+            cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
+            comp = sum(s["completed"] for s in sums) / len(sums)
+            rows.append({
+                "log10_q_psi2_offset": lq, "log10_r_offset": lr,
+                "q_psi2": Q[3, 3], "r": r_base * 10**lr,
+                "mean_cte": np.mean(cte_vals), "completion_rate": comp,
+            })
+            done += 1
+            if done % 8 == 0:
+                print(f"  [MPC-rev sweep] {done}/{total}")
+
+    env.close()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", newline="") as f:
+        fieldnames = ["log10_q_psi2_offset", "log10_r_offset", "q_psi2", "r",
+                      "mean_cte", "completion_rate"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"[MPC-rev] Sensitivity sweep saved → {output_path}")
+
+
 # -----------------------------------------------------------------------
 # CLI
 # -----------------------------------------------------------------------
+
+_ALL_FORWARD = ["fpp", "pid", "mpc"]
+_ALL_REVERSE = ["fpp_rev", "pid_rev", "mpc_rev"]
+_ALL_CONTROLLERS = _ALL_FORWARD + _ALL_REVERSE
+
 
 def main():
     parser = argparse.ArgumentParser(description="Tune classical controllers for tractor-trailer")
     parser.add_argument(
         "--controllers",
         default="fpp,pid,mpc",
-        help="Comma-separated list to tune: fpp, pid, mpc  (default: all)",
+        help=(
+            "Comma-separated list to tune: fpp, pid, mpc, fpp_rev, pid_rev, mpc_rev.  "
+            "Use 'all' for every controller.  (default: fpp,pid,mpc)"
+        ),
     )
     parser.add_argument(
         "--quick",
@@ -534,7 +999,12 @@ def main():
     )
     args = parser.parse_args()
 
-    to_tune = [c.strip() for c in args.controllers.split(",")]
+    raw = args.controllers.strip()
+    if raw == "all":
+        to_tune = _ALL_CONTROLLERS
+    else:
+        to_tune = [c.strip() for c in raw.split(",")]
+
     n_opt = 4 if args.quick else 8
     n_val = 10 if args.quick else 20
     n_sweep = 3 if args.quick else 5
@@ -559,11 +1029,20 @@ def main():
         if "mpc" in to_tune:
             all_params["mpc"] = tune_mpc(n_opt_episodes=mpc_n_opt, n_val_episodes=n_val)
 
+        if "fpp_rev" in to_tune:
+            all_params["fpp_rev"] = tune_fpp_reverse(n_opt_episodes=n_opt, n_val_episodes=n_val)
+
+        if "pid_rev" in to_tune:
+            all_params["pid_rev"] = tune_pid_reverse(n_opt_episodes=n_opt, n_val_episodes=n_val)
+
+        if "mpc_rev" in to_tune:
+            all_params["mpc_rev"] = tune_mpc_reverse(n_opt_episodes=mpc_n_opt, n_val_episodes=n_val)
+
         with open(params_path, "w") as f:
             json.dump(all_params, f, indent=2)
         print(f"\nTuned parameters saved → {params_path}")
 
-    # Sensitivity sweeps
+    # Sensitivity sweeps — forward
     if "fpp" in to_tune and "fpp" in all_params:
         print("\n[FPP] Running sensitivity sweep …")
         sensitivity_sweep_fpp(
@@ -585,6 +1064,31 @@ def main():
         sensitivity_sweep_mpc(
             all_params["mpc"],
             args.output / "sensitivity_mpc.csv",
+            n_episodes=n_sweep,
+        )
+
+    # Sensitivity sweeps — reverse
+    if "fpp_rev" in to_tune and "fpp_rev" in all_params:
+        print("\n[FPP-rev] Running sensitivity sweep …")
+        sensitivity_sweep_fpp_reverse(
+            all_params["fpp_rev"],
+            args.output / "sensitivity_fpp_rev.csv",
+            n_episodes=n_sweep,
+        )
+
+    if "pid_rev" in to_tune and "pid_rev" in all_params:
+        print("\n[PID-rev] Running sensitivity sweep …")
+        sensitivity_sweep_pid_reverse(
+            all_params["pid_rev"],
+            args.output / "sensitivity_pid_rev.csv",
+            n_episodes=n_sweep,
+        )
+
+    if "mpc_rev" in to_tune and "mpc_rev" in all_params:
+        print("\n[MPC-rev] Running sensitivity sweep …")
+        sensitivity_sweep_mpc_reverse(
+            all_params["mpc_rev"],
+            args.output / "sensitivity_mpc_rev.csv",
             n_episodes=n_sweep,
         )
 

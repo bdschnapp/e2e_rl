@@ -29,3 +29,10 @@ Clear an entry once the relevant thesis chapter has been updated.
 2026-03-30 13:32: /home/ben/Ben/Thesis/e2e_rl/controllers/pure_pursuit.py
 2026-03-30 13:32: /home/ben/Ben/Thesis/e2e_rl/controllers/pid.py
 2026-03-30 13:32: /home/ben/Ben/Thesis/e2e_rl/controllers/mpc.py
+2026-03-30 14:49: /home/ben/Ben/Thesis/e2e_rl/controllers/mpc_traj_gen.py
+2026-03-30 14:50: /home/ben/Ben/Thesis/e2e_rl/controllers/mpc.py
+2026-03-30 14:50: /home/ben/Ben/Thesis/e2e_rl/controllers/pure_pursuit.py
+2026-03-30 14:50: /home/ben/Ben/Thesis/e2e_rl/controllers/pure_pursuit.py
+2026-03-30 14:51: /home/ben/Ben/Thesis/e2e_rl/controllers/pid.py
+2026-03-30 14:51: /home/ben/Ben/Thesis/e2e_rl/controllers/pid.py
+2026-03-30 14:53: /home/ben/Ben/Thesis/e2e_rl/controllers/__init__.py

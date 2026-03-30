@@ -564,6 +564,11 @@ class TractorTrailerSteeringMPC:
         """
         trajectory: (N+1,4) rows [X, Y, psi1, psi2], row 0 is current measured state.
         state: (vx, U_prev_total)
+
+        vx may be negative (reversing).  When the trajectory was generated with
+        generate_trajectory(..., reverse=True) the path headings and curvature are
+        already expressed in the reverse-driving frame, so solve() requires no
+        additional sign changes — it just passes vx straight through to linearize().
         """
         traj = np.asarray(trajectory, dtype=float)
         assert traj.ndim == 2 and traj.shape[1] >= 4, "trajectory must be (M,4+)"
@@ -572,10 +577,18 @@ class TractorTrailerSteeringMPC:
         X_0, Y_0, psi1_0, psi2_0 = traj[0, :4]
         vx, U_prev_total = float(state[0]), float(state[1])
 
-        # Linearize & discretize at the current operating point (around current total steer)
+        # Guard against near-zero speed (linearization becomes ill-conditioned).
+        if abs(vx) < 1e-3:
+            vx = 1e-3
+
+        # Linearize & discretize at the current operating point (around current total steer).
+        # Negative vx is valid: the A/B/W matrices are derived symbolically and handle
+        # reverse dynamics correctly when vx < 0.
         A_d, B_d, W_d = self.linearize(U_prev_total, psi1_0, psi2_0, vx)
 
         # ---- Geometry feed-forward from path ----
+        # For reverse trajectories, path_x/path_y go backwards and calculate_curvature
+        # returns the negated (reverse-effective) curvature automatically.
         path_x = traj[:, 0]
         path_y = traj[:, 1]
         kappa = calculate_curvature(X_0, Y_0, path_x, path_y)
@@ -594,7 +607,6 @@ class TractorTrailerSteeringMPC:
             ref_mat = traj[1:self.N + 1, :4]
         X_ref = ref_mat.reshape(-1, 1)
         X0_vec = np.array([X_0, Y_0, psi1_0, psi2_0], dtype=float).reshape(nx, 1)
-
 
         try:
             # Solve QP for v
@@ -615,3 +627,39 @@ class TractorTrailerSteeringMPC:
             u = float(np.clip(u, self.umin, self.umax))
             self.v.append(u)
         return self.v.pop(0)  # return first optimal input
+
+
+class ReverseTractorTrailerMPC(TractorTrailerSteeringMPC):
+    """
+    MPC variant tuned for reverse driving of a tractor-trailer.
+
+    Key differences from the forward MPC:
+    - Much higher hitch-angle cost Q[3,3] (the reverse system is open-loop unstable;
+      the trailer jack-knifes without strong active correction of the hitch angle).
+    - Shorter horizon N=20 (long forward predictions over an unstable system are
+      numerically problematic and increase QP solve time).
+    - Heavier OSQP regularisation to cope with the less well-conditioned A matrix
+      that arises from the unstable reverse dynamics.
+
+    Usage
+    -----
+    Pair with generate_trajectory(..., reverse=True) so that the path heading and
+    curvature references are expressed in the reverse-driving frame.  Pass the
+    actual (negative) vehicle speed as vx.
+    """
+
+    def __init__(self, args=None):
+        super().__init__(args)
+        # Shorter horizon for unstable reverse system
+        self.N = 20
+        # Much higher hitch-angle penalty to actively damp jackknife tendency
+        self.Q = np.diag([0.0, 2000.0, 2000.0, 5000.0])
+
+    def optimization(self, A, B, d_eff, U_prev_total, X_0, X_ref, delta_ff,
+                     nWSR_max: int = 200, eps_reg: float = 1e-6,
+                     print_level: str = "NONE"):
+        # Use larger regularisation for the ill-conditioned reverse dynamics.
+        return super().optimization(
+            A, B, d_eff, U_prev_total, X_0, X_ref, delta_ff,
+            nWSR_max=nWSR_max, eps_reg=eps_reg, print_level=print_level,
+        )
