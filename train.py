@@ -141,11 +141,15 @@ def make_env(scenario: str, obs: str, render_mode=None, reward: str = "dense",
     raise ValueError(f"Unknown scenario={scenario!r} or obs={obs!r}")
 
 
-def _make_env_fn(scenario, obs, reward, lidar_beams, rank, base_seed=0):
+def _make_env_fn(scenario, obs, reward, lidar_beams, rank, base_seed=0,
+                 retry_on_failure=False):
     """Return a picklable factory for SubprocVecEnv."""
     def _init():
         env = make_env(scenario, obs, render_mode=None, reward=reward,
                        lidar_beams=lidar_beams)
+        if retry_on_failure:
+            from Environments.wrappers import RetryOnFailureWrapper
+            env = RetryOnFailureWrapper(env)
         env = Monitor(env)
         env.reset(seed=base_seed + rank)
         return env
@@ -294,6 +298,7 @@ def main(
     pretrain_collect_steps: int = 10_000,
     pretrain_epochs: int = 30,
     n_eval_episodes: int = 10,
+    retry_on_failure: bool = False,
 ):
     # --- Validate args ---
     valid_rewards = reward_choices_for_scenario(scenario)
@@ -309,7 +314,8 @@ def main(
 
     # --- Paths ---
     obs_tag = f"{obs}_{encoder}" if (obs == "bev" and encoder != "scratch") else obs
-    save_root = Path(f"./models/{scenario}/{obs_tag}/{reward}")
+    retry_tag = "_retry" if retry_on_failure else ""
+    save_root = Path(f"./models/{scenario}/{obs_tag}/{reward}{retry_tag}")
     save_root.mkdir(parents=True, exist_ok=True)
     log_dir  = save_root / "logs"
     log_dir.mkdir(exist_ok=True)
@@ -318,6 +324,7 @@ def main(
 
     print(f"\n{'='*60}")
     print(f"  scenario={scenario}  obs={obs}  encoder={encoder}  reward={reward}")
+    print(f"  retry_on_failure={retry_on_failure}")
     print(f"  timesteps={timesteps:,}  n_envs={n_envs}  device={device}")
     print(f"  save → {save_root}")
     print(f"{'='*60}")
@@ -345,14 +352,19 @@ def main(
 
     if n_envs > 1:
         train_env = SubprocVecEnv(
-            [_make_env_fn(scenario, obs, reward, lidar_beams, rank=i)
+            [_make_env_fn(scenario, obs, reward, lidar_beams, rank=i,
+                          retry_on_failure=retry_on_failure)
              for i in range(n_envs)],
             start_method="fork",
         )
         train_freq = (1, "step")
     else:
-        train_env = Monitor(make_env(scenario, obs, render_mode=render_mode,
-                                     reward=reward, lidar_beams=lidar_beams))
+        base_env = make_env(scenario, obs, render_mode=render_mode,
+                            reward=reward, lidar_beams=lidar_beams)
+        if retry_on_failure:
+            from Environments.wrappers import RetryOnFailureWrapper
+            base_env = RetryOnFailureWrapper(base_env)
+        train_env = Monitor(base_env)
         train_freq = (1, "episode")
 
     # --- Eval env ---
@@ -510,6 +522,14 @@ if __name__ == "__main__":
         "--render", action="store_true",
         help="Enable rendering (single-env only).",
     )
+    parser.add_argument(
+        "--retry_on_failure", action="store_true",
+        help=(
+            "Replay the same path/spawn after a failed episode (collision or "
+            "jackknife) instead of drawing a fresh random scenario. "
+            "Models are saved under <reward>_retry/ to keep them separate."
+        ),
+    )
     args = parser.parse_args()
 
     main(
@@ -526,4 +546,5 @@ if __name__ == "__main__":
         pretrain_collect_steps=args.pretrain_steps,
         pretrain_epochs=args.pretrain_epochs,
         n_eval_episodes=args.eval_episodes,
+        retry_on_failure=args.retry_on_failure,
     )

@@ -2,7 +2,7 @@ import numpy as np
 from VehicleModels.tractor_trailer import StateSpaceTractorTrailer
 
 
-def generate_trajectory(x, y, vehicle: StateSpaceTractorTrailer, reverse: bool = False):
+def generate_trajectory(x, y, vehicle: StateSpaceTractorTrailer, reverse: bool = False, horizon: int = 40):
     """
     Build (N+1, 4) trajectory rows = [X, Y, psi1, psi2] for TractorTrailerSteeringMPC.
       - Row 0 is the current measured state from `vehicle`:
@@ -28,7 +28,7 @@ def generate_trajectory(x, y, vehicle: StateSpaceTractorTrailer, reverse: bool =
 
     Assumptions:
       Hitch at tractor rear axle -> L2C ≈ 0 (small epsilon for numeric stability).
-      Horizon N defaults to 40 (tweak here if you want it elsewhere).
+      Horizon N defaults to 40 unless overridden by the caller.
     """
     x = np.asarray(x, dtype=float).ravel()
     y = np.asarray(y, dtype=float).ravel()
@@ -40,7 +40,9 @@ def generate_trajectory(x, y, vehicle: StateSpaceTractorTrailer, reverse: bool =
     vx_abs = max(1e-6, abs(float(getattr(vehicle, "xd", 1.0))))  # speed magnitude for spacing
     L1 = float(getattr(vehicle, "lf", 1.2) + getattr(vehicle, "lr", 1.6))  # tractor wheelbase
     L2C = np.finfo(float).eps  # hitch at rear axle -> ~0 to avoid singularities
-    N = 40
+    N = int(horizon)
+    if N < 1:
+        raise ValueError("horizon must be >= 1")
 
     # --- current measured trailer state (row 0) ---
     X0 = float(vehicle.trailer.x)

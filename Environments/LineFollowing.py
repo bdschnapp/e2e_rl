@@ -23,37 +23,29 @@ class GridMeta:
 
 
 def forward_pure_pursuit(env, render=True):
+    from controllers.pure_pursuit import PurePursuitController
+
     env.reset()
     done = False
-    action = env.action_space.sample()
-    k_y = 1.2
-    k_yi = 0.1
-    k_theta = 2.4
-    wheelbase = env.vehicle.lr + env.vehicle.lf
-    MAX_STEER_RATE = 0.5  # rad/s
-    i = 0
-    i_error = 0.0
+    controller = PurePursuitController(k_ff=0.85, k_y=0.18, k_theta=0.36)
+    max_steer_rate = float(np.deg2rad(config.steering_action))
+    wheelbase = float(env.vehicle.lr + env.vehicle.lf)
     total_reward = 0.0
     steps = 0
     while not done:
-        i += 1
         error, error_theta = env.get_vehicle_errors()
-        i_error += error * env.vehicle.dt
-        i_error = np.clip(i_error, -0.5, 0.5)
-        u_fb = -k_y * error - k_yi * i_error - k_theta * error_theta
         kappa = compute_curvature(env)
-        u_ff = np.arctan(wheelbase * kappa)
-        u = 0.85 * u_ff + 0.15 * u_fb
+        action = controller.step(
+            e_y=float(error),
+            e_theta=float(error_theta),
+            kappa=float(kappa),
+            wheelbase=wheelbase,
+            current_steer=float(env.vehicle.s),
+            dt=float(env.vehicle.dt),
+            max_steer_rate=max_steer_rate,
+        )
 
-        s = env.vehicle.s  # get current vehicle steering angle
-
-        # convert steering angle error to steering rate
-        ds_dt = np.clip((u - s) / env.vehicle.dt, -MAX_STEER_RATE, MAX_STEER_RATE)
-        # ds_dt = (u - s) / env.vehicle.dt
-        action[0] = ds_dt
-        action[1] = config.initial_xd  # constant speed
-
-        obs, reward, term, trunc, info = env.step(action)
+        obs, reward, term, trunc, info = env.step(env.format_action(action))
         total_reward += reward
         steps += 1
         done = term or trunc
@@ -64,71 +56,28 @@ def forward_pure_pursuit(env, render=True):
 
 
 def reverse_pure_pursuit(env, render=False):
+    from controllers.pure_pursuit import ReverseHitchPurePursuitController
+
     obs, _ = env.reset()
     done = False
-
-    action = env.action_space.sample()
-
-    # --------- Inner loop gains (fast): stabilize phi -> phi_ref ----------
-    Kp = 3.0          # articulation angle gain
-    Kd = 0.5          # articulation rate damping
-
-    # --------- Outer loop gains (slow): trailer tracking -> phi_ref ----------
-    K_y_t = 1.2  # lateral error gain (trailer)
-    K_th_t = 2.4  # heading error gain (trailer)
-    phi_ref_max = np.deg2rad(15)  # keep small so inner loop can stay stable
-
-    # Conservative reverse speed
-    v_rev = -1.0
-
-    MAX_STEER_RATE = 0.25
-    MAX_STEER_ANGLE = np.deg2rad(config.steering_action + 15)
-
-    # Jackknife region for extra authority
-    JACKKNIFE_SOFT = np.deg2rad(20)
-    JACKKNIFE_HARD = np.deg2rad(60)
-
-    prev_phi = 0.0
+    controller = ReverseHitchPurePursuitController(k_hitch=1.2, k_y=0.25, k_theta=0.6, k_ff=0.0)
+    max_steer_rate = float(np.deg2rad(config.steering_action))
 
     total_reward, steps = 0.0, 0
 
     while not done:
-        # --- Get errors (prefer trailer errors for reverse tracking) ---
-        # You already have these in your env:
         error_t, error_theta_t = env.get_trailer_errors()
+        action = controller.step(
+            psi2=float(env.vehicle.p - env.vehicle.trailer.yaw),
+            e_y_t=float(error_t),
+            e_theta_t=float(error_theta_t),
+            kappa=float(compute_curvature(env)),
+            current_steer=float(env.vehicle.s),
+            dt=float(env.vehicle.dt),
+            max_steer_rate=max_steer_rate,
+        )
 
-        # --- Outer loop: compute desired hitch angle (small) ---
-        phi_ref = -(K_y_t * error_t) - (K_th_t * error_theta_t)
-        phi_ref = float(np.clip(phi_ref, -phi_ref_max, phi_ref_max))
-
-        # --- Current hitch angle ---
-        phi = env.vehicle.p - env.vehicle.trailer.yaw
-        phi = (phi + np.pi) % (2 * np.pi) - np.pi
-        phi = np.clip(phi, -JACKKNIFE_HARD, JACKKNIFE_HARD)
-
-        # Hitch rate
-        phi_dot = (phi - prev_phi) / env.vehicle.dt
-        prev_phi = phi
-
-        # --- Inner loop: stabilize phi around phi_ref ---
-        e_phi = (phi - phi_ref)
-
-        gain_boost = 1.0
-        if abs(phi) > JACKKNIFE_SOFT:
-            gain_boost = 1.0 + 2.0 * (abs(phi) - JACKKNIFE_SOFT) / (JACKKNIFE_HARD - JACKKNIFE_SOFT)
-            gain_boost = np.clip(gain_boost, 1.0, 3.0)
-
-        delta_cmd = gain_boost * (-(Kp * e_phi) - (Kd * phi_dot))
-        delta_cmd = np.clip(delta_cmd, -MAX_STEER_ANGLE, MAX_STEER_ANGLE)
-
-        # Convert steering angle to steering rate action
-        s = env.vehicle.s
-        ds_dt = np.clip((delta_cmd - s) / env.vehicle.dt, -MAX_STEER_RATE, MAX_STEER_RATE)
-
-        action[0] = ds_dt
-        action[1] = v_rev
-
-        obs, reward, term, trunc, info = env.step(action)
+        obs, reward, term, trunc, info = env.step(env.format_action(action))
         total_reward += reward
         steps += 1
         done = term or trunc

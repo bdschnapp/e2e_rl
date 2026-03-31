@@ -11,7 +11,8 @@ The recommended experiment order is therefore:
 \begin{enumerate}
     \item select the best observation space on forward and reverse lane-following without obstacles;
     \item hold that observation fixed and compare candidate reward formulations on the same no-obstacle tasks;
-    \item benchmark the best TD3 configuration against tuned classical controllers on matched no-obstacle scenarios.
+    \item benchmark the best TD3 configuration against tuned classical controllers on matched no-obstacle scenarios;
+    \item evaluate the failure replay curriculum (Section~\ref{sec:failure_replay}) on the reverse task, holding observation and reward fixed, to isolate the effect of the reset strategy on convergence and final performance.
 \end{enumerate}
 
 This sequence keeps each ablation focused on one design variable at a time and ensures that the final controller benchmark is performed on the cleanest apples-to-apples task definition. In particular, the no-obstacle benchmark should be run at fixed speed for every method, so that differences in performance are attributed to path tracking and articulation stabilisation rather than to longitudinal speed selection.
@@ -19,6 +20,14 @@ This sequence keeps each ablation focused on one design variable at a time and e
 Table~\ref{tab:results_plan_matrix} converts that sequence into an executable run matrix. The training launcher supports all observation and reward combinations listed there through the \texttt{scenario}, \texttt{obs}, and \texttt{reward} arguments, while the benchmark scripts are used only after model selection.
 
 \input{tables/results_plan_matrix}
+
+\section{Training Strategy: Failure Replay Curriculum}
+
+The failure replay curriculum (Section~\ref{sec:failure_replay}) is evaluated as a controlled ablation on the reverse lane-following task, where the episode failure rate is highest and the effect of replay is therefore expected to be most pronounced. Two agents are trained with identical hyperparameters, observation spaces, and reward formulations, differing only in whether the reset strategy replays failed scenarios or draws a fresh random layout.
+
+The primary comparison metric is the learning curve: mean episode return and completion rate plotted against training timesteps. A curriculum that accelerates convergence should show a steeper rise in completion rate during the early phase of training, when the policy is least stable and failure rates are highest. If the curriculum is effective, the replay agent should reach a given completion threshold in fewer timesteps than the random-reset baseline.
+
+Final performance (mean absolute trailer CTE, jackknife rate, and max~$|\gamma|$ over held-out evaluation seeds) is also compared, as the curriculum may improve sample efficiency without necessarily raising the asymptotic performance ceiling. Results are evaluated on fixed held-out seeds that were not seen during training, so that any advantage from repeated exposure to particular layouts during training does not inflate the reported evaluation metrics.
 
 \section{Reverse Maneuvering Success}
 

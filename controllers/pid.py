@@ -3,9 +3,9 @@ PID controller for tractor-trailer forward lane following.
 
 Control law
 -----------
-  δ_des = k_ff · κ
-        − Kp · e_y  −  Ki · ∫e_y dt  −  Kd · e_θ
-        − Kp_t · e_y_t
+  δ_des = -k_ff · κ
+        - Kp · e_y  -  Ki · ∫e_y dt  -  Kd · e_θ
+        + Kp_t · e_y_t
 
 Then converted to steering rate:  δ̇ = (δ_des − δ_current) / dt.
 
@@ -84,11 +84,11 @@ class PIDLaneController:
         ))
 
         delta_des = (
-            self.k_ff * kappa
+            - self.k_ff * kappa
             - self.Kp * e_y
             - self.Ki * self._integral
             - self.Kd * e_theta
-            - self.Kp_t * e_y_t
+            + self.Kp_t * e_y_t
         )
         steer_rate = float(np.clip(
             (delta_des - current_steer) / dt,

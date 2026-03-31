@@ -244,7 +244,7 @@ def _run_episode_mpc(env, mpc, seed=None) -> dict:
         import time
         t0 = time.perf_counter()
         try:
-            traj = generate_trajectory(env.xx, env.yy, env.vehicle)
+            traj = generate_trajectory(env.xx, env.yy, env.vehicle, horizon=mpc.N)
             vx = float(env.vehicle.xd) if abs(float(env.vehicle.xd)) > 1e-3 else 1.0
             delta_opt = float(mpc.solve(traj, state=(vx, prev_steer)))
             prev_steer = delta_opt
@@ -348,7 +348,7 @@ def _run_episode_mpc_reverse(env, mpc, seed=None) -> dict:
         import time
         t0 = time.perf_counter()
         try:
-            traj = generate_trajectory(env.xx, env.yy, env.vehicle, reverse=True)
+            traj = generate_trajectory(env.xx, env.yy, env.vehicle, reverse=True, horizon=mpc.N)
             vx = float(env.vehicle.xd)
             # Ensure vx is negative (reverse); fall back to -initial_xd if near zero
             if abs(vx) < 1e-3:
@@ -510,17 +510,17 @@ def tune_mpc(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
 
     Default weights
     ---------------
-    Q = diag([0, 2000, 2000, 500])   (Y, psi1, psi2)
-    R = diag([1.0])
-    P = diag([1e5])
+    Q = diag([0, 3000, 12000, 6000])   (Y, psi1, psi2)
+    R = diag([2.0])
+    P = diag([5e5])
 
     Optimised scale factors (log10)
     --------------------------------
-    log10_q_y    [-2, 2]  → Q[1,1] = 2000 * 10^x
-    log10_q_psi1 [-2, 2]  → Q[2,2] = 2000 * 10^x
-    log10_q_psi2 [-2, 2]  → Q[3,3] =  500 * 10^x
-    log10_r      [-2, 2]  → R[0,0] =    1 * 10^x
-    log10_p      [-2, 2]  → P[0,0] = 1e5  * 10^x
+    log10_q_y    [-0.5, 1.0]   → Q[1,1] = 3000  * 10^x
+    log10_q_psi1 [-0.25, 1.0]  → Q[2,2] = 12000 * 10^x
+    log10_q_psi2 [-0.25, 1.0]  → Q[3,3] = 6000  * 10^x
+    log10_r      [-0.5, 1.0]   → R[0,0] =    2  * 10^x
+    log10_p      [-0.5, 1.0]   → P[0,0] = 5e5   * 10^x
     """
     rng = np.random.default_rng(2)
     opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
@@ -532,11 +532,11 @@ def tune_mpc(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
         lq_y, lq_psi1, lq_psi2, lr, lp = x
         params = dict(
             Q=np.diag([0.0,
-                       2000.0 * 10**lq_y,
-                       2000.0 * 10**lq_psi1,
-                       500.0  * 10**lq_psi2]).tolist(),
-            R=np.diag([1.0 * 10**lr]).tolist(),
-            P=np.diag([1e5 * 10**lp]).tolist(),
+                       3000.0  * 10**lq_y,
+                       12000.0 * 10**lq_psi1,
+                       6000.0  * 10**lq_psi2]).tolist(),
+            R=np.diag([2.0 * 10**lr]).tolist(),
+            P=np.diag([5e5 * 10**lp]).tolist(),
         )
         summaries = _evaluate_rollouts("mpc", params, opt_seeds)
         score = _objective_score(summaries)
@@ -547,7 +547,7 @@ def tune_mpc(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
                   f"lq_psi2={lq_psi2:.2f} lr={lr:.2f} lp={lp:.2f}")
         return score
 
-    bounds = [(-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2)]
+    bounds = [(-0.5, 1.0), (-0.25, 1.0), (-0.25, 1.0), (-0.5, 1.0), (-0.5, 1.0)]
     print("\n[MPC] Starting differential_evolution optimisation …")
     result = differential_evolution(
         objective, bounds,
@@ -559,11 +559,11 @@ def tune_mpc(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
     lq_y_opt, lq_psi1_opt, lq_psi2_opt, lr_opt, lp_opt = result.x
     best_params = dict(
         Q=np.diag([0.0,
-                   2000.0 * 10**lq_y_opt,
-                   2000.0 * 10**lq_psi1_opt,
-                   500.0  * 10**lq_psi2_opt]).tolist(),
-        R=np.diag([1.0 * 10**lr_opt]).tolist(),
-        P=np.diag([1e5 * 10**lp_opt]).tolist(),
+                   3000.0  * 10**lq_y_opt,
+                   12000.0 * 10**lq_psi1_opt,
+                   6000.0  * 10**lq_psi2_opt]).tolist(),
+        R=np.diag([2.0 * 10**lr_opt]).tolist(),
+        P=np.diag([5e5 * 10**lp_opt]).tolist(),
     )
     print(f"[MPC] Best scale factors: lq_y={lq_y_opt:.3f}  lq_psi1={lq_psi1_opt:.3f}  "
           f"lq_psi2={lq_psi2_opt:.3f}  lr={lr_opt:.3f}  lp={lp_opt:.3f}  "

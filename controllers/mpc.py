@@ -100,10 +100,12 @@ class TractorTrailerSteeringMPC:
         self.nu = 1  # Number of inputs
         self.Ts = 0.1  # Sampling time
 
-        self.Q = np.diag([0.0, 2000.0, 2000.0, 500.0])  # State cost
-        self.R = np.diag([1.0])  # Input cost
-        self.P = np.diag([1e5])  # Input-delta cost
-        self.N = 40  # Horizon length
+        # Forward path-tracking is more stable with a shorter preview and much
+        # stronger heading / hitch penalties than the original lane-centering-heavy setup.
+        self.Q = np.diag([0.0, 3000.0, 12000.0, 6000.0])  # State cost
+        self.R = np.diag([2.0])  # Input cost
+        self.P = np.diag([5e5])  # Input-delta cost
+        self.N = 16  # Horizon length
 
         self.umin = -np.pi / 6  # Min steering angle
         self.umax = np.pi / 6   # Max steering angle

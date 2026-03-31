@@ -200,7 +200,7 @@ def _mpc_step(env, mpc, prev_steer: float):
     import e2erl_utils.config as config
 
     t0 = time.perf_counter()
-    traj = generate_trajectory(env.xx, env.yy, env.vehicle)
+    traj = generate_trajectory(env.xx, env.yy, env.vehicle, horizon=mpc.N)
     vx = float(env.vehicle.xd) if abs(float(env.vehicle.xd)) > 1e-3 else 1.0
     delta_opt = float(mpc.solve(traj, state=(vx, prev_steer)))
 
@@ -218,7 +218,7 @@ def _mpc_reverse_step(env, mpc, prev_steer: float):
     import e2erl_utils.config as config
 
     t0 = time.perf_counter()
-    traj = generate_trajectory(env.xx, env.yy, env.vehicle, reverse=True)
+    traj = generate_trajectory(env.xx, env.yy, env.vehicle, reverse=True, horizon=mpc.N)
     vx = float(env.vehicle.xd)
     if abs(vx) < 1e-3:
         vx = -float(config.initial_xd)

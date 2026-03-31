@@ -72,7 +72,7 @@ class PurePursuitController:
         -------
         action : np.ndarray [steering_rate, speed]
         """
-        delta_des = (
+        delta_des = -(
             self.k_ff * np.arctan(wheelbase * kappa)
             + self.k_y * e_y
             + self.k_theta * e_theta
