@@ -1,0 +1,29 @@
+% Lidar beam-count ablation — forward lane-following, dense reward, no obstacles.
+% Lidar is treated separately from image-based methods because it is a
+% fundamentally different sensing modality: a sparse 1-D range scan rather than
+% a 2-D bird's-eye-view image.  The primary question here is how resolution
+% (beam count) trades against policy quality and inference cost.
+
+\begin{table}[H]
+\centering
+\caption{Lidar beam-count ablation on forward lane-following (dense reward, no obstacles,
+         30~eval episodes). The 16-beam result is the same run as in
+         Table~\ref{tab:obs_ablation_forward}.}
+\label{tab:lidar_beams_forward}
+\begin{tabular}{rcccccc}
+\toprule
+Beams
+  & \makecell{CTE\\Trailer\\mean (m)}
+  & \makecell{CTE\\Trailer\\RMS (m)}
+  & \makecell{Max $|\gamma|$\\($^\circ$)}
+  & \makecell{Completion\\(\%)}
+  & \makecell{Jackknife\\(\%)}
+  & \makecell{Inference\\(ms)} \\
+\midrule
+ 4  & --- & --- & --- & --- & --- & --- \\
+ 8  & --- & --- & --- & --- & --- & --- \\
+16  & --- & --- & --- & --- & --- & --- \\
+32  & --- & --- & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}

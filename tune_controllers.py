@@ -6,7 +6,7 @@ For each classical controller (fpp, pid, mpc) this script:
   2. Validates the optimised parameters on a held-out episode set
   3. Generates a 2-D sensitivity sweep over the two most influential gains
      (for thesis figures showing the controller is properly tuned)
-  4. Saves optimised parameters to results/tuned_params.json
+  4. Saves optimised parameters to controllers/tuned_params.json
 
 Reverse controllers (fpp_rev, pid_rev, mpc_rev) follow the same pipeline but use
 ReverseStateObservationLineFollowingEnv and the hitch-stabilising variants.
@@ -22,13 +22,13 @@ Usage
 
 Outputs
 -------
-    results/tuned_params.json           — best params per controller
-    results/sensitivity_fpp.csv         — 2-D grid sweep data (FPP, forward)
-    results/sensitivity_pid.csv         — 2-D grid sweep data (PID, forward)
-    results/sensitivity_mpc.csv         — 2-D grid sweep data (MPC, forward)
-    results/sensitivity_fpp_rev.csv     — 2-D grid sweep data (FPP, reverse)
-    results/sensitivity_pid_rev.csv     — 2-D grid sweep data (PID, reverse)
-    results/sensitivity_mpc_rev.csv     — 2-D grid sweep data (MPC, reverse)
+    controllers/tuned_params.json       — best params per controller
+    controllers/sensitivity_fpp.csv     — 2-D grid sweep data (FPP, forward)
+    controllers/sensitivity_pid.csv     — 2-D grid sweep data (PID, forward)
+    controllers/sensitivity_mpc.csv     — 2-D grid sweep data (MPC, forward)
+    controllers/sensitivity_fpp_rev.csv — 2-D grid sweep data (FPP, reverse)
+    controllers/sensitivity_pid_rev.csv — 2-D grid sweep data (PID, reverse)
+    controllers/sensitivity_mpc_rev.csv — 2-D grid sweep data (MPC, reverse)
 """
 
 import argparse
@@ -1028,8 +1028,8 @@ def main():
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("results"),
-        help="Output directory (default: results/)",
+        default=Path("controllers"),
+        help="Output directory (default: controllers/)",
     )
     parser.add_argument(
         "--sweep_only",

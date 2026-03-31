@@ -9,14 +9,11 @@ End-to-End Reinforcement Learning (E2E-RL) research project for autonomous tract
 ## Running Training
 
 ```bash
-# Line-following task (lane tracking with tractor-trailer)
-python line_following_main.py
-
-# Distribution center task (warehouse parking/navigation)
-python distribution_center_main.py
+python train.py --scenario forward --obs state
+python tune_controllers.py --controllers fpp,pid,mpc
+python scripts/generate_test_scenarios.py
+python benchmark.py --task forward --controllers td3,fpp,pid,mpc
 ```
-
-Both scripts train TD3 agents with 200k timesteps. Rendering is enabled by default (`render_mode='human'`).
 
 ## Dependencies
 
@@ -35,8 +32,8 @@ Core dependencies (no requirements.txt exists):
 Environments/           # Gymnasium RL environments
 ├── TractorTrailer.py   # Base env with vehicle dynamics + pygame rendering
 ├── LineFollowing.py    # Lane-following task (extends TractorTrailer)
-├── DistributionCenter.py  # Warehouse parking task
-└── LatticePlanner.py   # Ring-sweep motion planning
+├── ObstacleAvoidance.py # Obstacle-aware task variants
+└── wrappers.py         # Training/evaluation wrappers
 
 VehicleModels/          # Vehicle dynamics
 ├── vehicle_model.py    # Base kinematic/dynamic models
@@ -57,7 +54,9 @@ e2erl_utils/config.py   # Global configuration (vehicle params, scales, BEV sett
 
 ## Key Concepts
 
-**Action Space**: `[steering_rate, speed]` - steering rate in rad/s (±15°/s), speed in m/s (0-2)
+**Action Space**:
+- no-obstacle tasks: steering-rate control with fixed speed
+- obstacle tasks: `[steering_rate, speed]`
 
 **Observation Space**: Dictionary with:
 - `vector`: State variables (steering angle, hitch angle, tracking errors)

@@ -3,9 +3,9 @@
 
 \section{Twin Delayed Deep Deterministic Policy Gradient (TD3)}
 
-Twin Delayed Deep Deterministic Policy Gradient (TD3) is an off-policy actor-critic algorithm designed for continuous action spaces. TD3 extends the Deep Deterministic Policy Gradient (DDPG) algorithm from the ME~780 prior work with three key improvements: twin critic networks (to reduce overestimation bias), delayed policy updates (to improve stability), and target policy smoothing (to reduce variance in critic updates).
+Twin Delayed Deep Deterministic Policy Gradient (TD3) is an off-policy actor-critic algorithm designed for continuous action spaces. TD3 extends deterministic policy-gradient methods with three key improvements: twin critic networks (to reduce overestimation bias), delayed policy updates (to improve stability), and target policy smoothing (to reduce variance in critic updates).
 
-Like DDPG, the TD3 actor network $\mu(s \mid \theta^\mu)$ maps states to deterministic actions, while the critic networks $Q_1, Q_2(s, a \mid \theta^{Q_1}, \theta^{Q_2})$ evaluate action quality. The target value is computed using the minimum of the two critic estimates:
+The TD3 actor network $\mu(s \mid \theta^\mu)$ maps states to deterministic actions, while the critic networks $Q_1, Q_2(s, a \mid \theta^{Q_1}, \theta^{Q_2})$ evaluate action quality. The target value is computed using the minimum of the two critic estimates:
 
 \begin{equation}
     y = r_t + \gamma_d \min_{i=1,2} Q_i(s_{t+1},\, \mu(s_{t+1}) + \epsilon)
@@ -21,41 +21,21 @@ TD3 is implemented using the Stable Baselines3 library, which provides a reliabl
 
 \subsection{Multiplicative vs.\ Additive Reward Structures}
 
-Prior ME~780 results indicated that a multiplicative reward structure forces the agent to minimise both cross-track and heading errors simultaneously, preventing the policy from exploiting partial credit in the additive form. In this thesis, this logic is extended to include hitch articulation stability: the multiplicative penalty on $|\gamma|$ discourages the agent from trading path accuracy for a large articulation angle.
-
-\section{Decision Transformer}
-
-The Decision Transformer (DT) reformulates RL as a sequence-to-sequence problem. Given a context window of past states $s_{t-k:t}$, actions $a_{t-k:t-1}$, and returns-to-go $\hat{R}_{t-k:t}$, the model predicts the next action using the causal self-attention mechanism of the Transformer architecture:
-
-\begin{equation}
-    a_t = \pi_\theta(s_{t-k:t},\, a_{t-k:t-1},\, \hat{R}_{t-k:t})
-    \label{eq:dt}
-\end{equation}
-
-Decision transformers are an offline reinforcement learning approach: rather than training by interacting with the environment, they are trained on recorded trajectories of an agent (such as the TD3 policy) interacting with the environment. This architecture is relevant for the tractor-trailer setting, where early steering errors may only result in a jackknife condition several seconds later, requiring the model to reason over long-term dependencies.
-
-\subsection{Dataset Requirements}
-
-The ME~780 study revealed that DTs are prone to oscillation if the training dataset is too narrow in state diversity. To address this, training data should include recovery manoeuvres obtained by:
-\begin{itemize}
-    \item injecting noise into a TD3 expert's actions during data collection;
-    \item explicitly including trajectories initialised from high-error states (e.g., $|e_y| > 1$\,m or $|\gamma| > 20^\circ$);
-    \item including step discontinuities in the reference path to force the model to learn re-acquisition behaviour, as demonstrated in the ME~780 work.
-\end{itemize}
+The multiplicative reward structure forces the agent to minimise cross-track and heading errors jointly, preventing the policy from exploiting partial credit in an additive form. In this thesis, that logic is extended to include hitch articulation stability: the multiplicative penalty on $|\gamma|$ discourages the agent from trading path accuracy for a large articulation angle.
 
 \section{Hyperparameter Optimisation}
 
-Both the TD3 and DT agents require careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected over simulation rollouts. For the TD3 experiments, the codebase now includes a dedicated Phase~1 training pipeline that trains matched agents across state-only, lidar, and BEV observation variants. BEV policies use custom multi-input feature extractors, while the state-only and lidar policies use standard multilayer perceptron policies.
+The TD3 agent requires careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected over simulation rollouts. The training pipeline supports matched agents across state-only, lidar, and BEV observation variants. BEV policies use custom multi-input feature extractors, while the state-only and lidar policies use standard multilayer perceptron policies.
 
 To reduce wall-clock cost for image-based training, the training script supports vectorised environment execution with subprocess workers. When multiple environments are used, the data collection schedule switches from episode-based to step-based updates so that parallel workers remain saturated instead of waiting for all episodes to terminate simultaneously. This is particularly important for the CNN-based BEV policy, whose throughput is otherwise dominated by environment interaction rather than gradient computation.
 
 \subsection{Representation Pretraining}
 
-Two of the BEV variants use an explicit pretraining stage before TD3 optimisation. The autoencoder-based model freezes a pretrained NatureCNN encoder, while the UNet-based model freezes a pretrained UNet encoder after transfer from the reconstruction network. Both pretraining procedures operate on BEV images collected from policy rollouts and simple geometric controllers. This separates representation learning from control learning and allows a direct comparison against the end-to-end CNN baseline.
+Two of the BEV variants use an explicit pretraining stage before TD3 optimisation. The autoencoder-based model freezes a pretrained NatureCNN encoder, while the UNet-based model freezes a pretrained UNet encoder after transfer from the reconstruction network. Both pretraining procedures operate on BEV images collected from policy rollouts and simple geometric controllers. This separates representation learning from control learning and allows direct comparison against the end-to-end CNN baseline.
 
 \subsection{Classical Controller Tuning}
 
-The thesis now includes a reproducible tuning pipeline for the classical baselines used in later comparison chapters. Forward and reverse pure-pursuit, PID, and MPC controllers are optimised using differential evolution over repeated simulation episodes. The scalar objective penalises trailer cross-track error, jackknife events, collisions, and non-completion. After optimisation, each controller is validated on held-out seeds and a two-dimensional sensitivity sweep is generated over the most influential parameters. This ensures that any comparison against TD3 is made against tuned baselines rather than hand-picked nominal gains.
+A reproducible tuning pipeline is used for the classical baselines in later comparison chapters. Forward and reverse pure-pursuit, PID, and MPC controllers are optimised using differential evolution over repeated simulation episodes. The scalar objective penalises trailer cross-track error, jackknife events, collisions, and non-completion. After optimisation, each controller is validated on held-out seeds and a two-dimensional sensitivity sweep is generated over the most influential parameters. This ensures that comparisons against TD3 are made against tuned baselines rather than hand-picked nominal gains.
 
 \section{Failure Replay Curriculum}
 \label{sec:failure_replay}
@@ -68,4 +48,4 @@ This strategy is a form of automatic curriculum learning: rather than constructi
 
 The curriculum is most meaningful for scenarios where the per-episode failure rate is high and layout difficulty is non-uniform, namely reverse lane-following and reverse obstacle avoidance. For forward lane-following the failure rate is low after minimal training and the benefit is expected to be negligible.
 
-% TODO: TD3 hyperparameter sweep results, comparison with ME780 DDPG hyperparameters
+% Add final TD3 hyperparameter table here if a dedicated sweep is completed.

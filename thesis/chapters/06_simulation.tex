@@ -3,14 +3,14 @@
 
 \section{Custom Pygame/Gymnasium Environment}
 
-The training and evaluation environment is a custom 2D simulation built on the Farama Foundation Gymnasium library, consistent with the approach taken in the ME~780 prior work. Gymnasium provides a standardised API for implementing environments that integrate directly with reinforcement learning algorithm libraries, including Stable Baselines3.
+The training and evaluation environment is a custom 2D simulation built on the Farama Foundation Gymnasium library. Gymnasium provides a standardised API for implementing environments that integrate directly with reinforcement learning algorithm libraries, including Stable Baselines3.
 
 The simulation is implemented using Pygame for rendering and physics integration. At each timestep, the discrete-time tractor-trailer state-space equations are re-evaluated using the previous state and control inputs, updating the vehicle position, heading, hitch angle, and associated error signals. Pygame renders the scene as a 2D top-down view, from which the BEV image observation is captured.
 
 The simulation environment includes:
 
 \begin{enumerate}
-    \item \textbf{Vehicle Model}: A combined dynamic tractor (bicycle model with Pacejka tire dynamics) and kinematic trailer with hitch constraints, using Tesla Model S parameters as in the ME~780 and ECE~682 prior work.
+    \item \textbf{Vehicle Model}: A combined dynamic tractor (bicycle model with Pacejka tire dynamics) and kinematic trailer with hitch constraints, using Tesla Model S parameters.
     \item \textbf{Lane Generation}: Randomly generated lane paths using cubic spline interpolation, producing varying curvature paths for training and evaluation.
     \item \textbf{Obstacle Placement and Local Replanning}: Randomly placed static obstacles within the lane and a local path planner that perturbs the centreline around those obstacles for avoidance experiments.
     \item \textbf{Collision Detection}: Pygame sprite mask-based collision detection, providing pixel-precise contact sensing between the vehicle body and obstacles or lane boundaries.
@@ -38,11 +38,11 @@ Reverse line-following environments use the same path generation and rendering p
 
 The obstacle avoidance environment adds static obstacles within the lane. The agent must navigate the tractor-trailer through the lane while avoiding obstacles, which requires both path-following behaviour and collision avoidance. Instead of following the global lane centreline directly, the environment constructs a local path around the placed obstacles and evaluates tracking error relative to this locally planned path. Episode termination occurs on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion.
 
-Forward and reverse obstacle environments are both available. In addition to the original lidar-based formulation, the codebase now includes BEV obstacle-avoidance variants for both travel directions, enabling direct comparison between range-based and image-based obstacle perception within the same local-planning task.
+Forward and reverse obstacle environments are both available. In addition to the lidar-based formulation, the environment includes BEV obstacle-avoidance variants for both travel directions, enabling direct comparison between range-based and image-based obstacle perception within the same local-planning task.
 
 \section{Vehicle Parameters}
 
-The simulation uses the same vehicle parameters as the ME~780 and ECE~682 prior work, based on Tesla Model S specifications:
+The simulation uses Tesla Model S specifications for the tractor parameters:
 
 \begin{table}[H]
 \centering
@@ -69,23 +69,41 @@ The agent controls the vehicle through a continuous two-dimensional action space
     \label{eq:action_space}
 \end{equation}
 
-where $\dot{\delta}$ is the steering rate (rate of change of steering angle) and $v$ is the commanded speed. This action parameterisation is consistent with the observation from the ECE~682 work that the steering angle cannot be set instantaneously on a physical vehicle; controlling the rate of change is more physically realistic.
+where $\dot{\delta}$ is the steering rate (rate of change of steering angle) and $v$ is the commanded speed. This action parameterisation reflects the fact that the steering angle cannot be set instantaneously on a physical vehicle; controlling the rate of change is more physically realistic.
 
 For reverse tasks, the environment constrains the longitudinal command to negative speed while preserving the same steering-rate interface. This keeps the control dimensionality fixed across forward and reverse tasks and allows the same TD3 implementation to be reused.
 
-For thesis evaluation, however, this full action space is not used identically in every study. In the no-obstacle line-following experiments, the longitudinal speed should be treated as a fixed operating condition so that all methods are compared on the same path-tracking problem. In the obstacle-avoidance experiments, speed modulation remains part of the task because the agent must trade progress against collision risk and path geometry.
+For evaluation, this full action space is not used identically in every study. In the no-obstacle line-following experiments, the longitudinal speed is treated as a fixed operating condition so that all methods are compared on the same path-tracking problem. In the obstacle-avoidance experiments, speed modulation remains part of the task because the agent must trade progress against collision risk and path geometry.
 
 \section{Testing Protocols}
 
 The experimental workflow is now scriptable end-to-end. Scenario generation, Phase~1 observation-modality training, trained-policy evaluation, controller tuning, and multi-controller benchmarking are each exposed through standalone scripts. The benchmarking pipeline runs all controllers on the same pre-generated scenario set and logs per-step metrics including tractor and trailer cross-track error, hitch angle, completion, collision, jackknife events, obstacle clearance, and inference latency.
 
-The thesis should treat the experiments as two related but distinct problem classes:
+The experiments are treated as two related but distinct problem classes:
 \begin{enumerate}
     \item \textbf{Path-tracking control}: forward and reverse lane following without obstacles. In this setting all methods are solving the same task at a common fixed speed, so TD3 can be compared directly against pure-pursuit, PID, and MPC as lateral/path-tracking controllers.
     \item \textbf{Integrated navigation}: obstacle-avoidance tasks in which the policy must implicitly combine local planning and control. In this setting a direct comparison against controller-only baselines is not fair unless those baselines are also given a local planner.
 \end{enumerate}
 
 This distinction is important for experimental validity. A controller that only tracks a supplied path should not be evaluated against an RL policy that must both choose a collision-free local path and execute it, unless the classical baseline is paired with an equivalent planner.
+
+\subsection{Sim-to-Real and ROS2 Transition Strategy}
+
+Although the experiments in this thesis are simulation-only, the software architecture is intended to support later deployment in a ROS2-based robotics stack. The key design decision is that the policy and controller interfaces are expressed in terms of generic observations and low-level control commands rather than simulator-specific rendering calls. Each control method consumes either a vector observation, a lidar-style range vector, or a BEV image paired with state variables, and produces steering-rate and speed commands. This abstraction is directly compatible with a ROS2 node graph in which sensor drivers publish observations, a policy node performs inference, and a downstream interface node converts the commands into actuator messages.
+
+For no-obstacle path-tracking experiments, the fixed-speed formulation used in the thesis also improves deployment clarity: a real vehicle implementation can treat longitudinal speed regulation as a separate closed-loop subsystem while the learned or analytical controller handles lateral and articulation control. For obstacle-navigation experiments, the policy retains speed authority because longitudinal modulation is part of the task definition. This separation reduces ambiguity when mapping the thesis experiments onto a real robotic architecture.
+
+The expected ROS2 transition therefore consists of replacing only the environment-facing components:
+\begin{itemize}
+    \item the simulated state vector with subscribed vehicle-state estimates;
+    \item the simulated lidar or BEV renderer with ROS2 sensor topics or perception outputs;
+    \item the Pygame environment step call with a command publisher targeting steering and speed interfaces;
+    \item the episode reset logic with scenario initialisation and safety supervision on the robot.
+\end{itemize}
+
+The policy network, observation formatting, benchmark metrics, and controller-selection logic can remain largely unchanged. This is important because it turns ROS2 deployment from a full reimplementation problem into an interface-substitution problem.
+
+However, portability should not be overstated. Before deployment, the simulator must be augmented with domain randomisation and system identification so that the learned policy is exposed to uncertainty in tire parameters, friction, mass distribution, actuator delay, sensor noise, and hitch compliance. In the absence of these steps, strong simulation performance alone is not evidence of hardware readiness.
 
 \subsection{Lane Following Performance}
 
@@ -108,23 +126,12 @@ Hitch Stability          & Keep articulation angle within safe bounds & Max $|\g
 
 The obstacle avoidance task tests the agent's ability to navigate through a lane containing static obstacles. Success is measured by collision rate and the agent's ability to complete the lane while maintaining hitch stability.
 
-For thesis evaluation, obstacle experiments should be framed as a secondary study rather than merged into the primary controller benchmark. Two defensible comparison strategies are available:
+Obstacle experiments are framed as a secondary study rather than merged into the primary controller benchmark. Two defensible comparison strategies are available:
 \begin{itemize}
     \item \textbf{Planner-controlled comparison}: provide the classical baselines with the same obstacle-aware local path and evaluate only the downstream tracking problem; or
     \item \textbf{End-to-end navigation comparison}: compare the RL obstacle policy against complete planner+controller stacks, not against controllers in isolation.
 \end{itemize}
 
-If implementation scope is limited, the recommended plan is to keep obstacle avoidance as an RL feasibility extension and reserve the main quantitative comparison for the no-obstacle forward and reverse tracking tasks. Under this plan, no-obstacle experiments use fixed speed for both learned and classical methods, whereas obstacle experiments allow the RL agent to command speed as part of the end-to-end navigation problem.
+In the present study, obstacle avoidance is treated as an RL feasibility extension and the main quantitative comparison is reserved for the no-obstacle forward and reverse tracking tasks. Under this structure, no-obstacle experiments use fixed speed for both learned and classical methods, whereas obstacle experiments allow the RL agent to command speed as part of the end-to-end navigation problem.
 
-\subsection{Comparison with Prior Work}
-
-Results are compared against:
-\begin{itemize}
-    \item the DDPG model from ME~780 (cross-track error 0.505\,m on single-vehicle path following);
-    \item a PID baseline from ME~780 (cross-track error 0.784\,m);
-    \item tuned pure-pursuit and PID tractor-trailer baselines implemented in this work;
-    \item an LQR-based baseline from ECE~682;
-    \item an MPC controller implemented using OSQP and tuned on held-out simulation episodes.
-\end{itemize}
-
-% TODO: training curves, performance comparison figures, episode trajectory plots
+% Add final training curves, performance comparison figures, and qualitative trajectory plots here.

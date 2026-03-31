@@ -1,0 +1,49 @@
+% Reward formulation ablation — state observation, no obstacles.
+% Observation space fixed to State (MLP) so that differences in performance
+% are attributed solely to the reward structure.
+
+\begin{table}[H]
+\centering
+\caption{Forward lane-following: reward formulation ablation (state obs, no obstacles,
+         30~eval episodes).}
+\label{tab:reward_ablation_forward}
+\begin{tabular}{lcccccc}
+\toprule
+Reward
+  & \makecell{CTE\\Tractor\\(m)}
+  & \makecell{CTE\\Trailer\\(m)}
+  & \makecell{Max $|\gamma|$\\($^\circ$)}
+  & \makecell{Completion\\(\%)}
+  & \makecell{Jackknife\\(\%)}
+  & \makecell{Total\\reward} \\
+\midrule
+Dense           & --- & --- & --- & --- & --- & --- \\
+Tractor focus   & --- & --- & --- & --- & --- & --- \\
+Multiplicative  & --- & --- & --- & --- & --- & --- \\
+Guided          & --- & --- & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Reverse lane-following: reward formulation ablation (state obs, no obstacles,
+         30~eval episodes).}
+\label{tab:reward_ablation_reverse}
+\begin{tabular}{lcccccc}
+\toprule
+Reward
+  & \makecell{CTE\\Tractor\\(m)}
+  & \makecell{CTE\\Trailer\\(m)}
+  & \makecell{Max $|\gamma|$\\($^\circ$)}
+  & \makecell{Completion\\(\%)}
+  & \makecell{Jackknife\\(\%)}
+  & \makecell{Total\\reward} \\
+\midrule
+Dense           & --- & --- & --- & --- & --- & --- \\
+No hitch        & --- & --- & --- & --- & --- & --- \\
+Multiplicative  & --- & --- & --- & --- & --- & --- \\
+Guided          & --- & --- & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}

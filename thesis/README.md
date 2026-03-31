@@ -1,46 +1,27 @@
 # Thesis
 
-End-to-End Reinforcement Learning for Autonomous Tractor-Trailer Control
-
-## Build
+Build:
 
 ```bash
-make        # compile PDF → build/main.pdf
-make view   # compile and open PDF
-make watch  # auto-recompile on file changes
-make clean  # remove build artifacts
+make
+make view
+make watch
+make clean
 ```
 
-Requires: `latexmk`, `pdflatex`, and the packages listed in `main.tex`.
+Output:
+- `build/main.pdf`
 
-## Current Experiment Workflow
+Relevant repo scripts:
+- `python train.py ...`
+- `python tune_controllers.py ...`
+- `python scripts/generate_test_scenarios.py`
+- `python benchmark.py ...`
 
-The thesis text now tracks a reproducible experiment pipeline in the repository root:
-
-```bash
-python train_phase1.py
-python eval_phase1.py
-python tune_controllers.py
-python scripts/generate_test_scenarios.py
-python benchmark.py --task forward --controllers td3,fpp,pid,mpc
-```
-
-These scripts cover observation-modality ablations, classical-controller tuning,
-scenario generation, and fixed-scenario benchmarking for the thesis figures and tables.
-
-## Structure
-
-```
-thesis/
-├── main.tex                    # Root document
-├── Makefile / latexmkrc        # Build system
-├── chapters/                   # Chapter source files
-├── figures/                    # Images, diagrams (by topic)
-├── tables/                     # Standalone table .tex files
-├── equations/                  # Standalone equation .tex files
-├── bibliography/               # .bib files
-├── appendices/                 # Appendix source files
-├── scripts/                    # Python helper scripts
-├── data/                       # Experiment data and logs
-└── build/                      # Compiled output (git-ignored)
-```
+Layout:
+- `chapters/` manuscript text
+- `tables/` standalone tables
+- `figures/` plots and diagrams
+- `equations/` reusable equations
+- `appendices/` appendix source
+- `summaries/` short chapter notes

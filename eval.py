@@ -45,8 +45,12 @@ from e2erl_utils.metrics import EpisodeMetricsLogger
 # Path helpers (mirrors run_model.py)
 # ---------------------------------------------------------------------------
 
-def _obs_tag(obs: str, encoder: str) -> str:
-    return f"{obs}_{encoder}" if (obs == "bev" and encoder != "scratch") else obs
+def _obs_tag(obs: str, encoder: str, lidar_beams: int = 16) -> str:
+    if obs == "bev" and encoder != "scratch":
+        return f"{obs}_{encoder}"
+    if obs == "lidar" and lidar_beams != 16:
+        return f"lidar_{lidar_beams}"
+    return obs
 
 
 def _default_model_path(scenario: str, obs: str, reward: str, encoder: str) -> Path:
@@ -106,8 +110,9 @@ def _run_episode_vecenv(vec_env, model) -> dict:
         action, _ = model.predict(obs, deterministic=True)
         elapsed = time.perf_counter() - t0
 
+        applied_action = raw_env.format_action(action[0]) if hasattr(raw_env, "format_action") else action[0]
         obs, rew, dones, infos = vec_env.step(action)
-        logger.log_step(raw_env, action[0], float(rew[0]), inference_time_s=elapsed)
+        logger.log_step(raw_env, applied_action, float(rew[0]), inference_time_s=elapsed)
 
         if dones[0]:
             done = True
@@ -129,8 +134,9 @@ def _run_episode(env, model) -> dict:
         action, _ = model.predict(obs, deterministic=True)
         elapsed = time.perf_counter() - t0
 
+        applied_action = env.format_action(action) if hasattr(env, "format_action") else action
         obs, reward, terminated, truncated, _ = env.step(action)
-        logger.log_step(env, action, float(reward), inference_time_s=elapsed)
+        logger.log_step(env, applied_action, float(reward), inference_time_s=elapsed)
         done = terminated or truncated
 
     return logger.compute_summary(terminated=terminated, truncated=truncated)
@@ -223,7 +229,7 @@ def main(
         if ep and ep.exists():
             resolved_encoder_path = str(ep)
 
-    tag = _obs_tag(obs, encoder)
+    tag = _obs_tag(obs, encoder, lidar_beams)
     label = f"{scenario}/{tag}/{reward}"
 
     print(f"\n{'='*60}")

@@ -4,12 +4,22 @@
 \section{Tractor Dynamics}
 \input{equations/tractor_model}
 
+The tractor is modelled as a planar bicycle model, which captures the dominant lateral and yaw behaviour required for lane-following and low-speed manoeuvring. In this representation the front axle is replaced by a single steerable wheel and the rear axle by a single non-steered wheel. The global position $(x,y)$ evolves from the body-frame longitudinal and lateral velocities $(v_x, v_y)$ and the tractor heading $\psi$, as shown in Equations~\ref{eq:tractor_x} and \ref{eq:tractor_y}. This state description is sufficient for the control tasks studied in the thesis because the dominant quantities of interest are path-relative position error, heading error, steering angle, and hitch articulation.
+
+The modelling objective is not to reproduce every high-speed transient of a road vehicle, but to provide a physically meaningful control environment in which steering commands, heading evolution, and articulation dynamics remain coupled. This balance is important for reinforcement learning: an overly simplified kinematic model would make the task unrealistically easy, whereas a full high-fidelity multibody model would obscure the core control-design questions addressed here.
+
 \section{Trailer Articulation and Reverse Instability}
 \input{equations/trailer_reverse_stability}
 
+The trailer introduces an additional geometric state, the articulation angle $\gamma$, which measures the relative orientation between the tractor and trailer bodies. This variable is central to articulated-vehicle control because it determines whether the trailer remains aligned with the tractor or diverges toward a jackknife configuration. Equation~\ref{eq:hitch_kinematics} captures how steering angle and longitudinal motion interact through the hitch geometry to change $\gamma$ over time.
+
+In forward motion, the hitch dynamics are naturally self-correcting over a broad operating range: modest articulation tends to decay as the tractor pulls the trailer back into alignment. In reverse motion, the sign of the longitudinal velocity changes this behaviour qualitatively. Small articulation errors can grow rather than decay, so the driver or controller must actively stabilise the hitch while simultaneously tracking the path. This instability is the defining challenge of reverse articulated manoeuvring and motivates the use of explicit hitch-angle penalties, trailer-referenced tracking metrics, and dedicated reverse-controller formulations throughout the thesis.
+
 \section{Challenges of Reverse Maneuvering}
 
-Reverse motion is characterised by a sign reversal in the kinematic equations, which transforms the stabilising effect of forward velocity into a destabilising force. Successful reverse maneuvering requires anticipating the steering input needed to prevent $\gamma$ from reaching its mechanical limits. The RL agent developed in this thesis must learn analogous foresight: rewarding actions that keep the trailer aligned with the target path while maintaining $\gamma$ within a safe operational envelope.
+Reverse motion is characterised by a sign reversal in the kinematic equations, which transforms the stabilising effect of forward velocity into a destabilising one. Successful reverse manoeuvring therefore requires anticipatory control: the steering input must correct developing trailer error before the hitch angle grows large enough to become unrecoverable. In practical terms, the controller must regulate three coupled objectives at once: trailer path tracking, tractor placement, and articulation stability.
+
+This coupling is what distinguishes articulated reverse control from conventional rigid-vehicle lane following. A controller that focuses only on tractor cross-track error can produce apparently reasonable short-term motion while simultaneously driving the hitch toward instability. For that reason, the reinforcement-learning rewards and classical benchmark metrics used in this thesis prioritise trailer tracking and hitch-angle containment rather than treating them as secondary diagnostics.
 
 \section{MDP Formulation}
 

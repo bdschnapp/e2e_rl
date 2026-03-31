@@ -1,0 +1,26 @@
+% Failure replay curriculum ablation — reverse lane-following, state obs, dense reward.
+% Both agents are trained with identical hyperparameters; only the reset strategy differs.
+% "Steps to 50\% completion" is read from the learning curve
+% (Figure~\ref{fig:failure_replay_curve}); final metrics are from 30 held-out eval episodes
+% on seeds not seen during training.
+
+\begin{table}[H]
+\centering
+\caption{Failure replay curriculum ablation on reverse lane-following
+         (state obs, dense reward, 30~held-out eval episodes).
+         Learning curves shown in Figure~\ref{fig:failure_replay_curve}.}
+\label{tab:failure_replay}
+\begin{tabular}{lccccc}
+\toprule
+Reset strategy
+  & \makecell{Steps to\\50\% completion\\($\times 10^3$)}
+  & \makecell{CTE\\Trailer\\(m)}
+  & \makecell{Max $|\gamma|$\\($^\circ$)}
+  & \makecell{Completion\\(\%)}
+  & \makecell{Jackknife\\(\%)} \\
+\midrule
+Random reset    & --- & --- & --- & --- & --- \\
+Failure replay  & --- & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}

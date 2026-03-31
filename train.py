@@ -313,7 +313,12 @@ def main(
         raise ValueError(f"--encoder {encoder!r} only applies when --obs bev")
 
     # --- Paths ---
-    obs_tag = f"{obs}_{encoder}" if (obs == "bev" and encoder != "scratch") else obs
+    if obs == "bev" and encoder != "scratch":
+        obs_tag = f"{obs}_{encoder}"
+    elif obs == "lidar" and lidar_beams != 16:
+        obs_tag = f"lidar_{lidar_beams}"
+    else:
+        obs_tag = obs
     retry_tag = "_retry" if retry_on_failure else ""
     save_root = Path(f"./models/{scenario}/{obs_tag}/{reward}{retry_tag}")
     save_root.mkdir(parents=True, exist_ok=True)

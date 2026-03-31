@@ -61,7 +61,8 @@ class EpisodeMetricsLogger:
         Parameters
         ----------
         env : a LineFollowing / ObstacleAvoidance environment instance
-        action : array-like of shape (2,) — [steering_rate, target_speed]
+        action : array-like of shape (1,) or (2,)
+            Steering-only actions are accepted for fixed-speed environments.
         reward : scalar reward returned by env.step()
         inference_time_s : wall-clock time taken by the controller (seconds)
         """
@@ -77,8 +78,13 @@ class EpisodeMetricsLogger:
         self._heading_err_tractor.append(float(e_theta_tractor))
         self._heading_err_trailer.append(float(e_theta_trailer))
         self._hitch_angle.append(hitch)
-        self._steering_rate.append(float(action[0]))
-        self._target_speed.append(float(action[1]))
+        action_arr = np.asarray(action, dtype=np.float32).reshape(-1)
+        self._steering_rate.append(float(action_arr[0]))
+        if action_arr.size >= 2:
+            target_speed = float(action_arr[1])
+        else:
+            target_speed = float(getattr(env, "fixed_speed_command", env.vehicle.xd))
+        self._target_speed.append(target_speed)
         self._actual_speed.append(float(env.vehicle.xd))
         self._inference_time_s.append(float(inference_time_s))
         self._reward.append(float(reward))

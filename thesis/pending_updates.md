@@ -1,10 +1,9 @@
 # Pending Thesis Updates
 
-This file logs code changes that may need to be reflected in the thesis.
-Entries are appended automatically by a post-edit hook.
-Clear an entry once the relevant thesis chapter has been updated.
+Tracks code edits that may require thesis updates.
+Clear entries once reflected in the manuscript.
 
-<!-- Format: [timestamp] file_path — brief description of change -->
+<!-- Format: YYYY-MM-DD HH:MM: path -->
 2026-03-30 18:48: /home/ben/Ben/Thesis/e2e_rl/Environments/LineFollowing.py
 2026-03-30 18:48: /home/ben/Ben/Thesis/e2e_rl/Environments/LineFollowing.py
 2026-03-30 18:49: /home/ben/Ben/Thesis/e2e_rl/Environments/LineFollowing.py

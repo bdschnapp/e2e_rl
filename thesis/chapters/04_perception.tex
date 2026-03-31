@@ -10,7 +10,7 @@ The simulator now supports three observation families so that perception can be 
     \item \textbf{State + BEV image}: a dictionary observation with the state vector and an $84 \times 84$ grayscale bird's-eye-view image.
 \end{itemize}
 
-This design extends the prior ME~780 work, which relied on compact vector observations only, and allows the thesis to compare hand-engineered geometric sensing against learned visual representations within the same tractor-trailer task.
+This design allows the thesis to compare hand-engineered geometric sensing against learned visual representations within the same tractor-trailer task.
 
 \section{Bird's-Eye View Observation}
 
@@ -39,11 +39,11 @@ To improve RL training efficiency, an autoencoder can be used to compress high-d
     \label{eq:decoder}
 \end{equation}
 
-The autoencoder is pre-trained on images collected from simulation rollouts, allowing the encoder to learn compact representations of the road geometry and obstacle configurations. The current implementation collects BEV images from a mixture of simple pure-pursuit rollouts and any already-trained compatible policies, increasing state coverage during pretraining. After reconstruction training, the encoder weights are transferred into the RL feature extractor and frozen while the policy is trained. This produces an ablation between end-to-end image learning and fixed latent representations learned before RL.
+The autoencoder is pre-trained on images collected from simulation rollouts, allowing the encoder to learn compact representations of the road geometry and obstacle configurations. BEV images are collected from a mixture of simple pure-pursuit rollouts and already-trained compatible policies to increase state coverage during pretraining. After reconstruction training, the encoder weights are transferred into the RL feature extractor and frozen while the policy is trained. This produces an ablation between end-to-end image learning and fixed latent representations learned before RL.
 
 \section{UNet Encoder Variant}
 
-In addition to the CNN autoencoder, the codebase now includes a UNet-style autoencoder for BEV representation learning. The encoder uses repeated double-convolution blocks with max pooling, followed by global average pooling to produce a compact 128-dimensional image descriptor. During pretraining, the full UNet decoder retains skip connections to improve image reconstruction quality; for RL, only the encoder path is kept and concatenated with the 64-dimensional vector embedding.
+In addition to the CNN autoencoder, a UNet-style autoencoder is used for BEV representation learning. The encoder uses repeated double-convolution blocks with max pooling, followed by global average pooling to produce a compact 128-dimensional image descriptor. During pretraining, the full UNet decoder retains skip connections to improve image reconstruction quality; for RL, only the encoder path is kept and concatenated with the 64-dimensional vector embedding.
 
 This second pretrained encoder provides a stronger structural prior than the plain CNN autoencoder. It is intended to test whether preserving multi-scale spatial detail during representation learning improves downstream control performance, particularly in scenes where obstacle shape and lane boundaries must both be interpreted from the BEV image.
 

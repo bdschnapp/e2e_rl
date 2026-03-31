@@ -19,12 +19,12 @@ The bicycle model provides a baseline for rigid-body longitudinal and lateral dy
 \section{Reinforcement Learning in Autonomous Driving}
 
 \subsection{Policy Gradient Methods}
-Deep Deterministic Policy Gradient (DDPG) is an off-policy actor-critic algorithm designed for continuous action spaces. Prior work in ME~780 established that DDPG achieves a cross-track error of approximately 0.505\,m for rigid-body path following, outperforming a PID baseline of 0.784\,m on the same task.
+Deep Deterministic Policy Gradient (DDPG) is an off-policy actor-critic algorithm designed for continuous action spaces. It is one of the canonical deterministic policy-gradient methods used for end-to-end vehicle control, but it is known to suffer from critic overestimation bias and training instability.
 
 Proximal Policy Optimisation (PPO) offers improved stability over DDPG through clipped probability ratios, but its on-policy sample efficiency is lower, which is a significant consideration when simulation rollouts are expensive.
 
 \subsection{Transformer-Based Methods}
-Decision Transformers (DT) reformulate RL as sequence modelling: an action is predicted from a context window of past states, actions, and returns-to-go using a causal self-attention mechanism. The ME~780 study found that DTs achieve a cross-track error of 1.717\,m and are prone to oscillation if the training dataset is insufficiently diverse. To address this, the MASc research must utilise a dataset that includes recovery maneuvers, either by injecting noise into a DDPG expert's actions or by explicitly including high-error-state trajectories.
+Decision Transformers (DT) reformulate reinforcement learning as sequence modelling: an action is predicted from a context window of past states, actions, and returns-to-go using a causal self-attention mechanism. In vehicle-control settings, DT-style models can represent longer temporal dependencies than shallow actor-critic policies, but their performance depends strongly on the diversity and quality of the offline trajectory dataset. In particular, datasets dominated by nominal path-tracking behaviour can lead to poor recovery performance from high-error states. Effective DT training for articulated vehicles would therefore require explicit coverage of recovery manoeuvres and unstable reverse-driving configurations.
 
 \section{Perception and Representation Learning}
 
@@ -59,4 +59,4 @@ Bickford (2019)  & Autonomous bicycle stabilisation      & Linear control, Whipp
 \end{tabular}
 \end{table}
 
-Common themes include strong mathematical modelling foundations and comprehensive validation datasets. For this thesis, a simple ``it works'' result is insufficient; the candidate must quantify stability limits, evaluate performance across varied paths, and compare against classical benchmarks.
+Common themes include strong mathematical modelling foundations and comprehensive validation datasets. For this thesis, a simple ``it works'' result is insufficient; the work must quantify stability limits, evaluate performance across varied paths, and compare against classical benchmarks.
