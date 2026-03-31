@@ -1,7 +1,18 @@
 import numpy as np
 from scipy.linalg import expm
 import scipy.sparse as sparse
-import osqp
+try:
+    import osqp
+except ModuleNotFoundError:  # pragma: no cover - depends on local environment
+    osqp = None
+
+
+def _require_osqp():
+    if osqp is None:
+        raise ModuleNotFoundError(
+            "The MPC controller requires the 'osqp' package, but it is not installed. "
+            "Install it in the project venv before using MPC tuning or benchmarking."
+        )
 
 
 def _as_col(X):
@@ -80,6 +91,7 @@ def wrap_to_pi(x):
 
 class TractorTrailerSteeringMPC:
     def __init__(self, args=None):
+        _require_osqp()
         self.L1 = 4.0  # Tractor length
         self.L2 = 10.0  # Trailer length
         self.L2C = np.finfo(float).eps  # 2.220446049250313e-16  (not sure why MATLAB code uses this)

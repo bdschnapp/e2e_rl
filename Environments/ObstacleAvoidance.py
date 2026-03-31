@@ -6,7 +6,12 @@ import pygame
 
 import e2erl_utils.config as config
 
-from Environments.LineFollowing import StateObservationLineFollowingEnv, ReverseStateObservationLineFollowingEnv
+from Environments.LineFollowing import (
+    StateObservationLineFollowingEnv,
+    ReverseStateObservationLineFollowingEnv,
+    BevObservationLineFollowingEnv,
+    ReverseBevObservationLineFollowingEnv,
+)
 from Environments.TractorTrailer import WINDOW_HEIGHT, WINDOW_WIDTH, METERS_PER_PIXEL, TRACTOR_WIDTH, TRAILER_WIDTH
 
 
@@ -279,7 +284,12 @@ def plan_local_path(
     return local_path
 
 
-class ObstacleAvoidance:
+class ObstacleMixin:
+    """
+    Mixin providing obstacle generation, local path planning, and obstacle-aware reward.
+    Does NOT touch the observation space — compose with a BEV or lidar obs class.
+    """
+
     def __init__(self, render_mode=None, max_episode_steps=1000, **kwargs):
         super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps, **kwargs)
 
@@ -288,10 +298,63 @@ class ObstacleAvoidance:
         if not hasattr(self, "obstacles_high"):
             self.obstacles_high = 0
 
+    def _get_reward(self):
+        error, error_theta = self.get_vehicle_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
+        error_t, error_theta_t = self.get_trailer_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
+        return super().get_reward(error, error_theta, error_t, error_theta_t)
+
+    def _render_frame(self, surface=None):
+        if surface is None:
+            if self.canvas is None:
+                pygame.init()
+                self.canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        surface = surface if surface else self.canvas
+        super()._render_frame(surface)
+        self.render_path(surface)
+        self.render_path(surface, xx=self.local_path[:, 0], yy=self.local_path[:, 1], color=(255, 0, 0))
+        return np.transpose(np.array(pygame.surfarray.pixels3d(surface)), axes=(1, 0, 2))
+
+    def generate_path(self):
+        super().generate_path()
+
+        num_obstacles = 0
+        if self.obstacles_high >= 1:
+            num_obstacles = int(self.np_random.integers(self.obstacles_low, self.obstacles_high))
+
+        centerline = self._sample_centerline()
+        self.occ_grid, obstacles = generate_obstacles(
+            centerline, self.occ_grid, num_obstacles, rng=self.np_random
+        )
+        original_path = np.stack([self.xx, self.yy], axis=1)
+        if obstacles:
+            self.local_path = plan_local_path(
+                centerline=original_path,
+                obstacles=obstacles,
+                lane_half_width_m=getattr(config, "lane_centerline_half_width_m", 1.75) +
+                                   getattr(config, "lane_shoulder_m", 0.50),
+                vehicle_width_m=max(TRACTOR_WIDTH, TRAILER_WIDTH)
+            )
+        else:
+            self.local_path = centerline
+
+        self._occ_dirty = True
+        self._ensure_occ_surface_if_needed()
+        self.obstacle_mask = pygame.mask.from_surface(self._occ_surface)
+
+
+class ObstacleAvoidance(ObstacleMixin):
+    """
+    ObstacleMixin + lidar observation. Appends normalized lidar distances to the
+    Box observation produced by the base state env.
+    """
+
+    def __init__(self, render_mode=None, max_episode_steps=1000, **kwargs):
         if not hasattr(self, "lidar_beams"):
             self.lidar_beams = 24
         if not hasattr(self, "lidar_range"):
             self.lidar_range = 20.0
+
+        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps, **kwargs)
 
         lidar_low = np.zeros(self.lidar_beams, dtype=np.float32)
         lidar_high = np.ones(self.lidar_beams, dtype=np.float32)
@@ -321,57 +384,6 @@ class ObstacleAvoidance:
         )
         return np.concatenate((observation, obstacle_distances.astype(np.float32)))
 
-    def _get_reward(self):
-        error, error_theta = self.get_vehicle_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
-        error_t, error_theta_t = self.get_trailer_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
-        return super().get_reward(error, error_theta, error_t, error_theta_t)
-
-    def _render_frame(self, surface=None):
-        # initialize pygame if it hasn't been already
-        if surface is None:
-            if self.canvas is None:
-                pygame.init()
-                self.canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-
-        surface = surface if surface else self.canvas
-
-        # render the vehicle
-        super()._render_frame(surface)
-
-        # render the path on top of the vehicle
-        self.render_path(surface)
-        # render the local path
-        self.render_path(surface, xx=self.local_path[:, 0], yy=self.local_path[:, 1], color=(255, 0, 0))
-
-        return np.transpose(np.array(pygame.surfarray.pixels3d(surface)), axes=(1, 0, 2))
-
-    def generate_path(self):
-        super().generate_path()
-
-        num_obstacles = 0
-        if self.obstacles_high >= 1:
-            num_obstacles = int(self.np_random.integers(self.obstacles_low, self.obstacles_high))
-
-        centerline = self._sample_centerline()
-        self.occ_grid, obstacles = generate_obstacles(
-            centerline, self.occ_grid, num_obstacles, rng=self.np_random
-        )
-        original_path = np.stack([self.xx, self.yy], axis=1)
-        if obstacles:
-            self.local_path = plan_local_path(
-                centerline=original_path,
-                obstacles=obstacles,
-                lane_half_width_m= getattr(config, "lane_centerline_half_width_m", 1.75) +
-                                   getattr(config, "lane_shoulder_m", 0.50),
-                vehicle_width_m=max(TRACTOR_WIDTH, TRAILER_WIDTH)
-            )
-        else:
-            self.local_path = centerline
-
-        self._occ_dirty = True
-        self._ensure_occ_surface_if_needed()
-        self.obstacle_mask = pygame.mask.from_surface(self._occ_surface)
-
 
 class LidarStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
     """
@@ -387,9 +399,13 @@ class LidarStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
     Observation: [s, γ, e_y, e_ψ, e_y_t, e_ψ_t, κ₁, κ₂, d₀, …, d_{N-1}]
     """
 
-    def __init__(self, render_mode="human", max_episode_steps=1000, lidar_beams=16):
+    def __init__(self, render_mode="human", max_episode_steps=1000, lidar_beams=16, reward_mode: str = "dense"):
         self.lidar_beams = lidar_beams
-        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps)
+        super().__init__(
+            render_mode=render_mode,
+            max_episode_steps=max_episode_steps,
+            reward_mode=reward_mode,
+        )
 
         lidar_low  = np.zeros(self.lidar_beams, dtype=np.float32)
         lidar_high = np.ones(self.lidar_beams,  dtype=np.float32)
@@ -421,12 +437,17 @@ class LidarStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
 
 
 class ObstacleAvoidanceEnv(ObstacleAvoidance, StateObservationLineFollowingEnv):
-    def __init__(self, render_mode=None, max_episode_steps=1000):
+    def __init__(self, render_mode=None, max_episode_steps=1000, reward_mode: str = "dense"):
         self.obstacles_low = 0
         self.obstacles_high = 0
         self.lidar_beams = 24
         self.lidar_range = 20.0
-        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps)
+        super().__init__(
+            render_mode=render_mode,
+            max_episode_steps=max_episode_steps,
+            reward_mode=reward_mode,
+            fixed_speed=False,
+        )
 
     def _get_lidar_pose(self):
         return Pose(
@@ -437,16 +458,57 @@ class ObstacleAvoidanceEnv(ObstacleAvoidance, StateObservationLineFollowingEnv):
 
 
 class ReverseObstacleAvoidanceEnv(ObstacleAvoidance, ReverseStateObservationLineFollowingEnv):
-    def __init__(self, render_mode=None, max_episode_steps=1000):
+    def __init__(self, render_mode=None, max_episode_steps=1000, reward_mode: str = "dense"):
         self.obstacles_low = 0
         self.obstacles_high = 0
         self.lidar_beams = 24
         self.lidar_range = 20.0
-        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps)
+        super().__init__(
+            render_mode=render_mode,
+            max_episode_steps=max_episode_steps,
+            reward_mode=reward_mode,
+            fixed_speed=False,
+        )
 
     def _get_lidar_pose(self):
         return Pose(
             x=self.vehicle.trailer.x,
             y=self.vehicle.trailer.y,
             yaw=self.vehicle.trailer.yaw + np.pi
+        )
+
+
+class BevObstacleAvoidanceEnv(ObstacleMixin, BevObservationLineFollowingEnv):
+    """
+    Forward lane-following with obstacles + BEV image observation.
+    ObstacleMixin handles path generation, local path planning, and reward.
+    BevObservationLineFollowingEnv handles the Dict (image + vector) observation.
+    """
+
+    def __init__(self, render_mode="human", max_episode_steps=1000, reward_mode: str = "dense"):
+        self.obstacles_low = 0
+        self.obstacles_high = 0
+        super().__init__(
+            render_mode=render_mode,
+            max_episode_steps=max_episode_steps,
+            reward_mode=reward_mode,
+            fixed_speed=False,
+        )
+
+
+class ReverseBevObstacleAvoidanceEnv(ObstacleMixin, ReverseBevObservationLineFollowingEnv):
+    """
+    Reverse lane-following with obstacles + BEV image observation.
+    ObstacleMixin handles path generation, local path planning, and reward.
+    ReverseBevObservationLineFollowingEnv handles reverse dynamics and Dict obs.
+    """
+
+    def __init__(self, render_mode="human", max_episode_steps=1000, reward_mode: str = "dense"):
+        self.obstacles_low = 0
+        self.obstacles_high = 0
+        super().__init__(
+            render_mode=render_mode,
+            max_episode_steps=max_episode_steps,
+            reward_mode=reward_mode,
+            fixed_speed=False,
         )

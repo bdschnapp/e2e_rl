@@ -9,6 +9,9 @@ from Environments.TractorTrailer import TractorTrailerEnv, WINDOW_WIDTH, WINDOW_
     COLOR_BLACK
 import e2erl_utils.config as config
 
+FORWARD_REWARD_MODES = ("dense", "tractor_focus", "multiplicative", "guided")
+REVERSE_REWARD_MODES = ("dense", "no_hitch", "multiplicative", "guided")
+
 
 @dataclass
 class GridMeta:
@@ -137,8 +140,29 @@ def reverse_pure_pursuit(env, render=False):
 
 
 class LineFollowingEnv(TractorTrailerEnv):
-    def __init__(self, render_mode="human"):
+    def __init__(self, render_mode="human", reward_mode: str = "dense", fixed_speed: bool = True):
         super().__init__(render_mode=render_mode)
+        if reward_mode not in FORWARD_REWARD_MODES:
+            raise ValueError(
+                f"Unknown forward reward_mode={reward_mode!r}. "
+                f"Choose from {FORWARD_REWARD_MODES}."
+            )
+        self.reward_mode = reward_mode
+        self.fixed_speed = bool(fixed_speed)
+        self.fixed_speed_command = float(config.initial_xd)
+
+        if self.fixed_speed:
+            self.action_space = spaces.Box(
+                low=np.array([-np.deg2rad(config.steering_action)], dtype=np.float64),
+                high=np.array([np.deg2rad(config.steering_action)], dtype=np.float64),
+            )
+
+        # guided-reward curriculum state
+        self.transition_timesteps = 100_000  # steps over which alpha decays 1→0
+        self._guide_steps = 0                # lifetime step counter for alpha
+        self._last_action = np.zeros(2, dtype=np.float32)
+        self._guide_controller = None        # lazily created on first use
+        self._guide_controller_kwargs = {}   # override before training for custom PP gains
 
         # path variables
         self.xx = np.array([])
@@ -182,8 +206,47 @@ class LineFollowingEnv(TractorTrailerEnv):
             if self.success:
                 return 100.0
             return -10.0
-        # return 5 * np.exp(-abs(error)) * np.exp(-abs(error_theta)) - (self.vehicle.xd / 5)
-        return (0.5 * self.vehicle.xd) - (error ** 2) - (error_theta ** 2) - ((0.5 * error_t) ** 2) - ((0.5 * error_theta_t) ** 2)
+
+        progress_reward = 0.5 * self.vehicle.xd
+        tractor_penalty = (error ** 2) + (error_theta ** 2)
+        trailer_penalty = ((0.5 * error_t) ** 2) + ((0.5 * error_theta_t) ** 2)
+        hitch_angle = abs(self.vehicle.p - self.vehicle.trailer.yaw)
+
+        if self.reward_mode == "dense":
+            return progress_reward - tractor_penalty - trailer_penalty
+
+        if self.reward_mode == "tractor_focus":
+            return progress_reward - tractor_penalty
+
+        if self.reward_mode == "multiplicative":
+            path_term = np.exp(
+                -(
+                    abs(error)
+                    + 0.5 * abs(error_theta)
+                    + 0.75 * abs(error_t)
+                    + 0.5 * abs(error_theta_t)
+                )
+            )
+            hitch_term = np.exp(-1.5 * abs(hitch_angle))
+            return 4.0 * path_term * hitch_term + 0.5 * np.clip(self.vehicle.xd, 0.0, 1.0)
+
+        if self.reward_mode == "guided":
+            dense_rew = progress_reward - tractor_penalty - trailer_penalty
+
+            alpha = max(0.0, 1.0 - self._guide_steps / self.transition_timesteps)
+            self._guide_steps += 1
+
+            if alpha == 0.0:
+                return dense_rew
+
+            pp_action = self._compute_guide_pp_action()
+            max_steer_rate = np.deg2rad(config.steering_action)
+            steer_diff = (self._last_action[0] - pp_action[0]) / (2.0 * max_steer_rate)
+            guide_rew = progress_reward - 5.0 * steer_diff ** 2
+
+            return alpha * guide_rew + (1.0 - alpha) * dense_rew
+
+        raise ValueError(f"Unsupported forward reward_mode={self.reward_mode!r}")
 
     def _get_obs(self):
         obs_dict = super()._get_obs()  # handle the image observation
@@ -354,10 +417,48 @@ class LineFollowingEnv(TractorTrailerEnv):
 
         return np.transpose(np.array(pygame.surfarray.pixels3d(surface)), axes=(1, 0, 2))
 
+    def format_action(self, action):
+        action_arr = np.asarray(action, dtype=np.float32).reshape(-1)
+        if self.fixed_speed:
+            if action_arr.size == 0:
+                raise ValueError("Expected at least one steering command value.")
+            return np.array([float(action_arr[0]), self.fixed_speed_command], dtype=np.float32)
+        if action_arr.size != 2:
+            raise ValueError(
+                f"Variable-speed line-following expects 2 action values, got shape {action_arr.shape}."
+            )
+        return action_arr.astype(np.float32, copy=False)
+
     def step(self, action):
-        # override the action to use a constant speed
-        # action = np.array([action[0], -1 * config.initial_xd])
-        return super().step(action)
+        formatted_action = self.format_action(action)
+        # Cache the action before vehicle physics runs so _get_reward() can access it.
+        # For reverse envs this is called with the modified (fixed-speed) action,
+        # which is fine since the speed component is the same for both RL and PP.
+        self._last_action = np.array(formatted_action, dtype=np.float32)
+        return super().step(formatted_action)
+
+    def _create_guide_controller(self):
+        """Return the PP controller for forward driving. Override in reverse subclasses."""
+        from controllers.pure_pursuit import PurePursuitController
+        return PurePursuitController(**self._guide_controller_kwargs)
+
+    def _compute_guide_pp_action(self):
+        """Compute the forward pure-pursuit action given the current env state."""
+        if self._guide_controller is None:
+            self._guide_controller = self._create_guide_controller()
+        error, error_theta = self.get_vehicle_errors()
+        kappa = compute_curvature(self)
+        wheelbase = self.vehicle.lf + self.vehicle.lr
+        max_steer_rate = np.deg2rad(config.steering_action)
+        return self._guide_controller.step(
+            e_y=error,
+            e_theta=error_theta,
+            kappa=kappa,
+            wheelbase=wheelbase,
+            current_steer=self.vehicle.s,
+            dt=self.vehicle.dt,
+            max_steer_rate=max_steer_rate,
+        )
 
     def reset(self, seed=None, options=None):
         for attempt in range(self.max_attempts):
@@ -384,8 +485,8 @@ class LineFollowingEnv(TractorTrailerEnv):
 
 
 class LaneDrivingEnv(LineFollowingEnv):
-    def __init__(self, render_mode="human"):
-        super().__init__(render_mode=render_mode)
+    def __init__(self, render_mode="human", reward_mode: str = "dense", fixed_speed: bool = True):
+        super().__init__(render_mode=render_mode, reward_mode=reward_mode, fixed_speed=fixed_speed)
         self.occ_grid = None  # np.uint8 [H,W], 0=free, 100=blocked
         self.occ_meta: GridMeta | None = None
         self._occ_surface = None  # pygame.Surface aligned to world extents
@@ -709,8 +810,9 @@ def _make_state_obs_bounds():
 
 
 class StateObservationLineFollowingEnv(LaneDrivingEnv):
-    def __init__(self, render_mode="human", max_episode_steps=1000):
-        super().__init__(render_mode=render_mode)
+    def __init__(self, render_mode="human", max_episode_steps=1000, reward_mode: str = "dense",
+                 fixed_speed: bool = True):
+        super().__init__(render_mode=render_mode, reward_mode=reward_mode, fixed_speed=fixed_speed)
 
         # Episode timeout to prevent deadlock
         self.max_episode_steps = max_episode_steps
@@ -736,14 +838,27 @@ class StateObservationLineFollowingEnv(LaneDrivingEnv):
 
 
 class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
-    def __init__(self, render_mode="human", max_episode_steps=1000):
-        super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps)
-
-        # redefine action space to reverse
-        self.action_space = spaces.Box(
-            low=np.array([-np.deg2rad(config.steering_action), -config.speed_action_high], dtype=np.float64),
-            high=np.array([np.deg2rad(config.steering_action), -config.speed_action_low], dtype=np.float64),
+    def __init__(self, render_mode="human", max_episode_steps=1000, reward_mode: str = "dense",
+                 fixed_speed: bool = True):
+        if reward_mode not in REVERSE_REWARD_MODES:
+            raise ValueError(
+                f"Unknown reverse reward_mode={reward_mode!r}. "
+                f"Choose from {REVERSE_REWARD_MODES}."
+            )
+        super().__init__(
+            render_mode=render_mode,
+            max_episode_steps=max_episode_steps,
+            reward_mode="dense",
+            fixed_speed=fixed_speed,
         )
+        self.reward_mode = reward_mode
+        self.fixed_speed_command = -float(config.initial_xd)
+
+        if not self.fixed_speed:
+            self.action_space = spaces.Box(
+                low=np.array([-np.deg2rad(config.steering_action), -config.speed_action_high], dtype=np.float64),
+                high=np.array([np.deg2rad(config.steering_action), -config.speed_action_low], dtype=np.float64),
+            )
 
     def _get_reward(self):
         error, error_theta = self.get_vehicle_errors()
@@ -773,8 +888,64 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
         # --- Reward slow, controlled reverse ---
         reverse_reward = 3.0 * np.clip(-self.vehicle.xd, 0.0, 1.0)
 
-        # --- Final reward ---
-        return reverse_reward - path_penalty - jackknife_penalty
+        if self.reward_mode == "dense":
+            return reverse_reward - path_penalty - jackknife_penalty
+
+        if self.reward_mode == "no_hitch":
+            return reverse_reward - path_penalty
+
+        if self.reward_mode == "multiplicative":
+            path_term = np.exp(
+                -(
+                    abs(error)
+                    + 0.5 * abs(error_theta)
+                    + 0.75 * abs(error_t)
+                    + 0.5 * abs(error_theta_t)
+                )
+            )
+            hitch_term = np.exp(-2.0 * abs(hitch_angle))
+            return 5.0 * np.clip(-self.vehicle.xd, 0.0, 1.0) * path_term * hitch_term
+
+        if self.reward_mode == "guided":
+            dense_rew = reverse_reward - path_penalty - jackknife_penalty
+
+            alpha = max(0.0, 1.0 - self._guide_steps / self.transition_timesteps)
+            self._guide_steps += 1
+
+            if alpha == 0.0:
+                return dense_rew
+
+            pp_action = self._compute_guide_pp_action()
+            max_steer_rate = np.deg2rad(config.steering_action)
+            steer_diff = (self._last_action[0] - pp_action[0]) / (2.0 * max_steer_rate)
+            guide_rew = reverse_reward - 5.0 * steer_diff ** 2 - jackknife_penalty
+
+            return alpha * guide_rew + (1.0 - alpha) * dense_rew
+
+        raise ValueError(f"Unsupported reverse reward_mode={self.reward_mode!r}")
+
+    def _create_guide_controller(self):
+        """Return the reverse hitch PP controller for reverse driving."""
+        from controllers.pure_pursuit import ReverseHitchPurePursuitController
+        return ReverseHitchPurePursuitController(**self._guide_controller_kwargs)
+
+    def _compute_guide_pp_action(self):
+        """Compute the reverse pure-pursuit action given the current env state."""
+        if self._guide_controller is None:
+            self._guide_controller = self._create_guide_controller()
+        error_t, error_theta_t = self.get_trailer_errors()
+        kappa = compute_curvature(self)
+        hitch_angle = self.vehicle.p - self.vehicle.trailer.yaw
+        max_steer_rate = np.deg2rad(config.steering_action)
+        return self._guide_controller.step(
+            psi2=hitch_angle,
+            e_y_t=error_t,
+            e_theta_t=error_theta_t,
+            kappa=kappa,
+            current_steer=self.vehicle.s,
+            dt=self.vehicle.dt,
+            max_steer_rate=max_steer_rate,
+        )
 
     def reset(self, seed=None, options=None):
         # Invalidate termination cache on reset
@@ -803,12 +974,6 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
         info = self._get_info()
         return observation, info
 
-    def step(self, action):
-        # override the action to use a constant negative speed
-        action = np.array([action[0], -1 * config.initial_xd])
-        return super().step(action)
-
-
 class BevObservationLineFollowingEnv(LaneDrivingEnv):
     """
     Lane-following env with BOTH state vector AND BEV image observations.
@@ -822,8 +987,9 @@ class BevObservationLineFollowingEnv(LaneDrivingEnv):
     alongside the BEV, which is the fair comparison to lidar+state approaches.
     """
 
-    def __init__(self, render_mode="human", max_episode_steps=1000):
-        super().__init__(render_mode=render_mode)
+    def __init__(self, render_mode="human", max_episode_steps=1000, reward_mode: str = "dense",
+                 fixed_speed: bool = True):
+        super().__init__(render_mode=render_mode, reward_mode=reward_mode, fixed_speed=fixed_speed)
         self.max_episode_steps = max_episode_steps
 
         vec_low, vec_high = _make_state_obs_bounds()
@@ -837,6 +1003,101 @@ class BevObservationLineFollowingEnv(LaneDrivingEnv):
         if self._step_count >= self.max_episode_steps:
             return True
         return super()._get_trunc()
+
+    def _get_obs(self):
+        from Environments.TractorTrailer import OBS_WIDTH, OBS_HEIGHT
+
+        full_frame = self._render_frame()
+        full_surface = pygame.surfarray.make_surface(
+            np.transpose(full_frame, axes=(1, 0, 2))
+        )
+        small_surface = pygame.transform.scale(full_surface, (OBS_WIDTH, OBS_HEIGHT))
+        small_rgb = pygame.surfarray.pixels3d(small_surface)
+        small_gray = small_rgb.mean(axis=2)
+        image_obs = np.expand_dims(small_gray, axis=-1).astype(np.uint8)
+
+        return {'image': image_obs, 'vector': self._get_state_vector_obs()}
+
+
+class ReverseLidarStateObservationLineFollowingEnv(ReverseStateObservationLineFollowingEnv):
+    """
+    Reverse lane-following env with state + simulated lidar observations.
+
+    Mirrors LidarStateObservationLineFollowingEnv but for reverse driving.
+    Lidar is mounted on the trailer (which leads in reverse), facing the direction
+    of approach (trailer.yaw + π).
+
+    Observation: [s, γ, e_y, e_ψ, e_y_t, e_ψ_t, κ₁, κ₂, d₀, …, d_{N-1}]
+    """
+
+    def __init__(self, render_mode="human", max_episode_steps=1000, lidar_beams=16,
+                 reward_mode: str = "dense", fixed_speed: bool = True):
+        self.lidar_beams = lidar_beams
+        super().__init__(
+            render_mode=render_mode,
+            max_episode_steps=max_episode_steps,
+            reward_mode=reward_mode,
+            fixed_speed=fixed_speed,
+        )
+
+        lidar_low  = np.zeros(self.lidar_beams, dtype=np.float32)
+        lidar_high = np.ones(self.lidar_beams,  dtype=np.float32)
+
+        self.obs_low  = np.concatenate([self.obs_low,  lidar_low])
+        self.obs_high = np.concatenate([self.obs_high, lidar_high])
+        self.observation_space = spaces.Box(
+            low=self.obs_low, high=self.obs_high, dtype=np.float32
+        )
+        self.observation = np.zeros(self.observation_space.shape, dtype=np.float32)
+
+    def _get_obs(self):
+        from Environments.ObstacleAvoidance import Pose, get_obstacle_distances
+
+        state_obs = super()._get_obs()
+
+        lidar_pose = Pose(
+            x=self.vehicle.trailer.x,
+            y=self.vehicle.trailer.y,
+            yaw=self.vehicle.trailer.yaw + np.pi,
+        )
+        lidar_distances = get_obstacle_distances(
+            self.occ_grid,
+            lidar_pose,
+            num_sensors=self.lidar_beams,
+        )
+        self.observation = np.concatenate(
+            [state_obs, lidar_distances.astype(np.float32)]
+        )
+        return self.observation
+
+
+class ReverseBevObservationLineFollowingEnv(ReverseStateObservationLineFollowingEnv):
+    """
+    Reverse lane-following env with state vector + BEV image observations.
+
+    Mirrors BevObservationLineFollowingEnv but for reverse driving.
+    Inherits reverse action space, step override, reset, and reward from
+    ReverseStateObservationLineFollowingEnv.
+
+    Observation space (Dict):
+      'vector': 8-dim [s, γ, e_y, e_ψ, e_y_t, e_ψ_t, κ₁, κ₂]
+      'image':  (84, 84, 1) uint8 grayscale BEV
+    """
+
+    def __init__(self, render_mode="human", max_episode_steps=1000, reward_mode: str = "dense",
+                 fixed_speed: bool = True):
+        super().__init__(
+            render_mode=render_mode,
+            max_episode_steps=max_episode_steps,
+            reward_mode=reward_mode,
+            fixed_speed=fixed_speed,
+        )
+
+        vec_low, vec_high = _make_state_obs_bounds()
+        self.observation_space = spaces.Dict({
+            'vector': spaces.Box(low=vec_low, high=vec_high, dtype=np.float32),
+            'image': self.image_observation_space,
+        })
 
     def _get_obs(self):
         from Environments.TractorTrailer import OBS_WIDTH, OBS_HEIGHT

@@ -11,8 +11,8 @@ Usage
         --model models/Phase1/state_only/best_model.zip \\
         --scenarios test_scenarios/
 
-    # Reverse — compare TD3 vs reverse pure pursuit
-    python benchmark.py --task reverse --controllers td3,rpp \\
+    # Reverse — compare TD3 vs tuned reverse baselines
+    python benchmark.py --task reverse --controllers td3,fpp_rev,pid_rev,mpc_rev \\
         --model models/.../best_model.zip
 
     # Obstacle avoidance (forward)
@@ -35,6 +35,17 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from e2erl_utils.metrics import EpisodeMetricsLogger
+
+_TASK_ALLOWED_CONTROLLERS = {
+    "forward": {"td3", "fpp", "pid", "mpc"},
+    "reverse": {"td3", "fpp_rev", "pid_rev", "mpc_rev", "rpp"},
+    "obstacle_fwd": {"td3"},
+    "obstacle_rev": {"td3"},
+}
+
+_CONTROLLER_ALIASES = {
+    "rpp": "fpp_rev",
+}
 
 # -----------------------------------------------------------------------
 # Environment factories
@@ -92,6 +103,12 @@ def _td3_step(model, obs):
     return action, time.perf_counter() - t0
 
 
+def _apply_env_action(env, action):
+    if hasattr(env, "format_action"):
+        return env.format_action(action)
+    return np.asarray(action, dtype=np.float32).reshape(-1)
+
+
 def _fpp_step(env, ctrl):
     """Forward pure pursuit step using PurePursuitController."""
     from Environments.LineFollowing import compute_curvature
@@ -134,33 +151,51 @@ def _pid_step(env, ctrl):
     return action, time.perf_counter() - t0
 
 
-def _rpp_step(env):
-    """Reverse pure pursuit single-step action."""
+def _fpp_reverse_step(env, ctrl):
+    """Reverse pure pursuit step using ReverseHitchPurePursuitController."""
     import e2erl_utils.config as config
 
     t0 = time.perf_counter()
-    error_t, error_theta_t = env.get_trailer_errors()
-    hitch = env.vehicle.p - env.vehicle.trailer.yaw
+    from Environments.LineFollowing import compute_curvature
 
-    K_y_t, K_th_t = 1.2, 2.4
-    Kp_hitch = 3.0
+    e_y_t, e_theta_t = env.get_trailer_errors()
+    hitch = float(env.vehicle.p - env.vehicle.trailer.yaw)
+    kappa = compute_curvature(env, lookahead_steps=10)
+    action = ctrl.step(
+        psi2=hitch,
+        e_y_t=float(e_y_t),
+        e_theta_t=float(e_theta_t),
+        kappa=float(kappa),
+        current_steer=float(env.vehicle.s),
+        dt=float(env.vehicle.dt),
+        max_steer_rate=float(np.deg2rad(config.steering_action)),
+    )
+    return action, time.perf_counter() - t0
 
-    phi_ref = float(np.clip(
-        -(K_y_t * error_t) - (K_th_t * error_theta_t),
-        -np.deg2rad(30), np.deg2rad(30),
-    ))
-    boost = 1.0 + 2.0 * max(0.0, (abs(hitch) - np.deg2rad(20)) / np.deg2rad(70))
-    steer_rate = float(np.clip(
-        boost * Kp_hitch * (phi_ref - hitch),
-        -np.deg2rad(config.steering_action),
-        np.deg2rad(config.steering_action),
-    ))
-    speed = -abs(float(config.initial_xd))
-    return np.array([steer_rate, speed], dtype=np.float32), time.perf_counter() - t0
+
+def _pid_reverse_step(env, ctrl):
+    """Reverse PID step using ReverseHitchPIDController."""
+    import e2erl_utils.config as config
+    from Environments.LineFollowing import compute_curvature
+
+    t0 = time.perf_counter()
+    e_y_t, e_theta_t = env.get_trailer_errors()
+    hitch = float(env.vehicle.p - env.vehicle.trailer.yaw)
+    kappa = compute_curvature(env, lookahead_steps=10)
+    action = ctrl.step(
+        psi2=hitch,
+        e_y_t=float(e_y_t),
+        e_theta_t=float(e_theta_t),
+        kappa=float(kappa),
+        current_steer=float(env.vehicle.s),
+        dt=float(env.vehicle.dt),
+        max_steer_rate=float(np.deg2rad(config.steering_action)),
+    )
+    return action, time.perf_counter() - t0
 
 
 def _mpc_step(env, mpc, prev_steer: float):
-    """MPC single-step action. Returns (action, elapsed_s, new_prev_steer)."""
+    """Forward MPC single-step action. Returns (action, elapsed_s, new_prev_steer)."""
     from controllers.mpc_traj_gen import generate_trajectory
     import e2erl_utils.config as config
 
@@ -174,8 +209,38 @@ def _mpc_step(env, mpc, prev_steer: float):
         -np.deg2rad(config.steering_action),
         np.deg2rad(config.steering_action),
     ))
-    speed = float(env.vehicle.xd) if abs(float(env.vehicle.xd)) > 1e-3 else float(config.initial_xd)
-    return np.array([steer_rate, speed], dtype=np.float32), time.perf_counter() - t0, delta_opt
+    return np.array([steer_rate], dtype=np.float32), time.perf_counter() - t0, delta_opt
+
+
+def _mpc_reverse_step(env, mpc, prev_steer: float):
+    """Reverse MPC single-step action. Returns (action, elapsed_s, new_prev_steer)."""
+    from controllers.mpc_traj_gen import generate_trajectory
+    import e2erl_utils.config as config
+
+    t0 = time.perf_counter()
+    traj = generate_trajectory(env.xx, env.yy, env.vehicle, reverse=True)
+    vx = float(env.vehicle.xd)
+    if abs(vx) < 1e-3:
+        vx = -float(config.initial_xd)
+    delta_opt = float(mpc.solve(traj, state=(vx, prev_steer)))
+
+    steer_rate = float(np.clip(
+        (delta_opt - float(env.vehicle.s)) / float(env.vehicle.dt),
+        -np.deg2rad(config.steering_action),
+        np.deg2rad(config.steering_action),
+    ))
+    return np.array([steer_rate], dtype=np.float32), time.perf_counter() - t0, delta_opt
+
+
+def _normalize_controllers(task: str, controllers: list[str]) -> list[str]:
+    normalized = [_CONTROLLER_ALIASES.get(ctrl, ctrl) for ctrl in controllers]
+    invalid = [ctrl for ctrl in normalized if ctrl not in _TASK_ALLOWED_CONTROLLERS[task]]
+    if invalid:
+        allowed = ", ".join(sorted(_TASK_ALLOWED_CONTROLLERS[task]))
+        raise ValueError(
+            f"Unsupported controllers for task={task!r}: {invalid}. Allowed: {allowed}"
+        )
+    return normalized
 
 
 # -----------------------------------------------------------------------
@@ -223,15 +288,20 @@ def run_episode(env, controller: str, model=None, mpc=None, fpp=None, pid=None) 
             action, elapsed = _fpp_step(env, fpp)
         elif controller == "pid":
             action, elapsed = _pid_step(env, pid)
-        elif controller == "rpp":
-            action, elapsed = _rpp_step(env)
+        elif controller == "fpp_rev":
+            action, elapsed = _fpp_reverse_step(env, fpp)
+        elif controller == "pid_rev":
+            action, elapsed = _pid_reverse_step(env, pid)
         elif controller == "mpc":
             action, elapsed, prev_steer = _mpc_step(env, mpc, prev_steer)
+        elif controller == "mpc_rev":
+            action, elapsed, prev_steer = _mpc_reverse_step(env, mpc, prev_steer)
         else:
             raise ValueError(f"Unknown controller: {controller!r}")
 
-        obs, reward, terminated, truncated, _ = env.step(action)
-        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        applied_action = _apply_env_action(env, action)
+        obs, reward, terminated, truncated, _ = env.step(applied_action)
+        logger.log_step(env, applied_action, reward, inference_time_s=elapsed)
         done = terminated or truncated
 
     return logger.compute_summary(terminated=terminated, truncated=truncated)
@@ -274,26 +344,42 @@ def run_benchmark(
         print(f"Loading TD3 model: {model_path}")
         td3_model = _load_td3(model_path, env)
 
-    if "mpc" in controllers:
-        from controllers.mpc import TractorTrailerSteeringMPC
-        mpc_ctrl = TractorTrailerSteeringMPC()
+    if any(ctrl in controllers for ctrl in {"mpc", "mpc_rev"}):
+        if "mpc_rev" in controllers:
+            from controllers.mpc import ReverseTractorTrailerMPC
+            mpc_ctrl = ReverseTractorTrailerMPC()
+        else:
+            from controllers.mpc import TractorTrailerSteeringMPC
+            mpc_ctrl = TractorTrailerSteeringMPC()
         if mpc_params:
             for k, v in mpc_params.items():
                 setattr(mpc_ctrl, k, v)
         print("MPC controller initialised.")
 
-    if "fpp" in controllers:
-        from controllers.pure_pursuit import PurePursuitController
-        fpp_ctrl = PurePursuitController(**(fpp_params or {}))
-        print(f"FPP controller: k_ff={fpp_ctrl.k_ff:.3f}  k_y={fpp_ctrl.k_y:.3f}  "
-              f"k_theta={fpp_ctrl.k_theta:.3f}  speed={fpp_ctrl.speed:.1f} m/s")
+    if any(ctrl in controllers for ctrl in {"fpp", "fpp_rev"}):
+        if "fpp_rev" in controllers:
+            from controllers.pure_pursuit import ReverseHitchPurePursuitController
+            fpp_ctrl = ReverseHitchPurePursuitController(**(fpp_params or {}))
+            print(f"FPP-rev controller: k_hitch={fpp_ctrl.k_hitch:.3f}  k_y={fpp_ctrl.k_y:.3f}  "
+                  f"k_theta={fpp_ctrl.k_theta:.3f}  k_ff={fpp_ctrl.k_ff:.3f}")
+        else:
+            from controllers.pure_pursuit import PurePursuitController
+            fpp_ctrl = PurePursuitController(**(fpp_params or {}))
+            print(f"FPP controller: k_ff={fpp_ctrl.k_ff:.3f}  k_y={fpp_ctrl.k_y:.3f}  "
+                  f"k_theta={fpp_ctrl.k_theta:.3f}")
 
-    if "pid" in controllers:
-        from controllers.pid import PIDLaneController
-        pid_ctrl = PIDLaneController(**(pid_params or {}))
-        print(f"PID controller: Kp={pid_ctrl.Kp:.3f}  Ki={pid_ctrl.Ki:.4f}  "
-              f"Kd={pid_ctrl.Kd:.3f}  Kp_t={pid_ctrl.Kp_t:.3f}  "
-              f"k_ff={pid_ctrl.k_ff:.3f}  speed={pid_ctrl.speed:.1f} m/s")
+    if any(ctrl in controllers for ctrl in {"pid", "pid_rev"}):
+        if "pid_rev" in controllers:
+            from controllers.pid import ReverseHitchPIDController
+            pid_ctrl = ReverseHitchPIDController(**(pid_params or {}))
+            print(f"PID-rev controller: k_hitch={pid_ctrl.k_hitch:.3f}  Kp={pid_ctrl.Kp:.3f}  "
+                  f"Ki={pid_ctrl.Ki:.4f}  Kd={pid_ctrl.Kd:.3f}  k_ff={pid_ctrl.k_ff:.3f}")
+        else:
+            from controllers.pid import PIDLaneController
+            pid_ctrl = PIDLaneController(**(pid_params or {}))
+            print(f"PID controller: Kp={pid_ctrl.Kp:.3f}  Ki={pid_ctrl.Ki:.4f}  "
+                  f"Kd={pid_ctrl.Kd:.3f}  Kp_t={pid_ctrl.Kp_t:.3f}  "
+                  f"k_ff={pid_ctrl.k_ff:.3f}")
 
     raw_dir = output_dir / "raw" / task
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -409,7 +495,7 @@ def main():
     parser.add_argument(
         "--controllers",
         default="td3",
-        help="Comma-separated list: td3, fpp, pid, rpp, mpc  (default: td3)",
+        help="Comma-separated list. Forward: td3,fpp,pid,mpc. Reverse: td3,fpp_rev,pid_rev,mpc_rev. (legacy alias: rpp)",
     )
     parser.add_argument("--model", default=None, help="Path to TD3 .zip model")
     parser.add_argument(
@@ -432,16 +518,28 @@ def main():
     )
 
     args = parser.parse_args()
-    controllers = [c.strip() for c in args.controllers.split(",")]
+    try:
+        controllers = _normalize_controllers(
+            args.task,
+            [c.strip() for c in args.controllers.split(",") if c.strip()],
+        )
+    except ValueError as exc:
+        print(exc)
+        sys.exit(1)
 
     fpp_params = pid_params = mpc_params = None
     if args.tuned_params and args.tuned_params.exists():
         import json
         with open(args.tuned_params) as f:
             all_params = json.load(f)
-        fpp_params = all_params.get("fpp")
-        pid_params = all_params.get("pid")
-        mpc_params = all_params.get("mpc")
+        if args.task == "reverse":
+            fpp_params = all_params.get("fpp_rev")
+            pid_params = all_params.get("pid_rev")
+            mpc_params = all_params.get("mpc_rev")
+        else:
+            fpp_params = all_params.get("fpp")
+            pid_params = all_params.get("pid")
+            mpc_params = all_params.get("mpc")
         print(f"Loaded tuned params from {args.tuned_params}")
 
     run_benchmark(

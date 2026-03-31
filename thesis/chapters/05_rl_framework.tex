@@ -45,6 +45,16 @@ The ME~780 study revealed that DTs are prone to oscillation if the training data
 
 \section{Hyperparameter Optimisation}
 
-Both the TD3 and DT agents require careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected via grid search over simulation rollouts. Full hyperparameter tables are provided in Appendix~\ref{app:hyperparameters}.
+Both the TD3 and DT agents require careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected over simulation rollouts. For the TD3 experiments, the codebase now includes a dedicated Phase~1 training pipeline that trains matched agents across state-only, lidar, and BEV observation variants. BEV policies use custom multi-input feature extractors, while the state-only and lidar policies use standard multilayer perceptron policies.
+
+To reduce wall-clock cost for image-based training, the training script supports vectorised environment execution with subprocess workers. When multiple environments are used, the data collection schedule switches from episode-based to step-based updates so that parallel workers remain saturated instead of waiting for all episodes to terminate simultaneously. This is particularly important for the CNN-based BEV policy, whose throughput is otherwise dominated by environment interaction rather than gradient computation.
+
+\subsection{Representation Pretraining}
+
+Two of the BEV variants use an explicit pretraining stage before TD3 optimisation. The autoencoder-based model freezes a pretrained NatureCNN encoder, while the UNet-based model freezes a pretrained UNet encoder after transfer from the reconstruction network. Both pretraining procedures operate on BEV images collected from policy rollouts and simple geometric controllers. This separates representation learning from control learning and allows a direct comparison against the end-to-end CNN baseline.
+
+\subsection{Classical Controller Tuning}
+
+The thesis now includes a reproducible tuning pipeline for the classical baselines used in later comparison chapters. Forward and reverse pure-pursuit, PID, and MPC controllers are optimised using differential evolution over repeated simulation episodes. The scalar objective penalises trailer cross-track error, jackknife events, collisions, and non-completion. After optimisation, each controller is validated on held-out seeds and a two-dimensional sensitivity sweep is generated over the most influential parameters. This ensures that any comparison against TD3 is made against tuned baselines rather than hand-picked nominal gains.
 
 % TODO: TD3 hyperparameter sweep results, comparison with ME780 DDPG hyperparameters

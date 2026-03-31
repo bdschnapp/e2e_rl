@@ -76,46 +76,6 @@ class BasicVehicleModel:
         raise NotImplementedError
 
 
-class DynamicsVehicleModel(BasicVehicleModel):
-    def loop(self, action, override_steering_angle=None):
-        self.s = np.clip(self.s + action[0] * self.dt, -np.pi / 4, np.pi / 4)
-        if override_steering_angle:
-            self.s = np.clip(override_steering_angle[0], -np.pi / 4, np.pi / 4)
-
-        self.longitudinal_PID_controller(action[1])
-
-        Fyf = self.Cf * (self.s - ((self.yd + (self.lf * self.pd))/self.xd))
-        Fyr = self.Cr * (-1 * ((self.yd - (self.lr * self.pd))/self.xd))
-        # can add front/rear wheel control here later
-        Fxf = self.Fx / 2
-        Fxr = self.Fx / 2
-
-        self.xdd = ((Fxr + (Fxf * np.cos(self.s)) - (Fyf * np.sin(self.s))) / self.m) + (self.pd * self.yd)
-        self.ydd = ((Fyr + (Fxf * np.sin(self.s)) - (Fyf * np.cos(self.s))) / self.m) - (self.pd * self.yd)
-        self.pdd = ((self.lf * Fxf * np.sin(self.s)) + (self.lr * Fyf * np.cos(self.s)) - (self.lr * Fyr)) / self.Iz
-
-        self.pd += self.pdd * self.dt
-        self.p += self.pd * self.dt
-
-        self.xd += self.xdd * self.dt
-        if self.xd <= 0:
-            self.xd = 0.1
-        self.x += self.xd * self.dt * np.cos(self.p) - self.yd * self.dt * np.sin(self.p)
-
-        self.yd += self.ydd * self.dt
-        self.y += self.yd * self.dt * np.cos(self.p) + self.xd * self.dt * np.sin(self.p)
-
-        return np.array([
-            self.x,
-            self.y,
-            self.xd,
-            self.yd,
-            self.p,
-            self.pd,
-            self.s
-        ], dtype='object')
-
-
 class StateSpaceVehicleModel(BasicVehicleModel):
     def __init__(self, args=None):
         super().__init__(args)

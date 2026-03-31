@@ -36,6 +36,8 @@ import csv
 import json
 import sys
 import warnings
+import multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -43,10 +45,112 @@ from scipy.optimize import differential_evolution
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+_N_WORKERS = 1
+_EXECUTOR: ProcessPoolExecutor | None = None
+
 
 # -----------------------------------------------------------------------
 # Shared environment / evaluation helpers
 # -----------------------------------------------------------------------
+
+def _mpc_available() -> bool:
+    try:
+        import osqp  # noqa: F401
+        return True
+    except ModuleNotFoundError:
+        return False
+
+
+def _warn_missing_mpc_dependency():
+    warnings.warn(
+        "Skipping MPC tuning because the 'osqp' package is not installed in the project venv.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+
+
+def _set_parallelism(n_workers: int):
+    global _N_WORKERS, _EXECUTOR
+    _N_WORKERS = max(1, int(n_workers))
+    if _EXECUTOR is not None:
+        _EXECUTOR.shutdown(wait=True, cancel_futures=False)
+        _EXECUTOR = None
+    if _N_WORKERS > 1:
+        start_method = "fork" if "fork" in mp.get_all_start_methods() else "spawn"
+        ctx = mp.get_context(start_method)
+        _EXECUTOR = ProcessPoolExecutor(max_workers=_N_WORKERS, mp_context=ctx)
+
+
+def _make_controller(kind: str, params: dict):
+    if kind == "fpp":
+        from controllers.pure_pursuit import PurePursuitController
+        return PurePursuitController(**params)
+    if kind == "pid":
+        from controllers.pid import PIDLaneController
+        return PIDLaneController(**params)
+    if kind == "mpc":
+        from controllers.mpc import TractorTrailerSteeringMPC
+        ctrl = TractorTrailerSteeringMPC()
+        ctrl.Q = np.array(params["Q"], dtype=float)
+        ctrl.R = np.array(params["R"], dtype=float)
+        ctrl.P = np.array(params["P"], dtype=float)
+        return ctrl
+    if kind == "fpp_rev":
+        from controllers.pure_pursuit import ReverseHitchPurePursuitController
+        return ReverseHitchPurePursuitController(**params)
+    if kind == "pid_rev":
+        from controllers.pid import ReverseHitchPIDController
+        return ReverseHitchPIDController(**params)
+    if kind == "mpc_rev":
+        from controllers.mpc import ReverseTractorTrailerMPC
+        ctrl = ReverseTractorTrailerMPC()
+        ctrl.Q = np.array(params["Q"], dtype=float)
+        ctrl.R = np.array(params["R"], dtype=float)
+        ctrl.P = np.array(params["P"], dtype=float)
+        return ctrl
+    raise ValueError(f"Unknown controller kind: {kind!r}")
+
+
+def _make_env_for_kind(kind: str):
+    return _make_reverse_env() if kind.endswith("_rev") else _make_forward_env()
+
+
+def _run_episode_by_kind(kind: str, env, ctrl, seed: int) -> dict:
+    if kind == "fpp":
+        return _run_episode_fpp(env, ctrl, seed=seed)
+    if kind == "pid":
+        return _run_episode_pid(env, ctrl, seed=seed)
+    if kind == "mpc":
+        return _run_episode_mpc(env, ctrl, seed=seed)
+    if kind == "fpp_rev":
+        return _run_episode_fpp_reverse(env, ctrl, seed=seed)
+    if kind == "pid_rev":
+        return _run_episode_pid_reverse(env, ctrl, seed=seed)
+    if kind == "mpc_rev":
+        return _run_episode_mpc_reverse(env, ctrl, seed=seed)
+    raise ValueError(f"Unknown controller kind: {kind!r}")
+
+
+def _rollout_worker(kind: str, params: dict, seed: int) -> dict:
+    env = _make_env_for_kind(kind)
+    try:
+        ctrl = _make_controller(kind, params)
+        return _run_episode_by_kind(kind, env, ctrl, seed=int(seed))
+    finally:
+        env.close()
+
+
+def _evaluate_rollouts(kind: str, params: dict, seeds: list[int]) -> list[dict]:
+    if _EXECUTOR is None or len(seeds) <= 1:
+        env = _make_env_for_kind(kind)
+        try:
+            ctrl = _make_controller(kind, params)
+            return [_run_episode_by_kind(kind, env, ctrl, seed=int(s)) for s in seeds]
+        finally:
+            env.close()
+
+    futures = [_EXECUTOR.submit(_rollout_worker, kind, params, int(seed)) for seed in seeds]
+    return [f.result() for f in futures]
 
 def _make_forward_env():
     from Environments.LineFollowing import StateObservationLineFollowingEnv
@@ -56,6 +160,12 @@ def _make_forward_env():
 def _make_reverse_env():
     from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv
     return ReverseStateObservationLineFollowingEnv(render_mode=None, max_episode_steps=1000)
+
+
+def _apply_env_action(env, action):
+    if hasattr(env, "format_action"):
+        return env.format_action(action)
+    return np.asarray(action, dtype=np.float32).reshape(-1)
 
 
 def _run_episode_fpp(env, ctrl, seed=None) -> dict:
@@ -80,8 +190,9 @@ def _run_episode_fpp(env, ctrl, seed=None) -> dict:
             max_steer_rate=float(np.deg2rad(config.steering_action)),
         )
         elapsed = time.perf_counter() - t0
-        obs, reward, terminated, truncated, _ = env.step(action)
-        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        applied_action = _apply_env_action(env, action)
+        obs, reward, terminated, truncated, _ = env.step(applied_action)
+        logger.log_step(env, applied_action, reward, inference_time_s=elapsed)
         done = terminated or truncated
 
     return logger.compute_summary(terminated=terminated, truncated=truncated)
@@ -110,8 +221,9 @@ def _run_episode_pid(env, ctrl, seed=None) -> dict:
             max_steer_rate=float(np.deg2rad(config.steering_action)),
         )
         elapsed = time.perf_counter() - t0
-        obs, reward, terminated, truncated, _ = env.step(action)
-        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        applied_action = _apply_env_action(env, action)
+        obs, reward, terminated, truncated, _ = env.step(applied_action)
+        logger.log_step(env, applied_action, reward, inference_time_s=elapsed)
         done = terminated or truncated
 
     return logger.compute_summary(terminated=terminated, truncated=truncated)
@@ -143,11 +255,11 @@ def _run_episode_mpc(env, mpc, seed=None) -> dict:
             -np.deg2rad(config.steering_action),
             np.deg2rad(config.steering_action),
         ))
-        speed = float(env.vehicle.xd) if abs(float(env.vehicle.xd)) > 1e-3 else float(config.initial_xd)
-        action = np.array([steer_rate, speed], dtype=np.float32)
+        action = np.array([steer_rate], dtype=np.float32)
         elapsed = time.perf_counter() - t0
-        obs, reward, terminated, truncated, _ = env.step(action)
-        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        applied_action = _apply_env_action(env, action)
+        obs, reward, terminated, truncated, _ = env.step(applied_action)
+        logger.log_step(env, applied_action, reward, inference_time_s=elapsed)
         done = terminated or truncated
 
     return logger.compute_summary(terminated=terminated, truncated=truncated)
@@ -179,8 +291,9 @@ def _run_episode_fpp_reverse(env, ctrl, seed=None) -> dict:
             max_steer_rate=float(np.deg2rad(config.steering_action)),
         )
         elapsed = time.perf_counter() - t0
-        obs, reward, terminated, truncated, _ = env.step(action)
-        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        applied_action = _apply_env_action(env, action)
+        obs, reward, terminated, truncated, _ = env.step(applied_action)
+        logger.log_step(env, applied_action, reward, inference_time_s=elapsed)
         done = terminated or truncated
 
     return logger.compute_summary(terminated=terminated, truncated=truncated)
@@ -212,8 +325,9 @@ def _run_episode_pid_reverse(env, ctrl, seed=None) -> dict:
             max_steer_rate=float(np.deg2rad(config.steering_action)),
         )
         elapsed = time.perf_counter() - t0
-        obs, reward, terminated, truncated, _ = env.step(action)
-        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        applied_action = _apply_env_action(env, action)
+        obs, reward, terminated, truncated, _ = env.step(applied_action)
+        logger.log_step(env, applied_action, reward, inference_time_s=elapsed)
         done = terminated or truncated
 
     return logger.compute_summary(terminated=terminated, truncated=truncated)
@@ -248,12 +362,11 @@ def _run_episode_mpc_reverse(env, mpc, seed=None) -> dict:
             -np.deg2rad(config.steering_action),
             np.deg2rad(config.steering_action),
         ))
-        # Speed is constant negative (env.step overrides anyway, but set explicitly)
-        speed = -float(config.initial_xd)
-        action = np.array([steer_rate, speed], dtype=np.float32)
+        action = np.array([steer_rate], dtype=np.float32)
         elapsed = time.perf_counter() - t0
-        obs, reward, terminated, truncated, _ = env.step(action)
-        logger.log_step(env, action, reward, inference_time_s=elapsed)
+        applied_action = _apply_env_action(env, action)
+        obs, reward, terminated, truncated, _ = env.step(applied_action)
+        logger.log_step(env, applied_action, reward, inference_time_s=elapsed)
         done = terminated or truncated
 
     return logger.compute_summary(terminated=terminated, truncated=truncated)
@@ -286,11 +399,7 @@ def tune_fpp(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
     k_ff    [0.2, 3.0]   curvature feed-forward gain
     k_y     [0.02, 1.5]  lateral error gain
     k_theta [0.1, 3.0]   heading error gain
-    speed   [2.0, 9.0]   target speed (m/s)
     """
-    from controllers.pure_pursuit import PurePursuitController
-
-    env = _make_forward_env()
     rng = np.random.default_rng(0)
     opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
     val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
@@ -298,17 +407,17 @@ def tune_fpp(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
     call_count = [0]
 
     def objective(x):
-        k_ff, k_y, k_theta, speed = x
-        ctrl = PurePursuitController(k_ff=k_ff, k_y=k_y, k_theta=k_theta, speed=speed)
-        summaries = [_run_episode_fpp(env, ctrl, seed=int(s)) for s in opt_seeds]
+        k_ff, k_y, k_theta = x
+        params = dict(k_ff=k_ff, k_y=k_y, k_theta=k_theta)
+        summaries = _evaluate_rollouts("fpp", params, opt_seeds)
         score = _objective_score(summaries)
         call_count[0] += 1
         if call_count[0] % 10 == 0:
             print(f"  [FPP opt] eval {call_count[0]:4d}  score={score:.4f}  "
-                  f"k_ff={k_ff:.3f} k_y={k_y:.3f} k_theta={k_theta:.3f} speed={speed:.1f}")
+                  f"k_ff={k_ff:.3f} k_y={k_y:.3f} k_theta={k_theta:.3f}")
         return score
 
-    bounds = [(0.2, 3.0), (0.02, 1.5), (0.1, 3.0), (2.0, 9.0)]
+    bounds = [(0.2, 3.0), (0.02, 1.5), (0.1, 3.0)]
     print("\n[FPP] Starting differential_evolution optimisation …")
     result = differential_evolution(
         objective, bounds,
@@ -317,20 +426,18 @@ def tune_fpp(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
         workers=1, disp=False,
     )
 
-    k_ff_opt, k_y_opt, k_theta_opt, speed_opt = result.x
-    best_params = dict(k_ff=k_ff_opt, k_y=k_y_opt, k_theta=k_theta_opt, speed=speed_opt)
+    k_ff_opt, k_y_opt, k_theta_opt = result.x
+    best_params = dict(k_ff=k_ff_opt, k_y=k_y_opt, k_theta=k_theta_opt)
     print(f"[FPP] Best: {best_params}  (obj={result.fun:.4f})")
 
     # Validation
-    ctrl_best = PurePursuitController(**best_params)
-    val_summaries = [_run_episode_fpp(env, ctrl_best, seed=int(s)) for s in val_seeds]
+    val_summaries = _evaluate_rollouts("fpp", best_params, val_seeds)
     cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
     comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
     print(f"[FPP] Validation ({n_val_episodes} episodes): "
           f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
           f"completion={comp_rate*100:.1f}%")
 
-    env.close()
     return best_params
 
 
@@ -349,11 +456,7 @@ def tune_pid(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
     Kd     [0.1,  3.0]   derivative / heading gain
     Kp_t   [0.0,  1.0]   trailer CTE gain
     k_ff   [0.2,  3.0]   curvature feed-forward
-    speed  [2.0,  9.0]   target speed
     """
-    from controllers.pid import PIDLaneController
-
-    env = _make_forward_env()
     rng = np.random.default_rng(1)
     opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
     val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
@@ -361,17 +464,17 @@ def tune_pid(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
     call_count = [0]
 
     def objective(x):
-        Kp, Ki, Kd, Kp_t, k_ff, speed = x
-        ctrl = PIDLaneController(Kp=Kp, Ki=Ki, Kd=Kd, Kp_t=Kp_t, k_ff=k_ff, speed=speed)
-        summaries = [_run_episode_pid(env, ctrl, seed=int(s)) for s in opt_seeds]
+        Kp, Ki, Kd, Kp_t, k_ff = x
+        params = dict(Kp=Kp, Ki=Ki, Kd=Kd, Kp_t=Kp_t, k_ff=k_ff)
+        summaries = _evaluate_rollouts("pid", params, opt_seeds)
         score = _objective_score(summaries)
         call_count[0] += 1
         if call_count[0] % 10 == 0:
             print(f"  [PID opt] eval {call_count[0]:4d}  score={score:.4f}  "
-                  f"Kp={Kp:.3f} Ki={Ki:.4f} Kd={Kd:.3f} k_ff={k_ff:.3f} speed={speed:.1f}")
+                  f"Kp={Kp:.3f} Ki={Ki:.4f} Kd={Kd:.3f} k_ff={k_ff:.3f}")
         return score
 
-    bounds = [(0.02, 2.0), (0.0, 0.2), (0.1, 3.0), (0.0, 1.0), (0.2, 3.0), (2.0, 9.0)]
+    bounds = [(0.02, 2.0), (0.0, 0.2), (0.1, 3.0), (0.0, 1.0), (0.2, 3.0)]
     print("\n[PID] Starting differential_evolution optimisation …")
     result = differential_evolution(
         objective, bounds,
@@ -380,20 +483,17 @@ def tune_pid(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
         workers=1, disp=False,
     )
 
-    Kp_opt, Ki_opt, Kd_opt, Kp_t_opt, k_ff_opt, speed_opt = result.x
-    best_params = dict(Kp=Kp_opt, Ki=Ki_opt, Kd=Kd_opt, Kp_t=Kp_t_opt,
-                       k_ff=k_ff_opt, speed=speed_opt)
+    Kp_opt, Ki_opt, Kd_opt, Kp_t_opt, k_ff_opt = result.x
+    best_params = dict(Kp=Kp_opt, Ki=Ki_opt, Kd=Kd_opt, Kp_t=Kp_t_opt, k_ff=k_ff_opt)
     print(f"[PID] Best: {best_params}  (obj={result.fun:.4f})")
 
-    ctrl_best = PIDLaneController(**best_params)
-    val_summaries = [_run_episode_pid(env, ctrl_best, seed=int(s)) for s in val_seeds]
+    val_summaries = _evaluate_rollouts("pid", best_params, val_seeds)
     cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
     comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
     print(f"[PID] Validation ({n_val_episodes} episodes): "
           f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
           f"completion={comp_rate*100:.1f}%")
 
-    env.close()
     return best_params
 
 
@@ -422,9 +522,6 @@ def tune_mpc(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
     log10_r      [-2, 2]  → R[0,0] =    1 * 10^x
     log10_p      [-2, 2]  → P[0,0] = 1e5  * 10^x
     """
-    from controllers.mpc import TractorTrailerSteeringMPC
-
-    env = _make_forward_env()
     rng = np.random.default_rng(2)
     opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
     val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
@@ -433,16 +530,15 @@ def tune_mpc(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
 
     def objective(x):
         lq_y, lq_psi1, lq_psi2, lr, lp = x
-        mpc = TractorTrailerSteeringMPC()
-        import numpy as np
-        mpc.Q = np.diag([0.0,
-                         2000.0 * 10**lq_y,
-                         2000.0 * 10**lq_psi1,
-                         500.0  * 10**lq_psi2])
-        mpc.R = np.diag([1.0 * 10**lr])
-        mpc.P = np.diag([1e5 * 10**lp])
-
-        summaries = [_run_episode_mpc(env, mpc, seed=int(s)) for s in opt_seeds]
+        params = dict(
+            Q=np.diag([0.0,
+                       2000.0 * 10**lq_y,
+                       2000.0 * 10**lq_psi1,
+                       500.0  * 10**lq_psi2]).tolist(),
+            R=np.diag([1.0 * 10**lr]).tolist(),
+            P=np.diag([1e5 * 10**lp]).tolist(),
+        )
+        summaries = _evaluate_rollouts("mpc", params, opt_seeds)
         score = _objective_score(summaries)
         call_count[0] += 1
         if call_count[0] % 5 == 0:
@@ -473,18 +569,13 @@ def tune_mpc(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
           f"lq_psi2={lq_psi2_opt:.3f}  lr={lr_opt:.3f}  lp={lp_opt:.3f}  "
           f"(obj={result.fun:.4f})")
 
-    mpc_best = TractorTrailerSteeringMPC()
-    mpc_best.Q = np.array(best_params["Q"])
-    mpc_best.R = np.array(best_params["R"])
-    mpc_best.P = np.array(best_params["P"])
-    val_summaries = [_run_episode_mpc(env, mpc_best, seed=int(s)) for s in val_seeds]
+    val_summaries = _evaluate_rollouts("mpc", best_params, val_seeds)
     cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
     comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
     print(f"[MPC] Validation ({n_val_episodes} episodes): "
           f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
           f"completion={comp_rate*100:.1f}%")
 
-    env.close()
     return best_params
 
 
@@ -502,11 +593,7 @@ def tune_fpp_reverse(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
     k_y     [0.0, 1.5]  trailer lateral error gain
     k_theta [0.0, 2.0]  trailer heading error gain
     k_ff    [-2.0, 2.0] signed curvature feed-forward (can be negative)
-    speed   [0.5, 3.0]  reverse speed magnitude (m/s)
     """
-    from controllers.pure_pursuit import ReverseHitchPurePursuitController
-
-    env = _make_reverse_env()
     rng = np.random.default_rng(10)
     opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
     val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
@@ -514,20 +601,18 @@ def tune_fpp_reverse(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
     call_count = [0]
 
     def objective(x):
-        k_hitch, k_y, k_theta, k_ff, speed = x
-        ctrl = ReverseHitchPurePursuitController(
-            k_hitch=k_hitch, k_y=k_y, k_theta=k_theta, k_ff=k_ff, speed=speed,
-        )
-        summaries = [_run_episode_fpp_reverse(env, ctrl, seed=int(s)) for s in opt_seeds]
+        k_hitch, k_y, k_theta, k_ff = x
+        params = dict(k_hitch=k_hitch, k_y=k_y, k_theta=k_theta, k_ff=k_ff)
+        summaries = _evaluate_rollouts("fpp_rev", params, opt_seeds)
         score = _objective_score(summaries)
         call_count[0] += 1
         if call_count[0] % 10 == 0:
             print(f"  [FPP-rev opt] eval {call_count[0]:4d}  score={score:.4f}  "
                   f"k_hitch={k_hitch:.3f} k_y={k_y:.3f} k_theta={k_theta:.3f} "
-                  f"k_ff={k_ff:.3f} speed={speed:.2f}")
+                  f"k_ff={k_ff:.3f}")
         return score
 
-    bounds = [(0.1, 3.0), (0.0, 1.5), (0.0, 2.0), (-2.0, 2.0), (0.5, 3.0)]
+    bounds = [(0.1, 3.0), (0.0, 1.5), (0.0, 2.0), (-2.0, 2.0)]
     print("\n[FPP-rev] Starting differential_evolution optimisation …")
     result = differential_evolution(
         objective, bounds,
@@ -536,20 +621,17 @@ def tune_fpp_reverse(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
         workers=1, disp=False,
     )
 
-    k_hitch_opt, k_y_opt, k_theta_opt, k_ff_opt, speed_opt = result.x
-    best_params = dict(k_hitch=k_hitch_opt, k_y=k_y_opt, k_theta=k_theta_opt,
-                       k_ff=k_ff_opt, speed=speed_opt)
+    k_hitch_opt, k_y_opt, k_theta_opt, k_ff_opt = result.x
+    best_params = dict(k_hitch=k_hitch_opt, k_y=k_y_opt, k_theta=k_theta_opt, k_ff=k_ff_opt)
     print(f"[FPP-rev] Best: {best_params}  (obj={result.fun:.4f})")
 
-    ctrl_best = ReverseHitchPurePursuitController(**best_params)
-    val_summaries = [_run_episode_fpp_reverse(env, ctrl_best, seed=int(s)) for s in val_seeds]
+    val_summaries = _evaluate_rollouts("fpp_rev", best_params, val_seeds)
     cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
     comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
     print(f"[FPP-rev] Validation ({n_val_episodes} episodes): "
           f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
           f"completion={comp_rate*100:.1f}%")
 
-    env.close()
     return best_params
 
 
@@ -564,11 +646,7 @@ def tune_pid_reverse(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
     Ki      [0.0, 0.2]  trailer CTE integral gain
     Kd      [0.0, 2.0]  trailer heading derivative gain
     k_ff    [-2.0, 2.0] signed curvature feed-forward
-    speed   [0.5, 3.0]  reverse speed magnitude (m/s)
     """
-    from controllers.pid import ReverseHitchPIDController
-
-    env = _make_reverse_env()
     rng = np.random.default_rng(11)
     opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
     val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
@@ -576,20 +654,18 @@ def tune_pid_reverse(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
     call_count = [0]
 
     def objective(x):
-        k_hitch, Kp, Ki, Kd, k_ff, speed = x
-        ctrl = ReverseHitchPIDController(
-            k_hitch=k_hitch, Kp=Kp, Ki=Ki, Kd=Kd, k_ff=k_ff, speed=speed,
-        )
-        summaries = [_run_episode_pid_reverse(env, ctrl, seed=int(s)) for s in opt_seeds]
+        k_hitch, Kp, Ki, Kd, k_ff = x
+        params = dict(k_hitch=k_hitch, Kp=Kp, Ki=Ki, Kd=Kd, k_ff=k_ff)
+        summaries = _evaluate_rollouts("pid_rev", params, opt_seeds)
         score = _objective_score(summaries)
         call_count[0] += 1
         if call_count[0] % 10 == 0:
             print(f"  [PID-rev opt] eval {call_count[0]:4d}  score={score:.4f}  "
                   f"k_hitch={k_hitch:.3f} Kp={Kp:.3f} Ki={Ki:.4f} "
-                  f"Kd={Kd:.3f} k_ff={k_ff:.3f} speed={speed:.2f}")
+                  f"Kd={Kd:.3f} k_ff={k_ff:.3f}")
         return score
 
-    bounds = [(0.1, 3.0), (0.0, 2.0), (0.0, 0.2), (0.0, 2.0), (-2.0, 2.0), (0.5, 3.0)]
+    bounds = [(0.1, 3.0), (0.0, 2.0), (0.0, 0.2), (0.0, 2.0), (-2.0, 2.0)]
     print("\n[PID-rev] Starting differential_evolution optimisation …")
     result = differential_evolution(
         objective, bounds,
@@ -598,20 +674,17 @@ def tune_pid_reverse(n_opt_episodes: int = 8, n_val_episodes: int = 20) -> dict:
         workers=1, disp=False,
     )
 
-    k_hitch_opt, Kp_opt, Ki_opt, Kd_opt, k_ff_opt, speed_opt = result.x
-    best_params = dict(k_hitch=k_hitch_opt, Kp=Kp_opt, Ki=Ki_opt, Kd=Kd_opt,
-                       k_ff=k_ff_opt, speed=speed_opt)
+    k_hitch_opt, Kp_opt, Ki_opt, Kd_opt, k_ff_opt = result.x
+    best_params = dict(k_hitch=k_hitch_opt, Kp=Kp_opt, Ki=Ki_opt, Kd=Kd_opt, k_ff=k_ff_opt)
     print(f"[PID-rev] Best: {best_params}  (obj={result.fun:.4f})")
 
-    ctrl_best = ReverseHitchPIDController(**best_params)
-    val_summaries = [_run_episode_pid_reverse(env, ctrl_best, seed=int(s)) for s in val_seeds]
+    val_summaries = _evaluate_rollouts("pid_rev", best_params, val_seeds)
     cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
     comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
     print(f"[PID-rev] Validation ({n_val_episodes} episodes): "
           f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
           f"completion={comp_rate*100:.1f}%")
 
-    env.close()
     return best_params
 
 
@@ -630,9 +703,6 @@ def tune_mpc_reverse(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
     log10_r      [-2, 2]  → R[0,0] =    1  * 10^x
     log10_p      [-2, 2]  → P[0,0] = 1e5   * 10^x
     """
-    from controllers.mpc import ReverseTractorTrailerMPC
-
-    env = _make_reverse_env()
     rng = np.random.default_rng(12)
     opt_seeds = rng.integers(1000, 9999, size=n_opt_episodes).tolist()
     val_seeds = rng.integers(10000, 19999, size=n_val_episodes).tolist()
@@ -641,15 +711,15 @@ def tune_mpc_reverse(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
 
     def objective(x):
         lq_y, lq_psi1, lq_psi2, lr, lp = x
-        mpc = ReverseTractorTrailerMPC()
-        mpc.Q = np.diag([0.0,
-                         2000.0 * 10**lq_y,
-                         2000.0 * 10**lq_psi1,
-                         5000.0 * 10**lq_psi2])
-        mpc.R = np.diag([1.0 * 10**lr])
-        mpc.P = np.diag([1e5 * 10**lp])
-
-        summaries = [_run_episode_mpc_reverse(env, mpc, seed=int(s)) for s in opt_seeds]
+        params = dict(
+            Q=np.diag([0.0,
+                       2000.0 * 10**lq_y,
+                       2000.0 * 10**lq_psi1,
+                       5000.0 * 10**lq_psi2]).tolist(),
+            R=np.diag([1.0 * 10**lr]).tolist(),
+            P=np.diag([1e5 * 10**lp]).tolist(),
+        )
+        summaries = _evaluate_rollouts("mpc_rev", params, opt_seeds)
         score = _objective_score(summaries)
         call_count[0] += 1
         if call_count[0] % 5 == 0:
@@ -680,18 +750,13 @@ def tune_mpc_reverse(n_opt_episodes: int = 5, n_val_episodes: int = 20) -> dict:
           f"lq_psi2={lq_psi2_opt:.3f}  lr={lr_opt:.3f}  lp={lp_opt:.3f}  "
           f"(obj={result.fun:.4f})")
 
-    mpc_best = ReverseTractorTrailerMPC()
-    mpc_best.Q = np.array(best_params["Q"])
-    mpc_best.R = np.array(best_params["R"])
-    mpc_best.P = np.array(best_params["P"])
-    val_summaries = [_run_episode_mpc_reverse(env, mpc_best, seed=int(s)) for s in val_seeds]
+    val_summaries = _evaluate_rollouts("mpc_rev", best_params, val_seeds)
     cte_vals = [s["mean_abs_cte_trailer"] for s in val_summaries]
     comp_rate = sum(s["completed"] for s in val_summaries) / len(val_summaries)
     print(f"[MPC-rev] Validation ({n_val_episodes} episodes): "
           f"CTE={np.mean(cte_vals):.3f}±{np.std(cte_vals):.3f} m  "
           f"completion={comp_rate*100:.1f}%")
 
-    env.close()
     return best_params
 
 
@@ -704,9 +769,6 @@ def sensitivity_sweep_fpp(best: dict, output_path: Path, n_episodes: int = 5):
     2-D grid: k_y × k_theta (the two most influential FPP gains).
     Writes a CSV with columns: k_y, k_theta, mean_cte, completion_rate.
     """
-    from controllers.pure_pursuit import PurePursuitController
-
-    env = _make_forward_env()
     rng = np.random.default_rng(99)
     seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
 
@@ -718,10 +780,8 @@ def sensitivity_sweep_fpp(best: dict, output_path: Path, n_episodes: int = 5):
     done = 0
     for k_y in k_y_vals:
         for k_theta in k_theta_vals:
-            ctrl = PurePursuitController(
-                k_ff=best["k_ff"], k_y=k_y, k_theta=k_theta, speed=best["speed"]
-            )
-            sums = [_run_episode_fpp(env, ctrl, seed=int(s)) for s in seeds]
+            params = dict(k_ff=best["k_ff"], k_y=k_y, k_theta=k_theta)
+            sums = _evaluate_rollouts("fpp", params, seeds)
             cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
             comp = sum(s["completed"] for s in sums) / len(sums)
             rows.append({"k_y": k_y, "k_theta": k_theta,
@@ -730,7 +790,6 @@ def sensitivity_sweep_fpp(best: dict, output_path: Path, n_episodes: int = 5):
             if done % 10 == 0:
                 print(f"  [FPP sweep] {done}/{total}")
 
-    env.close()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["k_y", "k_theta", "mean_cte", "completion_rate"])
@@ -743,9 +802,6 @@ def sensitivity_sweep_pid(best: dict, output_path: Path, n_episodes: int = 5):
     """
     2-D grid: Kp × Kd (most influential PID gains for lane following).
     """
-    from controllers.pid import PIDLaneController
-
-    env = _make_forward_env()
     rng = np.random.default_rng(100)
     seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
 
@@ -757,11 +813,11 @@ def sensitivity_sweep_pid(best: dict, output_path: Path, n_episodes: int = 5):
     done = 0
     for Kp in Kp_vals:
         for Kd in Kd_vals:
-            ctrl = PIDLaneController(
+            params = dict(
                 Kp=Kp, Ki=best["Ki"], Kd=Kd,
-                Kp_t=best["Kp_t"], k_ff=best["k_ff"], speed=best["speed"]
+                Kp_t=best["Kp_t"], k_ff=best["k_ff"]
             )
-            sums = [_run_episode_pid(env, ctrl, seed=int(s)) for s in seeds]
+            sums = _evaluate_rollouts("pid", params, seeds)
             cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
             comp = sum(s["completed"] for s in sums) / len(sums)
             rows.append({"Kp": Kp, "Kd": Kd,
@@ -770,7 +826,6 @@ def sensitivity_sweep_pid(best: dict, output_path: Path, n_episodes: int = 5):
             if done % 10 == 0:
                 print(f"  [PID sweep] {done}/{total}")
 
-    env.close()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["Kp", "Kd", "mean_cte", "completion_rate"])
@@ -784,9 +839,6 @@ def sensitivity_sweep_mpc(best: dict, output_path: Path, n_episodes: int = 4):
     2-D grid: Q_psi1 × R (the most influential MPC weights).
     Sweeps log10-scale factors relative to the optimised base weights.
     """
-    from controllers.mpc import TractorTrailerSteeringMPC
-
-    env = _make_forward_env()
     rng = np.random.default_rng(101)
     seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
 
@@ -801,14 +853,14 @@ def sensitivity_sweep_mpc(best: dict, output_path: Path, n_episodes: int = 4):
     done = 0
     for lq in log_q_psi1_offsets:
         for lr in log_r_offsets:
-            mpc = TractorTrailerSteeringMPC()
             Q = np.array(best["Q"])
             Q[2, 2] = q_psi1_base * 10**lq
-            mpc.Q = Q
-            mpc.R = np.diag([r_base * 10**lr])
-            mpc.P = np.array(best["P"])
-
-            sums = [_run_episode_mpc(env, mpc, seed=int(s)) for s in seeds]
+            params = dict(
+                Q=Q.tolist(),
+                R=np.diag([r_base * 10**lr]).tolist(),
+                P=np.array(best["P"]).tolist(),
+            )
+            sums = _evaluate_rollouts("mpc", params, seeds)
             cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
             comp = sum(s["completed"] for s in sums) / len(sums)
             rows.append({
@@ -820,7 +872,6 @@ def sensitivity_sweep_mpc(best: dict, output_path: Path, n_episodes: int = 4):
             if done % 8 == 0:
                 print(f"  [MPC sweep] {done}/{total}")
 
-    env.close()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", newline="") as f:
         fieldnames = ["log10_q_psi1_offset", "log10_r_offset", "q_psi1", "r",
@@ -835,9 +886,6 @@ def sensitivity_sweep_fpp_reverse(best: dict, output_path: Path, n_episodes: int
     """
     2-D grid: k_hitch × k_y for the reverse FPP controller.
     """
-    from controllers.pure_pursuit import ReverseHitchPurePursuitController
-
-    env = _make_reverse_env()
     rng = np.random.default_rng(110)
     seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
 
@@ -849,11 +897,11 @@ def sensitivity_sweep_fpp_reverse(best: dict, output_path: Path, n_episodes: int
     done = 0
     for k_hitch in k_hitch_vals:
         for k_y in k_y_vals:
-            ctrl = ReverseHitchPurePursuitController(
+            params = dict(
                 k_hitch=k_hitch, k_y=k_y,
-                k_theta=best["k_theta"], k_ff=best["k_ff"], speed=best["speed"],
+                k_theta=best["k_theta"], k_ff=best["k_ff"],
             )
-            sums = [_run_episode_fpp_reverse(env, ctrl, seed=int(s)) for s in seeds]
+            sums = _evaluate_rollouts("fpp_rev", params, seeds)
             cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
             comp = sum(s["completed"] for s in sums) / len(sums)
             rows.append({"k_hitch": k_hitch, "k_y": k_y,
@@ -862,7 +910,6 @@ def sensitivity_sweep_fpp_reverse(best: dict, output_path: Path, n_episodes: int
             if done % 10 == 0:
                 print(f"  [FPP-rev sweep] {done}/{total}")
 
-    env.close()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["k_hitch", "k_y", "mean_cte", "completion_rate"])
@@ -875,9 +922,6 @@ def sensitivity_sweep_pid_reverse(best: dict, output_path: Path, n_episodes: int
     """
     2-D grid: k_hitch × Kp for the reverse PID controller.
     """
-    from controllers.pid import ReverseHitchPIDController
-
-    env = _make_reverse_env()
     rng = np.random.default_rng(111)
     seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
 
@@ -889,11 +933,11 @@ def sensitivity_sweep_pid_reverse(best: dict, output_path: Path, n_episodes: int
     done = 0
     for k_hitch in k_hitch_vals:
         for Kp in Kp_vals:
-            ctrl = ReverseHitchPIDController(
+            params = dict(
                 k_hitch=k_hitch, Kp=Kp,
-                Ki=best["Ki"], Kd=best["Kd"], k_ff=best["k_ff"], speed=best["speed"],
+                Ki=best["Ki"], Kd=best["Kd"], k_ff=best["k_ff"],
             )
-            sums = [_run_episode_pid_reverse(env, ctrl, seed=int(s)) for s in seeds]
+            sums = _evaluate_rollouts("pid_rev", params, seeds)
             cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
             comp = sum(s["completed"] for s in sums) / len(sums)
             rows.append({"k_hitch": k_hitch, "Kp": Kp,
@@ -902,7 +946,6 @@ def sensitivity_sweep_pid_reverse(best: dict, output_path: Path, n_episodes: int
             if done % 10 == 0:
                 print(f"  [PID-rev sweep] {done}/{total}")
 
-    env.close()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["k_hitch", "Kp", "mean_cte", "completion_rate"])
@@ -915,9 +958,6 @@ def sensitivity_sweep_mpc_reverse(best: dict, output_path: Path, n_episodes: int
     """
     2-D grid: Q_psi2 × R for the reverse MPC (same axes as forward MPC sweep).
     """
-    from controllers.mpc import ReverseTractorTrailerMPC
-
-    env = _make_reverse_env()
     rng = np.random.default_rng(112)
     seeds = rng.integers(20000, 29999, size=n_episodes).tolist()
 
@@ -932,14 +972,14 @@ def sensitivity_sweep_mpc_reverse(best: dict, output_path: Path, n_episodes: int
     done = 0
     for lq in log_q_psi2_offsets:
         for lr in log_r_offsets:
-            mpc = ReverseTractorTrailerMPC()
             Q = np.array(best["Q"])
             Q[3, 3] = q_psi2_base * 10**lq
-            mpc.Q = Q
-            mpc.R = np.diag([r_base * 10**lr])
-            mpc.P = np.array(best["P"])
-
-            sums = [_run_episode_mpc_reverse(env, mpc, seed=int(s)) for s in seeds]
+            params = dict(
+                Q=Q.tolist(),
+                R=np.diag([r_base * 10**lr]).tolist(),
+                P=np.array(best["P"]).tolist(),
+            )
+            sums = _evaluate_rollouts("mpc_rev", params, seeds)
             cte_vals = [s["mean_abs_cte_trailer"] for s in sums]
             comp = sum(s["completed"] for s in sums) / len(sums)
             rows.append({
@@ -951,7 +991,6 @@ def sensitivity_sweep_mpc_reverse(best: dict, output_path: Path, n_episodes: int
             if done % 8 == 0:
                 print(f"  [MPC-rev sweep] {done}/{total}")
 
-    env.close()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", newline="") as f:
         fieldnames = ["log10_q_psi2_offset", "log10_r_offset", "q_psi2", "r",
@@ -997,6 +1036,12 @@ def main():
         action="store_true",
         help="Skip optimisation, only run sensitivity sweeps using existing tuned_params.json",
     )
+    parser.add_argument(
+        "--n_workers",
+        type=int,
+        default=1,
+        help="Number of worker processes for per-seed rollout evaluation (default: 1)",
+    )
     args = parser.parse_args()
 
     raw = args.controllers.strip()
@@ -1004,6 +1049,15 @@ def main():
         to_tune = _ALL_CONTROLLERS
     else:
         to_tune = [c.strip() for c in raw.split(",")]
+
+    if not _mpc_available():
+        requested_mpc = [c for c in to_tune if c in {"mpc", "mpc_rev"}]
+        if requested_mpc:
+            _warn_missing_mpc_dependency()
+            to_tune = [c for c in to_tune if c not in {"mpc", "mpc_rev"}]
+            if not to_tune:
+                print("Nothing to tune after removing MPC controllers that require 'osqp'.")
+                return
 
     n_opt = 4 if args.quick else 8
     n_val = 10 if args.quick else 20
@@ -1013,92 +1067,100 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     params_path = args.output / "tuned_params.json"
 
-    # Load existing params if sweeping only
-    all_params: dict = {}
-    if params_path.exists():
-        with open(params_path) as f:
-            all_params = json.load(f)
+    _set_parallelism(args.n_workers)
+    try:
+        print(f"[parallel] rollout workers={_N_WORKERS}")
 
-    if not args.sweep_only:
-        if "fpp" in to_tune:
-            all_params["fpp"] = tune_fpp(n_opt_episodes=n_opt, n_val_episodes=n_val)
+        # Load existing params if sweeping only
+        all_params: dict = {}
+        if params_path.exists():
+            with open(params_path) as f:
+                all_params = json.load(f)
 
-        if "pid" in to_tune:
-            all_params["pid"] = tune_pid(n_opt_episodes=n_opt, n_val_episodes=n_val)
+        if not args.sweep_only:
+            if "fpp" in to_tune:
+                all_params["fpp"] = tune_fpp(n_opt_episodes=n_opt, n_val_episodes=n_val)
 
-        if "mpc" in to_tune:
-            all_params["mpc"] = tune_mpc(n_opt_episodes=mpc_n_opt, n_val_episodes=n_val)
+            if "pid" in to_tune:
+                all_params["pid"] = tune_pid(n_opt_episodes=n_opt, n_val_episodes=n_val)
 
-        if "fpp_rev" in to_tune:
-            all_params["fpp_rev"] = tune_fpp_reverse(n_opt_episodes=n_opt, n_val_episodes=n_val)
+            if "mpc" in to_tune:
+                all_params["mpc"] = tune_mpc(n_opt_episodes=mpc_n_opt, n_val_episodes=n_val)
 
-        if "pid_rev" in to_tune:
-            all_params["pid_rev"] = tune_pid_reverse(n_opt_episodes=n_opt, n_val_episodes=n_val)
+            if "fpp_rev" in to_tune:
+                all_params["fpp_rev"] = tune_fpp_reverse(n_opt_episodes=n_opt, n_val_episodes=n_val)
 
-        if "mpc_rev" in to_tune:
-            all_params["mpc_rev"] = tune_mpc_reverse(n_opt_episodes=mpc_n_opt, n_val_episodes=n_val)
+            if "pid_rev" in to_tune:
+                all_params["pid_rev"] = tune_pid_reverse(n_opt_episodes=n_opt, n_val_episodes=n_val)
 
-        with open(params_path, "w") as f:
-            json.dump(all_params, f, indent=2)
-        print(f"\nTuned parameters saved → {params_path}")
+            if "mpc_rev" in to_tune:
+                all_params["mpc_rev"] = tune_mpc_reverse(n_opt_episodes=mpc_n_opt, n_val_episodes=n_val)
 
-    # Sensitivity sweeps — forward
-    if "fpp" in to_tune and "fpp" in all_params:
-        print("\n[FPP] Running sensitivity sweep …")
-        sensitivity_sweep_fpp(
-            all_params["fpp"],
-            args.output / "sensitivity_fpp.csv",
-            n_episodes=n_sweep,
+            with open(params_path, "w") as f:
+                json.dump(all_params, f, indent=2)
+            print(f"\nTuned parameters saved → {params_path}")
+
+        # Sensitivity sweeps — forward
+        if "fpp" in to_tune and "fpp" in all_params:
+            print("\n[FPP] Running sensitivity sweep …")
+            sensitivity_sweep_fpp(
+                all_params["fpp"],
+                args.output / "sensitivity_fpp.csv",
+                n_episodes=n_sweep,
+            )
+
+        if "pid" in to_tune and "pid" in all_params:
+            print("\n[PID] Running sensitivity sweep …")
+            sensitivity_sweep_pid(
+                all_params["pid"],
+                args.output / "sensitivity_pid.csv",
+                n_episodes=n_sweep,
+            )
+
+        if "mpc" in to_tune and "mpc" in all_params:
+            print("\n[MPC] Running sensitivity sweep …")
+            sensitivity_sweep_mpc(
+                all_params["mpc"],
+                args.output / "sensitivity_mpc.csv",
+                n_episodes=n_sweep,
+            )
+
+        # Sensitivity sweeps — reverse
+        if "fpp_rev" in to_tune and "fpp_rev" in all_params:
+            print("\n[FPP-rev] Running sensitivity sweep …")
+            sensitivity_sweep_fpp_reverse(
+                all_params["fpp_rev"],
+                args.output / "sensitivity_fpp_rev.csv",
+                n_episodes=n_sweep,
+            )
+
+        if "pid_rev" in to_tune and "pid_rev" in all_params:
+            print("\n[PID-rev] Running sensitivity sweep …")
+            sensitivity_sweep_pid_reverse(
+                all_params["pid_rev"],
+                args.output / "sensitivity_pid_rev.csv",
+                n_episodes=n_sweep,
+            )
+
+        if "mpc_rev" in to_tune and "mpc_rev" in all_params:
+            print("\n[MPC-rev] Running sensitivity sweep …")
+            sensitivity_sweep_mpc_reverse(
+                all_params["mpc_rev"],
+                args.output / "sensitivity_mpc_rev.csv",
+                n_episodes=n_sweep,
+            )
+
+        print("\nDone.")
+        if all_params:
+            print(f"\nFinal tuned parameters:")
+            for ctrl, params in all_params.items():
+                print(f"  {ctrl}: {params}")
+        print(
+            f"\nNext step: python benchmark.py --task forward "
+            f"--controllers fpp,pid,mpc --tuned_params {params_path}"
         )
-
-    if "pid" in to_tune and "pid" in all_params:
-        print("\n[PID] Running sensitivity sweep …")
-        sensitivity_sweep_pid(
-            all_params["pid"],
-            args.output / "sensitivity_pid.csv",
-            n_episodes=n_sweep,
-        )
-
-    if "mpc" in to_tune and "mpc" in all_params:
-        print("\n[MPC] Running sensitivity sweep …")
-        sensitivity_sweep_mpc(
-            all_params["mpc"],
-            args.output / "sensitivity_mpc.csv",
-            n_episodes=n_sweep,
-        )
-
-    # Sensitivity sweeps — reverse
-    if "fpp_rev" in to_tune and "fpp_rev" in all_params:
-        print("\n[FPP-rev] Running sensitivity sweep …")
-        sensitivity_sweep_fpp_reverse(
-            all_params["fpp_rev"],
-            args.output / "sensitivity_fpp_rev.csv",
-            n_episodes=n_sweep,
-        )
-
-    if "pid_rev" in to_tune and "pid_rev" in all_params:
-        print("\n[PID-rev] Running sensitivity sweep …")
-        sensitivity_sweep_pid_reverse(
-            all_params["pid_rev"],
-            args.output / "sensitivity_pid_rev.csv",
-            n_episodes=n_sweep,
-        )
-
-    if "mpc_rev" in to_tune and "mpc_rev" in all_params:
-        print("\n[MPC-rev] Running sensitivity sweep …")
-        sensitivity_sweep_mpc_reverse(
-            all_params["mpc_rev"],
-            args.output / "sensitivity_mpc_rev.csv",
-            n_episodes=n_sweep,
-        )
-
-    print("\nDone.")
-    if all_params:
-        print(f"\nFinal tuned parameters:")
-        for ctrl, params in all_params.items():
-            print(f"  {ctrl}: {params}")
-    print(f"\nNext step: python benchmark.py --task forward "
-          f"--controllers fpp,pid,mpc --tuned_params {params_path}")
+    finally:
+        _set_parallelism(1)
 
 
 if __name__ == "__main__":

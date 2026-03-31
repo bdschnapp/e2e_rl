@@ -29,6 +29,8 @@ Several directions remain open for future investigation:
 \begin{itemize}
     \item \textbf{Higher-fidelity simulation}: Validating the trained policies in a physics-based 3D simulator (e.g., Gazebo) with a detailed URDF model of the tractor-trailer system, including realistic tire and hitch dynamics.
     \item \textbf{Hardware deployment}: Transferring trained policies to a physical robotic platform, requiring sim-to-real transfer techniques such as domain randomisation and system identification.
+    \item \textbf{Planner-controller baselines for obstacle tasks}: Comparing obstacle-avoidance RL policies against complete classical navigation stacks, so that end-to-end navigation is evaluated on a fair task definition rather than against controller-only baselines.
+    \item \textbf{Task-specific action constraints}: Separating fixed-speed path-tracking experiments from variable-speed obstacle-navigation experiments in the implementation, so that the thesis benchmark and the codebase enforce the same problem definition.
     \item \textbf{Decision Transformer for tractor-trailer}: Applying the DT approach from ME~780 to the articulated vehicle setting, with training data generated from the TD3 expert policy and augmented with high-error recovery trajectories.
     \item \textbf{Multi-trailer systems}: Extending the kinematic model and RL policy to double or B-train configurations.
     \item \textbf{Online adaptation}: Updating the policy in real time to compensate for varying payloads and road conditions.

@@ -13,10 +13,10 @@
 ## Implementation Stack
 - **Algorithm**: TD3 (Stable Baselines3) — NOT DDPG
 - **Simulation**: Custom Gymnasium + Pygame 2D environment — NOT Gazebo
-- **Observation**: `{vector: [δ, γ, e_y, e_ψ, ...], image: 84×84 grayscale BEV}`
+- **Observation**: state-only, state+lidar, or `{vector, image}` BEV dict observations
 - **Action**: `[δ̇, v]` — steering rate ∈ ±15°/s, speed ∈ [0, 2] m/s
 - **Collision**: Pygame mask-based; episode ends on collision or |γ| > 90°
-- **Tasks**: `LineFollowing` (lane tracking), `ObstacleAvoidance`
+- **Tasks**: forward/reverse `LineFollowing`, forward/reverse `ObstacleAvoidance`
 
 ## Key Notation
 | Symbol | Meaning |
@@ -36,10 +36,18 @@
 `m=1500kg, Iz=3000 kg·m², Cf=Cr=80000 N/rad, lf=1.2m, lr=1.6m, Cd=0.208, A=2.4m², dt=0.1s`
 
 ## Experiment Baselines & Constraints
-- All experiments: 2D Pygame simulation, 200k training timesteps
-- Primary metric: mean absolute CTE (tractor + trailer separately), max |γ|, collision rate
+- All experiments: 2D Pygame simulation
+- Observation ablations: `state_only`, `lidar_8`, `lidar_16`, `lidar_24`, `cnn_bev`, `ae_bev`, `unet_bev`
+- Primary metrics: mean absolute CTE (tractor + trailer separately), max |γ|, completion, collision/jackknife rate, inference latency
 - Reference: ME780 DDPG = 0.505m, PID = 0.784m (single vehicle, not tractor-trailer)
-- Comparisons: PID baseline, MPC (OSQP-based), ME780 DDPG results
+- Comparisons: tuned pure pursuit, PID, MPC, and ME780 baselines where appropriate
+
+## Current Experiment Scripts
+- `train_phase1.py`: trains matched TD3 models across observation variants
+- `eval_phase1.py`: evaluates saved Phase 1 models over repeated episodes
+- `benchmark.py`: runs TD3 and classical controllers on fixed scenario sets
+- `tune_controllers.py`: tunes forward/reverse classical controllers with differential evolution
+- `scripts/generate_test_scenarios.py`: creates reusable benchmark scenarios
 
 ## Chapter Map — When to Read Each File
 | Chapter | Summary file | .tex file | Read .tex only when… |

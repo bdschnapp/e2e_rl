@@ -13,6 +13,21 @@ make clean  # remove build artifacts
 
 Requires: `latexmk`, `pdflatex`, and the packages listed in `main.tex`.
 
+## Current Experiment Workflow
+
+The thesis text now tracks a reproducible experiment pipeline in the repository root:
+
+```bash
+python train_phase1.py
+python eval_phase1.py
+python tune_controllers.py
+python scripts/generate_test_scenarios.py
+python benchmark.py --task forward --controllers td3,fpp,pid,mpc
+```
+
+These scripts cover observation-modality ablations, classical-controller tuning,
+scenario generation, and fixed-scenario benchmarking for the thesis figures and tables.
+
 ## Structure
 
 ```

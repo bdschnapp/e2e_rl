@@ -3,20 +3,41 @@
 
 \section{Path Following Performance}
 
-% TODO: training curves (episode return vs. timesteps), mean/std CTE per model
+The results pipeline has been extended beyond single-policy rollouts to support controlled comparison across observation modalities and controller families. In the current implementation, forward lane-following serves as the Phase~1 benchmark task, with matched TD3 agents trained on state-only, lidar, end-to-end CNN BEV, pretrained autoencoder BEV, and pretrained UNet BEV observations. The evaluation script aggregates tractor and trailer cross-track error, hitch-angle statistics, completion rate, and inference latency across repeated episodes.
+
+This structure is important for the thesis because it separates two questions that were previously entangled: whether the articulated control task benefits from richer sensing, and whether any benefit comes from the sensing modality itself or from the representation-learning pipeline used to process it.
+
+The recommended experiment order is therefore:
+\begin{enumerate}
+    \item select the best observation space on forward and reverse lane-following without obstacles;
+    \item hold that observation fixed and compare candidate reward formulations on the same no-obstacle tasks;
+    \item benchmark the best TD3 configuration against tuned classical controllers on matched no-obstacle scenarios.
+\end{enumerate}
+
+This sequence keeps each ablation focused on one design variable at a time and ensures that the final controller benchmark is performed on the cleanest apples-to-apples task definition. In particular, the no-obstacle benchmark should be run at fixed speed for every method, so that differences in performance are attributed to path tracking and articulation stabilisation rather than to longitudinal speed selection.
+
+Table~\ref{tab:results_plan_matrix} converts that sequence into an executable run matrix. The training launcher supports all observation and reward combinations listed there through the \texttt{scenario}, \texttt{obs}, and \texttt{reward} arguments, while the benchmark scripts are used only after model selection.
+
+\input{tables/results_plan_matrix}
 
 \section{Reverse Maneuvering Success}
 
-% TODO: jackknife rate per model, safe articulation zone analysis, trajectory plots
+Reverse evaluation now includes dedicated reverse line-following and reverse obstacle-avoidance environments, along with reverse pure-pursuit, reverse PID, and reverse MPC baselines. All reverse controllers are formulated around hitch-angle stabilisation and trailer-referenced tracking errors, reflecting the fact that the trailer leads the manoeuvre during backing. This provides a consistent basis for comparing learned and analytical controllers on the inherently unstable reverse articulated-driving problem.
 
 \section{Perception Robustness}
 
-% TODO: CTE degradation under sensor noise, F1-score vs. noise level curves
+The perception study now has a concrete ablation structure: state variables only, state plus lidar, end-to-end BEV learning, and frozen pretrained BEV encoders. Because all variants share the same TD3 backbone and task definition, differences in tracking performance can be attributed more directly to the observation and representation choices than to changes in the control architecture.
+
+In practical terms, the most meaningful observation-space study is the one run on the no-obstacle environments. Obstacle environments confound the comparison because different observation spaces change not only path-tracking quality but also how much implicit local-planning information is available to the policy. They also change how much benefit a method can obtain from modulating speed, which is undesirable in the core controller comparison.
 
 \section{Benchmark Comparison}
 \input{tables/benchmark_results}
 
-The results must be understood in terms of multi-objective performance: in rigid-body systems, success is synonymous with minimising cross-track error. In articulated systems, hitch stability takes precedence over exact path following. An agent that maintains $|\gamma| < 5^\circ$ throughout a reverse task is more successful than one that achieves lower CTE but triggers jackknife events.
+Benchmarking is performed on pre-generated scenario sets so that TD3 and the classical baselines face identical lane geometry and obstacle placement. Classical controllers are tuned before comparison using differential evolution and then validated on held-out seeds. Each benchmark episode logs both control quality and computational cost, allowing the thesis to compare not only tracking error but also completion rate, jackknife frequency, collision rate, obstacle clearance, and controller latency.
+
+The results must be understood in terms of multi-objective performance: in rigid-body systems, success is synonymous with minimising cross-track error. In articulated systems, hitch stability takes precedence over exact path following. An agent that maintains $|\gamma| < 5^\circ$ throughout a reverse task is more successful than one that achieves lower CTE but triggers jackknife events. For that reason, the benchmark framework reports trailer tracking, articulation stability, and completion together rather than reducing performance to a single scalar.
+
+For obstacle scenarios, the benchmark question changes. An RL obstacle policy is effectively learning a joint local-planning and control policy, including speed modulation, whereas pure-pursuit, PID, and MPC are primarily path-tracking controllers. The thesis should therefore avoid presenting obstacle-task results as if they were directly comparable to controller-only baselines unless a matched planning layer and longitudinal policy are added to those baselines. Obstacle results are best reported either as a separate end-to-end navigation study or as a comparison against planner+controller classical stacks.
 
 % TODO: statistical significance (confidence intervals), ablation over reward weight choices
 \input{tables/experiment_matrix}

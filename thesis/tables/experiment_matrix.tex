@@ -1,18 +1,19 @@
 \begin{table}[H]
 \centering
-\caption{Experiment matrix: tasks, observations, and success criteria}
+\caption{Recommended experiment matrix for the thesis}
 \label{tab:experiment_matrix}
-\begin{tabular}{p{3.5cm} p{2.5cm} p{3cm} p{4cm}}
+\begin{tabular}{p{3.8cm} p{2.7cm} p{2.8cm} p{4.2cm}}
 \toprule
 Experiment & Task & Observation & Success Metric \\
 \midrule
-Path fidelity (forward)     & Path following & BEV image + vector state & Mean Abs.\ CTE $< 0.2$\,m \\
-Dynamic obstacle avoidance  & Avoidance      & BEV image + vector state & Zero collisions \\
-Lane detection              & Perception     & Camera image             & F1-score of lane mask \\
-Straight-line backing       & Reverse        & BEV image + vector state & $|\gamma| < 5^\circ$ over 20\,m \\
-90-degree docking           & Reverse        & BEV image + vector state & Trailer in bay; no collision \\
-Jackknife recovery          & Stability      & Vector state             & Recover to $|\gamma| < 5^\circ$ in 5\,m \\
-Sensor degradation          & Robustness     & Noisy BEV image          & CTE increase $< 50\%$ vs.\ clean \\
+Observation ablation (forward) & Path following & state, lidar, BEV & Fixed-speed trailer mean abs.\ CTE, max $|\gamma|$, completion \\
+Observation ablation (reverse) & Reverse tracking & state, lidar, BEV & Fixed-speed trailer mean abs.\ CTE, max $|\gamma|$, jackknife rate \\
+Reward ablation (forward) & Path following & best observation only & Fixed-speed mean return, trailer CTE, stability metrics \\
+Reward ablation (reverse) & Reverse tracking & best observation only & Fixed-speed completion, jackknife rate, trailer CTE \\
+Controller benchmark (forward) & Path following & best RL obs.\ vs.\ classical & Fixed-speed TD3 vs.\ pure pursuit vs.\ PID vs.\ MPC \\
+Controller benchmark (reverse) & Reverse tracking & best RL obs.\ vs.\ classical & Fixed-speed TD3 vs.\ reverse pure pursuit vs.\ reverse PID vs.\ reverse MPC \\
+Obstacle RL extension & End-to-end navigation & lidar or BEV & Variable-speed collision rate, completion, min clearance \\
+Obstacle classical comparison & Planner + controller & matched local path + controller & Only if classical baselines receive equivalent planning information \\
 \bottomrule
 \end{tabular}
 \end{table}

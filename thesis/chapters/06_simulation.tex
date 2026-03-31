@@ -12,28 +12,33 @@ The simulation environment includes:
 \begin{enumerate}
     \item \textbf{Vehicle Model}: A combined dynamic tractor (bicycle model with Pacejka tire dynamics) and kinematic trailer with hitch constraints, using Tesla Model S parameters as in the ME~780 and ECE~682 prior work.
     \item \textbf{Lane Generation}: Randomly generated lane paths using cubic spline interpolation, producing varying curvature paths for training and evaluation.
-    \item \textbf{Obstacle Placement}: Randomly placed static obstacles within the lane, used in the obstacle avoidance task.
+    \item \textbf{Obstacle Placement and Local Replanning}: Randomly placed static obstacles within the lane and a local path planner that perturbs the centreline around those obstacles for avoidance experiments.
     \item \textbf{Collision Detection}: Pygame sprite mask-based collision detection, providing pixel-precise contact sensing between the vehicle body and obstacles or lane boundaries.
     \item \textbf{BEV Camera}: A configurable bird's-eye view camera anchored to the tractor's rear axle, rendering an $84 \times 84$ grayscale image of the vehicle and its surroundings.
 \end{enumerate}
 
 \section{Environment Tasks}
 
-Two distinct Gymnasium environments are implemented, corresponding to the two primary research tasks:
+The environment implementation is structured around reusable task and observation components. A base lane-following task is combined with different observation heads (state only, lidar, or BEV), while obstacle-aware variants reuse the same task logic through a mixin that adds obstacle generation, local path planning, and obstacle-aware reward evaluation. This avoids maintaining separate forward, reverse, lidar, and BEV implementations with duplicated task logic.
 
 \subsection{Line Following}
 
-The lane-following environment extends the base tractor-trailer environment to present a lane-tracking task. A reference lane is generated at the start of each episode using cubic spline interpolation through randomly placed waypoints. The reward function encourages the agent to keep both the tractor and trailer within the lane boundaries while maintaining forward progress.
+The lane-following environment extends the base tractor-trailer environment to present a lane-tracking task. A reference lane is generated at the start of each episode using cubic spline interpolation through randomly placed waypoints. The reward function encourages the agent to keep both the tractor and trailer within the lane boundaries while maintaining progress along the path.
 
-The observation at each timestep includes:
+For forward driving, the observation at each timestep may include:
 \begin{itemize}
-    \item \texttt{vector}: steering angle $\delta$, hitch articulation angle $\gamma$, cross-track error $e_y$, heading error $e_\psi$, and their time derivatives;
+    \item \texttt{vector}: steering angle $\delta$, hitch articulation angle $\gamma$, tractor and trailer cross-track and heading errors, and local curvature cues;
+    \item \texttt{lidar}: simulated obstacle distances appended to the vector state when lidar sensing is enabled;
     \item \texttt{image}: an $84 \times 84$ grayscale BEV image rendered from the tractor rear axle anchor point.
 \end{itemize}
 
+Reverse line-following environments use the same path generation and rendering pipeline, but reverse the longitudinal command and compute reward and tracking terms with the trailer as the leading unit. Reverse BEV and reverse lidar observation classes are implemented explicitly so that perception experiments can be repeated in backward manoeuvres without changing the task definition.
+
 \subsection{Obstacle Avoidance}
 
-The obstacle avoidance environment adds static obstacles within the lane. The agent must navigate the tractor-trailer through the lane while avoiding obstacles, which requires both path-following behaviour and collision avoidance. Episode termination occurs on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion.
+The obstacle avoidance environment adds static obstacles within the lane. The agent must navigate the tractor-trailer through the lane while avoiding obstacles, which requires both path-following behaviour and collision avoidance. Instead of following the global lane centreline directly, the environment constructs a local path around the placed obstacles and evaluates tracking error relative to this locally planned path. Episode termination occurs on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion.
+
+Forward and reverse obstacle environments are both available. In addition to the original lidar-based formulation, the codebase now includes BEV obstacle-avoidance variants for both travel directions, enabling direct comparison between range-based and image-based obstacle perception within the same local-planning task.
 
 \section{Vehicle Parameters}
 
@@ -66,7 +71,21 @@ The agent controls the vehicle through a continuous two-dimensional action space
 
 where $\dot{\delta}$ is the steering rate (rate of change of steering angle) and $v$ is the commanded speed. This action parameterisation is consistent with the observation from the ECE~682 work that the steering angle cannot be set instantaneously on a physical vehicle; controlling the rate of change is more physically realistic.
 
+For reverse tasks, the environment constrains the longitudinal command to negative speed while preserving the same steering-rate interface. This keeps the control dimensionality fixed across forward and reverse tasks and allows the same TD3 implementation to be reused.
+
+For thesis evaluation, however, this full action space is not used identically in every study. In the no-obstacle line-following experiments, the longitudinal speed should be treated as a fixed operating condition so that all methods are compared on the same path-tracking problem. In the obstacle-avoidance experiments, speed modulation remains part of the task because the agent must trade progress against collision risk and path geometry.
+
 \section{Testing Protocols}
+
+The experimental workflow is now scriptable end-to-end. Scenario generation, Phase~1 observation-modality training, trained-policy evaluation, controller tuning, and multi-controller benchmarking are each exposed through standalone scripts. The benchmarking pipeline runs all controllers on the same pre-generated scenario set and logs per-step metrics including tractor and trailer cross-track error, hitch angle, completion, collision, jackknife events, obstacle clearance, and inference latency.
+
+The thesis should treat the experiments as two related but distinct problem classes:
+\begin{enumerate}
+    \item \textbf{Path-tracking control}: forward and reverse lane following without obstacles. In this setting all methods are solving the same task at a common fixed speed, so TD3 can be compared directly against pure-pursuit, PID, and MPC as lateral/path-tracking controllers.
+    \item \textbf{Integrated navigation}: obstacle-avoidance tasks in which the policy must implicitly combine local planning and control. In this setting a direct comparison against controller-only baselines is not fair unless those baselines are also given a local planner.
+\end{enumerate}
+
+This distinction is important for experimental validity. A controller that only tracks a supplied path should not be evaluated against an RL policy that must both choose a collision-free local path and execute it, unless the classical baseline is paired with an equivalent planner.
 
 \subsection{Lane Following Performance}
 
@@ -89,14 +108,23 @@ Hitch Stability          & Keep articulation angle within safe bounds & Max $|\g
 
 The obstacle avoidance task tests the agent's ability to navigate through a lane containing static obstacles. Success is measured by collision rate and the agent's ability to complete the lane while maintaining hitch stability.
 
+For thesis evaluation, obstacle experiments should be framed as a secondary study rather than merged into the primary controller benchmark. Two defensible comparison strategies are available:
+\begin{itemize}
+    \item \textbf{Planner-controlled comparison}: provide the classical baselines with the same obstacle-aware local path and evaluate only the downstream tracking problem; or
+    \item \textbf{End-to-end navigation comparison}: compare the RL obstacle policy against complete planner+controller stacks, not against controllers in isolation.
+\end{itemize}
+
+If implementation scope is limited, the recommended plan is to keep obstacle avoidance as an RL feasibility extension and reserve the main quantitative comparison for the no-obstacle forward and reverse tracking tasks. Under this plan, no-obstacle experiments use fixed speed for both learned and classical methods, whereas obstacle experiments allow the RL agent to command speed as part of the end-to-end navigation problem.
+
 \subsection{Comparison with Prior Work}
 
 Results are compared against:
 \begin{itemize}
     \item the DDPG model from ME~780 (cross-track error 0.505\,m on single-vehicle path following);
     \item a PID baseline from ME~780 (cross-track error 0.784\,m);
+    \item tuned pure-pursuit and PID tractor-trailer baselines implemented in this work;
     \item an LQR-based baseline from ECE~682;
-    \item an MPC controller implemented using OSQP.
+    \item an MPC controller implemented using OSQP and tuned on held-out simulation episodes.
 \end{itemize}
 
 % TODO: training curves, performance comparison figures, episode trajectory plots
