@@ -11,6 +11,7 @@
 % Tables
 \usepackage{booktabs}
 \usepackage{multirow}
+\usepackage{makecell}
 \usepackage{array}
 \usepackage{longtable}
 
@@ -19,6 +20,7 @@
 \usepackage{subcaption}
 \usepackage{float}
 \usepackage{caption}
+\usepackage{varwidth}
 
 % Lists
 \usepackage{enumitem}
@@ -50,6 +52,28 @@
     citecolor=blue,
     urlcolor=blue
 }
+
+\makeatletter
+\newcommand{\safegraphic}[3][]{%
+    \begingroup
+    \edef\thesis@graphicpath{#2}%
+    \IfFileExists{\thesis@graphicpath}{%
+        \includegraphics[#1]{#2}%
+    }{%
+        \fbox{%
+            \begin{varwidth}{0.85\textwidth}
+                \centering
+                \vspace{0.75em}
+                \textbf{Figure unavailable}\\[0.5em]
+                #3\\[0.5em]
+                \texttt{\detokenize{#2}}
+                \vspace{0.75em}
+            \end{varwidth}
+        }%
+    }%
+    \endgroup
+}
+\makeatother
 
 \title{Autonomous Articulated Vehicle Control via Deep Reinforcement Learning and High-Dimensional Perception}
 \author{Benjamin Schnapp@inbook{ID,

@@ -53,6 +53,16 @@ from train import (
     uses_obstacles,
 )
 import e2erl_utils.config as config
+from sim_config import (
+    CONTROLLER_CHOICES,
+    RunModelConfig,
+    SCENARIOS,
+    OBS_CHOICES,
+    add_config_argument,
+    apply_config_file_defaults,
+    obs_tag,
+    validate_run_model_config,
+)
 from Environments.LineFollowing import (
     FORWARD_REWARD_MODES,
     REVERSE_REWARD_MODES,
@@ -66,13 +76,9 @@ from Environments.LineFollowing import (
 # Path resolution
 # ---------------------------------------------------------------------------
 
-def _obs_tag(obs: str, encoder: str) -> str:
-    return f"{obs}_{encoder}" if (obs == "bev" and encoder != "scratch") else obs
-
-
-def resolve_model_path(scenario: str, obs: str, reward: str, encoder: str) -> Path:
+def resolve_model_path(scenario: str, obs: str, reward: str, encoder: str, lidar_beams: int = 16) -> Path:
     """Return the default best_model path under ./models/."""
-    tag = _obs_tag(obs, encoder)
+    tag = obs_tag(obs, encoder, lidar_beams)
     candidate = Path(f"./models/{scenario}/{tag}/{reward}/best_model.zip")
     return candidate
 
@@ -394,7 +400,7 @@ def run_rl_model(model_path: Path, scenario: str, obs: str, reward: str,
         if encoder_path:
             resolved_encoder_path = encoder_path
         else:
-            tag = _obs_tag(obs, encoder)
+            tag = obs_tag(obs, encoder, lidar_beams)
             enc_type = "ae" if encoder in _BEV_ENCODERS else "unet"
             default_ep = Path(f"./models/{scenario}/{tag}/{reward}/encoder_{enc_type}.pt")
             if default_ep.exists():
@@ -469,23 +475,54 @@ def run_rl_model(model_path: Path, scenario: str, obs: str, reward: str,
     load_env.close()
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
+def run_simulation(config: RunModelConfig):
+    """Shared simulation backend used by both CLI and GUI-driven launches."""
+    errors = validate_run_model_config(config)
+    if errors:
+        raise ValueError("\n".join(errors))
 
-if __name__ == "__main__":
+    if config.controller:
+        run_controller(
+            controller=config.controller,
+            scenario=config.scenario,
+            obs=config.obs,
+            reward=config.reward,
+            lidar_beams=config.lidar_beams,
+            n_episodes=config.episodes,
+            render=config.render,
+        )
+        return
+
+    model_path = (
+        Path(config.model)
+        if config.model
+        else resolve_model_path(config.scenario, config.obs, config.reward, config.encoder, config.lidar_beams)
+    )
+    run_rl_model(
+        model_path=model_path,
+        scenario=config.scenario,
+        obs=config.obs,
+        reward=config.reward,
+        encoder=config.encoder,
+        encoder_path=config.encoder_path,
+        lidar_beams=config.lidar_beams,
+        n_episodes=config.episodes,
+        render=config.render,
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Evaluate a TD3 model or traditional controller on any scenario."
     )
+    add_config_argument(parser)
     parser.add_argument(
         "--scenario",
-        choices=["forward", "reverse", "forward_obs", "reverse_obs"],
-        required=True,
+        choices=list(SCENARIOS),
     )
     parser.add_argument(
         "--obs",
-        choices=["state", "lidar", "bev"],
-        required=True,
+        choices=list(OBS_CHOICES),
     )
     parser.add_argument(
         "--reward",
@@ -515,7 +552,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--controller",
-        choices=["fpp", "rpp", "pid", "mpc"],
+        choices=list(CONTROLLER_CHOICES),
         default=None,
         help=(
             "Run a traditional controller instead of an RL model. "
@@ -544,37 +581,39 @@ if __name__ == "__main__":
         action="store_true",
         help="Enable pygame rendering.",
     )
+    return parser
 
-    args = parser.parse_args()
 
-    print(f"\nscenario={args.scenario}  obs={args.obs}  reward={args.reward}  "
-          f"encoder={args.encoder}  episodes={args.episodes}  render={args.render}")
+def parse_run_model_args(argv=None) -> RunModelConfig:
+    parser = build_parser()
+    apply_config_file_defaults(parser, argv, RunModelConfig)
+    args = parser.parse_args(argv)
+    args_dict = vars(args).copy()
+    args_dict.pop("config", None)
+    config = RunModelConfig.from_dict(args_dict)
+    errors = validate_run_model_config(config)
+    if errors:
+        parser.error("\n".join(errors))
+    return config
 
-    if args.controller:
-        print(f"controller={args.controller}\n")
-        run_controller(
-            controller=args.controller,
-            scenario=args.scenario,
-            obs=args.obs,
-            reward=args.reward,
-            lidar_beams=args.lidar_beams,
-            n_episodes=args.episodes,
-            render=args.render,
-        )
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    cfg = parse_run_model_args()
+    print(
+        f"\nscenario={cfg.scenario}  obs={cfg.obs}  reward={cfg.reward}  "
+        f"encoder={cfg.encoder}  episodes={cfg.episodes}  render={cfg.render}"
+    )
+    if cfg.controller:
+        print(f"controller={cfg.controller}\n")
     else:
         model_path = (
-            Path(args.model) if args.model
-            else resolve_model_path(args.scenario, args.obs, args.reward, args.encoder)
+            Path(cfg.model)
+            if cfg.model
+            else resolve_model_path(cfg.scenario, cfg.obs, cfg.reward, cfg.encoder, cfg.lidar_beams)
         )
         print(f"model={model_path}\n")
-        run_rl_model(
-            model_path=model_path,
-            scenario=args.scenario,
-            obs=args.obs,
-            reward=args.reward,
-            encoder=args.encoder,
-            encoder_path=args.encoder_path,
-            lidar_beams=args.lidar_beams,
-            n_episodes=args.episodes,
-            render=args.render,
-        )
+    run_simulation(cfg)

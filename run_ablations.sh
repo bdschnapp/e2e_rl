@@ -27,8 +27,8 @@ LIDAR_BEAMS_DEFAULT=16
 # Selected best configurations for later phases.
 # Valid obs tags:
 #   state | lidar | lidar_32 | bev | bev_ae_frozen | bev_unet_unfrozen
-BEST_OBS_FORWARD="lidar_32"
-BEST_OBS_REVERSE="lidar_32"
+BEST_OBS_FORWARD="lidar_24"
+BEST_OBS_REVERSE="lidar_24"
 BEST_REWARD_FORWARD="dense"
 BEST_REWARD_REVERSE="dense"
 
@@ -224,10 +224,10 @@ log "=== PHASE 1B: Reverse obs ablation ==="
 # train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder unet_unfrozen
 
 log "=== PHASE 1C: Lidar beams ablation ==="
-train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 8
-train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 16
-train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 24
-train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 32
+# train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 8
+# train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 16
+# train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 24
+# train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 32
 
 # ---------------------------------------------------------------------------
 # PHASE 2: reward ablations
@@ -236,8 +236,8 @@ if is_set "$BEST_OBS_FORWARD"; then
     log "=== PHASE 2A: Forward reward ablation on $BEST_OBS_FORWARD ==="
     obs_args=()
     obs_tag_to_cli "$BEST_OBS_FORWARD" obs_args
-    train forward "${obs_args[1]}" dense "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
-    train forward "${obs_args[1]}" tractor_focus "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
+    # train forward "${obs_args[1]}" dense "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
+    # train forward "${obs_args[1]}" tractor_focus "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
     train forward "${obs_args[1]}" multiplicative "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
     train forward "${obs_args[1]}" guided "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
 else

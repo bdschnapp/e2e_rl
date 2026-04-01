@@ -39,6 +39,12 @@ from train import (
 )
 from Environments.LineFollowing import FORWARD_REWARD_MODES, REVERSE_REWARD_MODES
 from e2erl_utils.metrics import EpisodeMetricsLogger
+from sim_config import (
+    EvalConfig,
+    add_config_argument,
+    apply_config_file_defaults,
+    validate_eval_config,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -320,19 +326,18 @@ def main(
 # CLI
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Evaluate a trained TD3 model with full path-tracking metrics."
     )
+    add_config_argument(parser)
     parser.add_argument(
         "--scenario",
         choices=["forward", "reverse", "forward_obs", "reverse_obs"],
-        required=True,
     )
     parser.add_argument(
         "--obs",
         choices=["state", "lidar", "bev"],
-        required=True,
     )
     parser.add_argument(
         "--reward",
@@ -392,8 +397,24 @@ if __name__ == "__main__":
             "metrics will reflect performance on repeated (not i.i.d.) layouts."
         ),
     )
+    return parser
 
-    args = parser.parse_args()
+
+def parse_eval_args(argv=None) -> EvalConfig:
+    parser = build_parser()
+    apply_config_file_defaults(parser, argv, EvalConfig)
+    args = parser.parse_args(argv)
+    args_dict = vars(args).copy()
+    args_dict.pop("config", None)
+    config = EvalConfig.from_dict(args_dict)
+    errors = validate_eval_config(config)
+    if errors:
+        parser.error("\n".join(errors))
+    return config
+
+
+if __name__ == "__main__":
+    args = parse_eval_args()
 
     main(
         scenario=args.scenario,

@@ -144,6 +144,19 @@ class LineFollowingEnv(TractorTrailerEnv):
             'image': self.image_observation_space
         })
 
+    def _get_progress_fraction(self) -> float:
+        """Fraction [0, 1] of environment traversed at the current step.
+
+        Uses the furthest x-position reached by either the tractor or trailer,
+        normalised between the path start (x≈5 m) and the success threshold.
+        Works for both forward driving (tractor leads) and reverse driving
+        (trailer leads, but both units end up with large x values).
+        """
+        env_len = WINDOW_WIDTH * METERS_PER_PIXEL * 0.85  # success threshold
+        start_x = 5.0
+        current_x = max(self.vehicle.x, self.vehicle.trailer.x)
+        return float(np.clip((current_x - start_x) / (env_len - start_x), 0.0, 1.0))
+
     def _get_reward(self):
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
@@ -154,6 +167,8 @@ class LineFollowingEnv(TractorTrailerEnv):
         if self._get_term():
             if self.success:
                 return 100.0
+            if not getattr(self, 'feasible', True):
+                return self._get_progress_fraction() * 50.0
             return -10.0
 
         progress_reward = 0.5 * self.vehicle.xd
@@ -821,6 +836,8 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
         if self._get_term():
             if self.success:
                 return 200.0
+            if not getattr(self, 'feasible', True):
+                return self._get_progress_fraction() * 100.0
             return -500.0
 
         # --- Stability penalties ---

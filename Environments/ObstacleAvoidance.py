@@ -284,11 +284,148 @@ def plan_local_path(
     return local_path
 
 
+def compute_path_difficulty(
+    obstacles: list[tuple[float, float, float]],
+    centerline: NDArray[np.float32],
+    lane_half_width_m: float,
+    vehicle_width_m: float,
+) -> tuple[NDArray[np.float32], bool, "float | None"]:
+    """
+    Computes a per-point difficulty score along the path based on available corridor width.
+
+    At each sampled cross-section, finds the widest free lateral gap within the lane
+    after accounting for nearby obstacle footprints. Difficulty scales linearly from
+    0% (free_width = lane_width) to 100% (free_width ≤ vehicle_width).
+
+    Parameters
+    ----------
+    obstacles : list of (x, y, radius) tuples in metres
+    centerline : (N, 2) array of path points in metres
+    lane_half_width_m : half the lane width (corridor searched in [-L, +L])
+    vehicle_width_m : minimum passage width required for the vehicle
+
+    Returns
+    -------
+    difficulty_per_point : float32 array of shape (N_samples,), values in [0, 1]
+    is_feasible : True if no cross-section is completely blocked (difficulty < 1.0)
+    first_blocking_x_m : world-x of the first fully-blocked cross-section, or None
+    """
+    if not obstacles:
+        return np.zeros(1, dtype=np.float32), True, None
+
+    N = len(centerline)
+    n_samples = min(200, N)
+    sample_indices = np.linspace(0, N - 1, n_samples, dtype=int)
+
+    lane_width = 2.0 * lane_half_width_m
+    difficulty_arr = np.zeros(n_samples, dtype=np.float32)
+    is_feasible = True
+    first_blocking_x: "float | None" = None
+
+    for si, idx in enumerate(sample_indices):
+        p = centerline[idx]
+
+        # Path tangent and left normal
+        i0 = min(int(idx), N - 2)
+        t = centerline[i0 + 1] - centerline[i0]
+        norm = np.linalg.norm(t)
+        if norm < 1e-6:
+            continue
+        t = t / norm
+        n = np.array([-t[1], t[0]], dtype=np.float32)  # left normal
+
+        # Collect blocked lateral intervals from nearby obstacles
+        blocked: list[tuple[float, float]] = []
+        for ox, oy, r in obstacles:
+            d = np.array([ox, oy], dtype=np.float32) - p
+            lon = float(np.dot(d, t))
+            if abs(lon) > r + 1.0:
+                continue  # not near this cross-section
+            lat = float(np.dot(d, n))
+            lo = max(lat - r, -lane_half_width_m)
+            hi = min(lat + r, lane_half_width_m)
+            if hi > lo:
+                blocked.append((lo, hi))
+
+        # Find maximum free gap in [-lane_half_width, +lane_half_width]
+        if not blocked:
+            max_free_gap = lane_width
+        else:
+            blocked.sort()
+            merged: list[list[float]] = []
+            for lo, hi in blocked:
+                if not merged or lo > merged[-1][1]:
+                    merged.append([lo, hi])
+                else:
+                    merged[-1][1] = max(merged[-1][1], hi)
+
+            cursor = -lane_half_width_m
+            max_free_gap = 0.0
+            for lo, hi in merged:
+                gap = lo - cursor
+                if gap > max_free_gap:
+                    max_free_gap = gap
+                cursor = max(cursor, hi)
+            # Trailing gap
+            gap = lane_half_width_m - cursor
+            if gap > max_free_gap:
+                max_free_gap = gap
+
+        # Map free gap to difficulty in [0, 1]
+        denom = lane_width - vehicle_width_m
+        if denom <= 0.0:
+            difficulty = 1.0
+        else:
+            difficulty = float(np.clip(
+                1.0 - (max_free_gap - vehicle_width_m) / denom, 0.0, 1.0
+            ))
+
+        difficulty_arr[si] = difficulty
+
+        if difficulty >= 1.0 and is_feasible:
+            is_feasible = False
+            first_blocking_x = float(p[0])
+
+    return difficulty_arr, is_feasible, first_blocking_x
+
+
 class ObstacleMixin:
     """
     Mixin providing obstacle generation, local path planning, and obstacle-aware reward.
     Does NOT touch the observation space — compose with a BEV or lidar obs class.
+
+    Reward structure (obstacle environments only)
+    ---------------------------------------------
+    Terminal failure:
+        reward = progress × _MAX_FAIL_REWARD × exp_scale(difficulty)
+
+        exp_scale(d) = (e^(k·d) - 1) / (e^k - 1),  k = _DIFFICULTY_K
+        Maps difficulty ∈ [0, 1] → reward scale ∈ [0, 1] with a convex
+        (exponential) curve — small bonus for easy obstacles, full bonus for
+        impassable ones.
+
+    Deliberate stop (speed < _STOP_SPEED_TOL for _STOP_SECONDS):
+        Same formula but multiplied by _STOP_REWARD_BONUS (> 1) to make
+        controlled stopping strictly more valuable than crashing.
+
+    Per-step bonus:
+        slow_bonus = difficulty × (1 − |speed| / max_speed) × _SLOW_REWARD_SCALE
+        Rewards gradual deceleration as obstacles become harder without
+        dominating the base path-tracking reward.
+
+    Override _MAX_FAIL_REWARD in subclasses to match the scale of the
+    environment's success reward (default 50 ≈ half of forward success=100).
     """
+
+    # --- Tunable reward constants (override in subclasses as needed) ---
+    _DIFFICULTY_K: float = 3.0       # exponential steepness; higher = more curved
+    _MAX_FAIL_REWARD: float = 50.0   # max failure reward at full difficulty + progress
+    _STOP_REWARD_BONUS: float = 1.5  # stop reward = _MAX_FAIL_REWARD × this factor
+    _SLOW_REWARD_SCALE: float = 0.1  # per-step slow bonus at max difficulty
+
+    # --- Stop-detection constants ---
+    _STOP_SPEED_TOL: float = 0.1     # |xd| below this counts as stopped (m/s)
+    _STOP_SECONDS: float = 1.0       # consecutive seconds near-zero to trigger stop
 
     def __init__(self, render_mode=None, max_episode_steps=1000, **kwargs):
         super().__init__(render_mode=render_mode, max_episode_steps=max_episode_steps, **kwargs)
@@ -298,10 +435,67 @@ class ObstacleMixin:
         if not hasattr(self, "obstacles_high"):
             self.obstacles_high = 0
 
+        self._stopped_steps: int = 0
+        self.stopped: bool = False
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _exp_scale(self, difficulty: float) -> float:
+        """Maps difficulty ∈ [0, 1] → reward scale ∈ [0, 1] via (e^kd-1)/(e^k-1)."""
+        k = self._DIFFICULTY_K
+        return float((np.exp(k * difficulty) - 1.0) / (np.exp(k) - 1.0))
+
+    # ------------------------------------------------------------------
+    # Gymnasium step override — stop detection
+    # ------------------------------------------------------------------
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = super().step(action)
+
+        difficulty = getattr(self, 'path_difficulty', 0.0)
+
+        if not terminated and not truncated and difficulty > 0.0:
+            if abs(self.vehicle.xd) < self._STOP_SPEED_TOL:
+                self._stopped_steps += 1
+            else:
+                self._stopped_steps = 0
+
+            steps_for_stop = max(1, round(self._STOP_SECONDS / self.vehicle.dt))
+            if self._stopped_steps >= steps_for_stop:
+                self.stopped = True
+                terminated = True
+                exp = self._exp_scale(difficulty)
+                progress = self._get_progress_fraction()
+                reward = progress * self._MAX_FAIL_REWARD * self._STOP_REWARD_BONUS * exp
+
+        return obs, reward, terminated, truncated, info
+
+    # ------------------------------------------------------------------
+    # Reward
+    # ------------------------------------------------------------------
+
     def _get_reward(self):
         error, error_theta = self.get_vehicle_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
         error_t, error_theta_t = self.get_trailer_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
-        return super().get_reward(error, error_theta, error_t, error_theta_t)
+        base = super().get_reward(error, error_theta, error_t, error_theta_t)
+
+        difficulty = getattr(self, 'path_difficulty', 0.0)
+
+        # --- Terminal: replace failure penalty with exponential difficulty reward ---
+        if self._get_term() and not getattr(self, 'success', False) and difficulty > 0.0:
+            exp = self._exp_scale(difficulty)
+            return self._get_progress_fraction() * self._MAX_FAIL_REWARD * exp
+
+        # --- Step: bonus for slow speed proportional to current difficulty ---
+        if not self._get_term() and difficulty > 0.0:
+            max_speed = max(abs(config.initial_xd), 1e-6)
+            normalized_speed = np.clip(abs(self.vehicle.xd) / max_speed, 0.0, 1.0)
+            slow_bonus = difficulty * (1.0 - normalized_speed) * self._SLOW_REWARD_SCALE
+            return base + slow_bonus
+
+        return base
 
     def _render_frame(self, surface=None):
         if surface is None:
@@ -317,6 +511,10 @@ class ObstacleMixin:
     def generate_path(self):
         super().generate_path()
 
+        # Reset stop-detection state on every new episode
+        self._stopped_steps = 0
+        self.stopped = False
+
         num_obstacles = 0
         if self.obstacles_high >= 1:
             num_obstacles = int(self.np_random.integers(self.obstacles_low, self.obstacles_high))
@@ -326,16 +524,31 @@ class ObstacleMixin:
             centerline, self.occ_grid, num_obstacles, rng=self.np_random
         )
         original_path = np.stack([self.xx, self.yy], axis=1)
+        lane_hw = (
+            getattr(config, "lane_centerline_half_width_m", 1.75)
+            + getattr(config, "lane_shoulder_m", 0.50)
+        )
+        vw = max(TRACTOR_WIDTH, TRAILER_WIDTH)
         if obstacles:
             self.local_path = plan_local_path(
                 centerline=original_path,
                 obstacles=obstacles,
-                lane_half_width_m=getattr(config, "lane_centerline_half_width_m", 1.75) +
-                                   getattr(config, "lane_shoulder_m", 0.50),
-                vehicle_width_m=max(TRACTOR_WIDTH, TRAILER_WIDTH)
+                lane_half_width_m=lane_hw,
+                vehicle_width_m=vw,
             )
+            self._difficulty_profile, self.feasible, self.blockage_x = compute_path_difficulty(
+                obstacles=obstacles,
+                centerline=original_path,
+                lane_half_width_m=lane_hw,
+                vehicle_width_m=vw,
+            )
+            self.path_difficulty = float(np.max(self._difficulty_profile))
         else:
             self.local_path = centerline
+            self._difficulty_profile = np.zeros(1, dtype=np.float32)
+            self.feasible = True
+            self.blockage_x = None
+            self.path_difficulty = 0.0
 
         self._occ_dirty = True
         self._ensure_occ_surface_if_needed()
@@ -458,6 +671,8 @@ class ObstacleAvoidanceEnv(ObstacleAvoidance, StateObservationLineFollowingEnv):
 
 
 class ReverseObstacleAvoidanceEnv(ObstacleAvoidance, ReverseStateObservationLineFollowingEnv):
+    _MAX_FAIL_REWARD: float = 100.0  # matches reverse success reward scale (200)
+
     def __init__(self, render_mode=None, max_episode_steps=1000, reward_mode: str = "dense"):
         self.obstacles_low = 0
         self.obstacles_high = 0
@@ -502,6 +717,8 @@ class ReverseBevObstacleAvoidanceEnv(ObstacleMixin, ReverseBevObservationLineFol
     ObstacleMixin handles path generation, local path planning, and reward.
     ReverseBevObservationLineFollowingEnv handles reverse dynamics and Dict obs.
     """
+
+    _MAX_FAIL_REWARD: float = 100.0  # matches reverse success reward scale (200)
 
     def __init__(self, render_mode="human", max_episode_steps=1000, reward_mode: str = "dense"):
         self.obstacles_low = 0

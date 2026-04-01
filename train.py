@@ -56,6 +56,12 @@ from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecTran
 from Environments.LineFollowing import FORWARD_REWARD_MODES, REVERSE_REWARD_MODES
 from Models.CNNFeatureExtractor import CNNFeatureExtractor
 from Models.UNetFeatureExtractor import UNetFeatureExtractor
+from sim_config import (
+    TrainConfig,
+    add_config_argument,
+    apply_config_file_defaults,
+    validate_train_config,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -298,6 +304,8 @@ def main(
     pretrain_collect_steps: int = 10_000,
     pretrain_epochs: int = 30,
     n_eval_episodes: int = 10,
+    eval_freq_timesteps: int = 10_000,
+    normalized_eval_freq_timesteps: int = 30_000,
     retry_on_failure: bool = False,
 ):
     # --- Validate args ---
@@ -331,6 +339,11 @@ def main(
     print(f"  scenario={scenario}  obs={obs}  encoder={encoder}  reward={reward}")
     print(f"  retry_on_failure={retry_on_failure}")
     print(f"  timesteps={timesteps:,}  n_envs={n_envs}  device={device}")
+    print(
+        "  eval_freq="
+        f"{eval_freq_timesteps:,}  normalized_eval_freq={normalized_eval_freq_timesteps:,}  "
+        f"eval_episodes={n_eval_episodes}"
+    )
     print(f"  save → {save_root}")
     print(f"{'='*60}")
 
@@ -422,7 +435,7 @@ def main(
         eval_env,
         best_model_save_path=str(save_root),
         log_path=str(log_dir),
-        eval_freq=max(1_000 // n_envs, 1),
+        eval_freq=max(eval_freq_timesteps // n_envs, 1),
         n_eval_episodes=n_eval_episodes,
         deterministic=True,
         render=False,
@@ -431,7 +444,7 @@ def main(
         eval_env,
         best_model_save_path=str(norm_dir),
         log_path=str(norm_dir / "logs"),
-        eval_freq=max(3_000 // n_envs, 1),
+        eval_freq=max(normalized_eval_freq_timesteps // n_envs, 1),
         n_eval_episodes=n_eval_episodes,
         deterministic=True,
     ))
@@ -449,19 +462,18 @@ def main(
 # CLI
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Train a TD3 agent for any scenario/obs/reward/encoder combination."
     )
+    add_config_argument(parser)
     parser.add_argument(
         "--scenario",
         choices=["forward", "reverse", "forward_obs", "reverse_obs"],
-        required=True,
     )
     parser.add_argument(
         "--obs",
         choices=["state", "lidar", "bev"],
-        required=True,
     )
     parser.add_argument(
         "--reward",
@@ -524,6 +536,20 @@ if __name__ == "__main__":
         help="Eval episodes per callback check (default: 10).",
     )
     parser.add_argument(
+        "--eval_freq", type=int, default=10_000,
+        help=(
+            "Environment timesteps between standard evaluation passes "
+            "(default: 10_000)."
+        ),
+    )
+    parser.add_argument(
+        "--normalized_eval_freq", type=int, default=30_000,
+        help=(
+            "Environment timesteps between normalized-score evaluation passes "
+            "(default: 30_000)."
+        ),
+    )
+    parser.add_argument(
         "--render", action="store_true",
         help="Enable rendering (single-env only).",
     )
@@ -535,7 +561,24 @@ if __name__ == "__main__":
             "Models are saved under <reward>_retry/ to keep them separate."
         ),
     )
-    args = parser.parse_args()
+    return parser
+
+
+def parse_train_args(argv=None) -> TrainConfig:
+    parser = build_parser()
+    apply_config_file_defaults(parser, argv, TrainConfig)
+    args = parser.parse_args(argv)
+    args_dict = vars(args).copy()
+    args_dict.pop("config", None)
+    config = TrainConfig.from_dict(args_dict)
+    errors = validate_train_config(config)
+    if errors:
+        parser.error("\n".join(errors))
+    return config
+
+
+if __name__ == "__main__":
+    args = parse_train_args()
 
     main(
         scenario=args.scenario,
@@ -551,5 +594,7 @@ if __name__ == "__main__":
         pretrain_collect_steps=args.pretrain_steps,
         pretrain_epochs=args.pretrain_epochs,
         n_eval_episodes=args.eval_episodes,
+        eval_freq_timesteps=args.eval_freq,
+        normalized_eval_freq_timesteps=args.normalized_eval_freq,
         retry_on_failure=args.retry_on_failure,
     )

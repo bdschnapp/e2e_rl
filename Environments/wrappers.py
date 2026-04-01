@@ -113,7 +113,9 @@ class RetryOnFailureWrapper(gymnasium.Wrapper):
 
         if terminated or truncated:
             success = bool(getattr(self.unwrapped, "success", False))
-            failed = terminated and not success
+            feasible = bool(getattr(self.unwrapped, "feasible", True))
+            # Only retry feasible failures — replaying an impassable layout is pointless
+            failed = terminated and not success and feasible
             timed_out = truncated
 
             self._should_retry = (

@@ -28,7 +28,9 @@ The observation space ablation compares seven configurations on the no-obstacle 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{figures/experiment_results/forward_obs_ablation}
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/forward_obs_ablation}{Learning curves (mean episode return $\pm$ 1 s.d.) for forward lane-following:
+             observation space ablation. Shaded bands show one standard deviation
+             across evaluation episodes at each checkpoint.}
     \caption{Learning curves (mean episode return $\pm$ 1 s.d.) for forward lane-following:
              observation space ablation. Shaded bands show one standard deviation
              across evaluation episodes at each checkpoint.}
@@ -37,7 +39,7 @@ The observation space ablation compares seven configurations on the no-obstacle 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{figures/experiment_results/reverse_obs_ablation}
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/reverse_obs_ablation}{Learning curves for reverse lane-following: observation space ablation.}
     \caption{Learning curves for reverse lane-following: observation space ablation.}
     \label{fig:reverse_obs_ablation}
 \end{figure}
@@ -58,14 +60,14 @@ The reward ablation holds the observation space fixed at the best configuration 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{figures/experiment_results/forward_reward_ablation}
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/forward_reward_ablation}{Learning curves for forward lane-following: reward formulation ablation.}
     \caption{Learning curves for forward lane-following: reward formulation ablation.}
     \label{fig:forward_reward_ablation}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{figures/experiment_results/reverse_reward_ablation}
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/reverse_reward_ablation}{Learning curves for reverse lane-following: reward formulation ablation.}
     \caption{Learning curves for reverse lane-following: reward formulation ablation.}
     \label{fig:reverse_reward_ablation}
 \end{figure}
@@ -88,7 +90,9 @@ Final performance (mean absolute trailer CTE, jackknife rate, and max~$|\gamma|$
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{figures/experiment_results/failure_replay_curve}
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/failure_replay_curve}{Learning curves for reverse lane-following: failure replay curriculum vs random
+             reset baseline. Both agents use identical hyperparameters, observation space,
+             and reward formulation.}
     \caption{Learning curves for reverse lane-following: failure replay curriculum vs random
              reset baseline. Both agents use identical hyperparameters, observation space,
              and reward formulation.}
