@@ -51,22 +51,94 @@ _CONTROLLER_ALIASES = {
 # Environment factories
 # -----------------------------------------------------------------------
 
-def _make_env(task: str):
+def _make_env(
+    task: str,
+    obs: str = "state",
+    encoder: str = "scratch",
+    reward: str = "dense",
+    lidar_beams: int = 16,
+):
     if task == "forward":
-        from Environments.LineFollowing import StateObservationLineFollowingEnv
-        return StateObservationLineFollowingEnv(render_mode=None, max_episode_steps=1000)
+        if obs == "state":
+            from Environments.LineFollowing import StateObservationLineFollowingEnv
+            return StateObservationLineFollowingEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                reward_mode=reward,
+            )
+        if obs == "lidar":
+            from Environments.ObstacleAvoidance import LidarStateObservationLineFollowingEnv
+            return LidarStateObservationLineFollowingEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                lidar_beams=lidar_beams,
+                reward_mode=reward,
+            )
+        if obs == "bev":
+            from Environments.LineFollowing import BevObservationLineFollowingEnv
+            return BevObservationLineFollowingEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                reward_mode=reward,
+            )
+        raise ValueError(f"Unsupported obs={obs!r} for task={task!r}")
     elif task == "reverse":
-        from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv
-        return ReverseStateObservationLineFollowingEnv(render_mode=None, max_episode_steps=1000)
+        if obs == "state":
+            from Environments.LineFollowing import ReverseStateObservationLineFollowingEnv
+            return ReverseStateObservationLineFollowingEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                reward_mode=reward,
+            )
+        if obs == "lidar":
+            from Environments.LineFollowing import ReverseLidarStateObservationLineFollowingEnv
+            return ReverseLidarStateObservationLineFollowingEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                lidar_beams=lidar_beams,
+                reward_mode=reward,
+            )
+        if obs == "bev":
+            from Environments.LineFollowing import ReverseBevObservationLineFollowingEnv
+            return ReverseBevObservationLineFollowingEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                reward_mode=reward,
+            )
+        raise ValueError(f"Unsupported obs={obs!r} for task={task!r}")
     elif task == "obstacle_fwd":
-        from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv
-        env = ObstacleAvoidanceEnv(render_mode=None, max_episode_steps=1000)
+        if obs == "bev":
+            from Environments.ObstacleAvoidance import BevObstacleAvoidanceEnv
+            env = BevObstacleAvoidanceEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                reward_mode=reward,
+            )
+        else:
+            from Environments.ObstacleAvoidance import ObstacleAvoidanceEnv
+            env = ObstacleAvoidanceEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                reward_mode=reward,
+            )
         env.obstacles_low = 5
         env.obstacles_high = 10
         return env
     elif task == "obstacle_rev":
-        from Environments.ObstacleAvoidance import ReverseObstacleAvoidanceEnv
-        env = ReverseObstacleAvoidanceEnv(render_mode=None, max_episode_steps=1000)
+        if obs == "bev":
+            from Environments.ObstacleAvoidance import ReverseBevObstacleAvoidanceEnv
+            env = ReverseBevObstacleAvoidanceEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                reward_mode=reward,
+            )
+        else:
+            from Environments.ObstacleAvoidance import ReverseObstacleAvoidanceEnv
+            env = ReverseObstacleAvoidanceEnv(
+                render_mode=None,
+                max_episode_steps=1000,
+                reward_mode=reward,
+            )
         env.obstacles_low = 5
         env.obstacles_high = 10
         return env
@@ -317,6 +389,10 @@ def run_benchmark(
     scenarios_root: Path,
     model_path: str | None,
     output_dir: Path,
+    obs: str = "state",
+    encoder: str = "scratch",
+    reward: str = "dense",
+    lidar_beams: int = 16,
     fpp_params: dict | None = None,
     pid_params: dict | None = None,
     mpc_params: dict | None = None,
@@ -330,7 +406,13 @@ def run_benchmark(
 
     print(f"Task: {task} | Controllers: {controllers} | Scenarios: {len(scenario_files)}")
 
-    env = _make_env(task)
+    env = _make_env(
+        task,
+        obs=obs,
+        encoder=encoder,
+        reward=reward,
+        lidar_beams=lidar_beams,
+    )
 
     td3_model = None
     mpc_ctrl = None
@@ -499,6 +581,29 @@ def main():
     )
     parser.add_argument("--model", default=None, help="Path to TD3 .zip model")
     parser.add_argument(
+        "--obs",
+        choices=["state", "lidar", "bev"],
+        default="state",
+        help="Observation type for the TD3 benchmark environment (default: state).",
+    )
+    parser.add_argument(
+        "--encoder",
+        choices=["scratch", "ae_frozen", "ae_unfrozen", "unet_frozen", "unet_unfrozen"],
+        default="scratch",
+        help="BEV encoder variant when --obs bev is used.",
+    )
+    parser.add_argument(
+        "--reward",
+        default="dense",
+        help="Reward mode used to instantiate the benchmark environment (default: dense).",
+    )
+    parser.add_argument(
+        "--lidar_beams",
+        type=int,
+        default=16,
+        help="Number of lidar beams when --obs lidar is used (default: 16).",
+    )
+    parser.add_argument(
         "--scenarios",
         type=Path,
         default=Path("test_scenarios"),
@@ -548,6 +653,10 @@ def main():
         scenarios_root=args.scenarios,
         model_path=args.model,
         output_dir=args.output,
+        obs=args.obs,
+        encoder=args.encoder,
+        reward=args.reward,
+        lidar_beams=args.lidar_beams,
         fpp_params=fpp_params,
         pid_params=pid_params,
         mpc_params=mpc_params,

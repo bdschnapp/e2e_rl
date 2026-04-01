@@ -1,0 +1,83 @@
+BEV Regular-Driving Audit Recommendations
+=========================================
+
+Summary
+-------
+The current regular-driving BEV failure mode does not look like a major observation-construction bug.
+The BEV agents already receive the same privileged 8D state vector as the non-vision agents, plus the
+84x84x1 BEV image. The more likely cause of the "hard steering into wall" shortcut is the combination
+of weak forward terminal penalty, aggressive action noise, and lower sample efficiency of the vision policy.
+
+Key Findings
+------------
+1. The BEV agent is not image-only.
+   - It receives the 8D vector:
+     [steering, hitch angle, tractor CTE, tractor heading error,
+      trailer CTE, trailer heading error, curvature_10, curvature_20]
+   - It also receives the BEV image.
+   - Therefore the problem is unlikely to be simple information starvation.
+
+2. The forward dense reward makes early crash policies too competitive.
+   - Non-success termination penalty is only -10.
+   - Nonterminal progress reward is 0.5 * xd.
+   - With fixed speed near 5 m/s, that gives about +2.5 reward per step before penalties.
+   - A weak early policy can collect several positive-reward steps, then crash, and still not be punished strongly enough.
+
+3. Exploration noise is large relative to the steering bound.
+   - action_noise_sigma = 0.3
+   - steering action bound is about +/-0.436 rad/s
+   - This means the noise standard deviation is roughly 69 percent of the full steering limit.
+   - For a 1D fixed-speed steering policy, this is aggressive and can repeatedly drive the policy into saturated steering behavior.
+
+4. The BEV feature extractor is more sample-hungry than the state/lidar MLP policies.
+   - This is expected and does not by itself mean the BEV observation is "too large."
+   - The image branch is valid, but it will usually require more data and cleaner reward/exploration settings.
+
+5. The BEV image pipeline appears sane.
+   - Image shape, dtype, and value range were normal in quick runtime checks.
+   - Constant zero steer survived.
+   - Constant max steer left/right crashed quickly in both BEV and state envs.
+   - That points away from a malformed image pipeline and toward learning dynamics.
+
+Interpretation
+--------------
+The current BEV collapse is best explained as a reward/exploration/sample-efficiency problem, not mainly
+an observation-size problem and not mainly a missing-information problem.
+
+Recommendations
+---------------
+1. Do not rely on increasing training timesteps alone.
+   - More timesteps may help, but only after reward and exploration are adjusted.
+   - Otherwise the agent may simply practice the bad shortcut for longer.
+
+2. Reduce action noise for regular driving.
+   - Suggested starting values:
+     - 0.1
+     - or 0.05
+   - This is especially important for BEV forward lane-following, where the policy learns more slowly.
+
+3. Increase the forward terminal failure penalty.
+   - The current -10 penalty is likely too weak.
+   - Crashing into the wall should be made clearly worse than short-term progress accumulation.
+
+4. Prefer guided reward for BEV regular driving.
+   - Use the guided curriculum for the simple lane-following case until the policy reliably avoids collapse.
+   - This should help the vision policy discover a stable steering strategy before learning purely from dense reward.
+
+5. Increase BEV training only after the above changes.
+   - Suggested range:
+     - 400k timesteps
+     - 800k timesteps
+   - This is more justified after reducing exploration noise and strengthening the failure penalty.
+
+6. Keep obstacle work separate for now.
+   - Focus only on regular driving until BEV lane-following is stable.
+   - Do not use obstacle results to judge the BEV regular-driving setup yet.
+
+Bottom Line
+-----------
+The current evidence suggests:
+- not primarily an information-deficit problem
+- not primarily that the BEV observation is too large
+- primarily a reward plus exploration plus sample-efficiency problem for the vision policy
+

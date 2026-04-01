@@ -21,7 +21,7 @@ TD3 is implemented using the Stable Baselines3 library, which provides a reliabl
 
 \subsection{Multiplicative vs.\ Additive Reward Structures}
 
-The multiplicative reward structure forces the agent to minimise cross-track and heading errors jointly, preventing the policy from exploiting partial credit in an additive form. In this thesis, that logic is extended to include hitch articulation stability: the multiplicative penalty on $|\gamma|$ discourages the agent from trading path accuracy for a large articulation angle.
+Table~\ref{tab:reward_ablation_forward} and Table~\ref{tab:reward_ablation_reverse} compare these reward variants directly. The dense and tractor/no-hitch forms are additive penalties, while the multiplicative form forces the agent to reduce tracking and articulation errors jointly instead of collecting partial credit from only one term. The guided reward is a curriculum-shaped interpolation: it initially rewards agreement with a pure-pursuit controller and then decays smoothly into the dense objective.
 
 \section{Hyperparameter Optimisation}
 

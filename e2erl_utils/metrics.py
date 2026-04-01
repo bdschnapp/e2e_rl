@@ -111,6 +111,7 @@ class EpisodeMetricsLogger:
         self,
         terminated: bool = False,
         truncated: bool = False,
+        completed: Optional[bool] = None,
     ) -> dict:
         """
         Return a flat dict of summary statistics for the episode.
@@ -163,12 +164,15 @@ class EpisodeMetricsLogger:
 
         # Episode outcome
         jackknifed = terminated and (np.max(np.abs(hitch)) > math.pi / 2 * 0.95)
-        collided = terminated and not jackknifed and not truncated
-        completed = terminated and not collided and not jackknifed
+        if completed is None:
+            completed_flag = terminated and not jackknifed and not truncated
+        else:
+            completed_flag = bool(completed)
+        collided = terminated and not jackknifed and not truncated and not completed_flag
 
         summary = {
             # Outcome
-            "completed": bool(completed),
+            "completed": bool(completed_flag),
             "jackknifed": bool(jackknifed),
             "collided": bool(collided),
             "truncated": bool(truncated),

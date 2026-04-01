@@ -125,7 +125,11 @@ def _run_episode_vecenv(vec_env, model) -> dict:
             truncated = bool(infos[0].get("TimeLimit.truncated", False))
             terminated = not truncated
 
-    return logger.compute_summary(terminated=terminated, truncated=truncated)
+    return logger.compute_summary(
+        terminated=terminated,
+        truncated=truncated,
+        completed=bool(getattr(raw_env, "success", False)),
+    )
 
 
 def _run_episode(env, model) -> dict:
@@ -145,7 +149,11 @@ def _run_episode(env, model) -> dict:
         logger.log_step(env, applied_action, float(reward), inference_time_s=elapsed)
         done = terminated or truncated
 
-    return logger.compute_summary(terminated=terminated, truncated=truncated)
+    return logger.compute_summary(
+        terminated=terminated,
+        truncated=truncated,
+        completed=bool(getattr(env, "success", False)),
+    )
 
 
 # ---------------------------------------------------------------------------

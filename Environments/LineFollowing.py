@@ -728,10 +728,29 @@ class LaneDrivingEnv(LineFollowingEnv):
         return np.transpose(np.array(pygame.surfarray.pixels3d(self._final_canvas)), axes=(1, 0, 2))
 
     def _get_anchor_world(self):
-        """Return anchor point (xA, yA) and yaw psi for camera (tractor yaw)."""
-        xA = self.vehicle.x
-        yA = self.vehicle.y
-        psi = -self.vehicle.p
+        """Return BEV camera anchor point and yaw using the configured mount."""
+        anchor = getattr(config, "bev_anchor", "tractor_rear_axle")
+        offset_x = float(getattr(config, "bev_offset_x_m", 0.0))
+        offset_y = float(getattr(config, "bev_offset_y_m", 0.0))
+
+        if anchor == "tractor_cg":
+            xA = self.vehicle.x
+            yA = self.vehicle.y
+            yaw = self.vehicle.p
+        elif anchor == "trailer_axle":
+            xA = self.vehicle.trailer.x
+            yA = self.vehicle.trailer.y
+            yaw = self.vehicle.trailer.yaw
+        else:
+            # Approximate the rear axle from the tractor CG and wheelbase split.
+            xA = self.vehicle.x - self.vehicle.lr * np.cos(self.vehicle.p)
+            yA = self.vehicle.y - self.vehicle.lr * np.sin(self.vehicle.p)
+            yaw = self.vehicle.p
+
+        # Apply a configurable camera bias in the anchor body frame.
+        xA += offset_x * np.cos(yaw) - offset_y * np.sin(yaw)
+        yA += offset_x * np.sin(yaw) + offset_y * np.cos(yaw)
+        psi = -yaw
         return xA, yA, psi
 
     def _get_state_vector_obs(self):

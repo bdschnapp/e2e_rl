@@ -1,0 +1,2 @@
+collided,completed,episode_length,jackknifed,label,max_abs_cte_trailer,max_abs_hitch_angle,mean_abs_cte_tractor,mean_abs_cte_trailer,mean_abs_hitch_angle,mean_inference_ms,n_episodes,p95_inference_ms,rms_cte_trailer,total_reward
+1.0,0.0,156.6,0.0,reverse/lidar/dense,2.013598290949149,0.2837324856395517,0.9423334003216297,1.0651847155882463,0.11167519494375187,0.23221772982633276,30,0.3211260342019765,1.1838166686244738,-1062.593282920209

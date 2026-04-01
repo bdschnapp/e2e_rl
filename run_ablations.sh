@@ -238,8 +238,8 @@ if is_set "$BEST_OBS_FORWARD"; then
     obs_tag_to_cli "$BEST_OBS_FORWARD" obs_args
     # train forward "${obs_args[1]}" dense "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
     # train forward "${obs_args[1]}" tractor_focus "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
-    train forward "${obs_args[1]}" multiplicative "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
-    train forward "${obs_args[1]}" guided "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
+    # train forward "${obs_args[1]}" multiplicative "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
+    # train forward "${obs_args[1]}" guided "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
 else
     log "SKIP Phase 2A: set BEST_OBS_FORWARD first"
 fi
@@ -248,10 +248,10 @@ if is_set "$BEST_OBS_REVERSE"; then
     log "=== PHASE 2B: Reverse reward ablation on $BEST_OBS_REVERSE ==="
     obs_args=()
     obs_tag_to_cli "$BEST_OBS_REVERSE" obs_args
-    train reverse "${obs_args[1]}" dense "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
-    train reverse "${obs_args[1]}" no_hitch "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
-    train reverse "${obs_args[1]}" multiplicative "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
-    train reverse "${obs_args[1]}" guided "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
+    # train reverse "${obs_args[1]}" dense "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
+    # train reverse "${obs_args[1]}" no_hitch "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
+    # train reverse "${obs_args[1]}" multiplicative "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
+    # train reverse "${obs_args[1]}" guided "${obs_args[@]:2}" --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")"
 else
     log "SKIP Phase 2B: set BEST_OBS_REVERSE first"
 fi
@@ -263,9 +263,9 @@ if is_set "$BEST_OBS_REVERSE" && is_set "$BEST_REWARD_REVERSE"; then
     log "=== PHASE 3: Failure replay on reverse/$BEST_OBS_REVERSE/$BEST_REWARD_REVERSE ==="
     obs_args=()
     obs_tag_to_cli "$BEST_OBS_REVERSE" obs_args
-    train reverse "${obs_args[1]}" "$BEST_REWARD_REVERSE" "${obs_args[@]:2}" \
-        --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")" \
-        --retry_on_failure
+    # train reverse "${obs_args[1]}" "$BEST_REWARD_REVERSE" "${obs_args[@]:2}" \
+    #     --n_envs "$([[ "${obs_args[1]}" == "bev" ]] && echo "$N_ENVS_BEV" || echo "$N_ENVS_FAST")" \
+    #     --retry_on_failure
 else
     log "SKIP Phase 3: set BEST_OBS_REVERSE and BEST_REWARD_REVERSE first"
 fi
@@ -275,13 +275,13 @@ fi
 # ---------------------------------------------------------------------------
 if is_set "$BEST_REWARD_FORWARD" && is_set "$BEST_REWARD_REVERSE"; then
     log "=== PHASE 4: Obstacle studies ==="
-    train forward_obs state "$BEST_REWARD_FORWARD" --n_envs "$N_ENVS_FAST"
-    train forward_obs lidar "$BEST_REWARD_FORWARD" --n_envs "$N_ENVS_FAST" --lidar_beams "$LIDAR_BEAMS_DEFAULT"
-    train forward_obs bev "$BEST_REWARD_FORWARD" --n_envs "$N_ENVS_BEV" --encoder scratch
+    # train forward_obs state "$BEST_REWARD_FORWARD" --n_envs "$N_ENVS_FAST"
+    # train forward_obs lidar "$BEST_REWARD_FORWARD" --n_envs "$N_ENVS_FAST" --lidar_beams "$LIDAR_BEAMS_DEFAULT"
+    # train forward_obs bev "$BEST_REWARD_FORWARD" --n_envs "$N_ENVS_BEV" --encoder scratch
 
     train reverse_obs state "$BEST_REWARD_REVERSE" --n_envs "$N_ENVS_FAST"
     train reverse_obs lidar "$BEST_REWARD_REVERSE" --n_envs "$N_ENVS_FAST" --lidar_beams "$LIDAR_BEAMS_DEFAULT"
-    train reverse_obs bev "$BEST_REWARD_REVERSE" --n_envs "$N_ENVS_BEV" --encoder scratch
+    # train reverse_obs bev "$BEST_REWARD_REVERSE" --n_envs "$N_ENVS_BEV" --encoder scratch
 else
     log "SKIP Phase 4: set BEST_REWARD_FORWARD and BEST_REWARD_REVERSE first"
 fi
@@ -309,6 +309,7 @@ eval_ reverse bev dense --encoder unet_unfrozen
 
 eval_ forward lidar dense --lidar_beams 4
 eval_ forward lidar dense --lidar_beams 8
+eval_ forward lidar dense --lidar_beams 24
 eval_ forward lidar dense --lidar_beams 32
 
 if is_set "$BEST_OBS_FORWARD"; then
@@ -351,11 +352,11 @@ plot_curves "$FIGS/forward_obs_ablation.pdf" "Forward Obs Ablation (dense reward
     "State=models/forward/state/dense/logs/evaluations.npz" \
     "Lidar-16=models/forward/lidar/dense/logs/evaluations.npz"
 
-    # "BEV CNN=models/forward/bev/dense/logs/evaluations.npz" \
-    # "BEV AE frozen=models/forward/bev_ae_frozen/dense/logs/evaluations.npz" \
-    # "BEV AE unfrozen=models/forward/bev_ae_unfrozen/dense/logs/evaluations.npz" \
-    # "BEV UNet frozen=models/forward/bev_unet_frozen/dense/logs/evaluations.npz" \
-    # "BEV UNet unfrozen=models/forward/bev_unet_unfrozen/dense/logs/evaluations.npz"
+    "BEV CNN=models/forward/bev/dense/logs/evaluations.npz" \
+    "BEV AE frozen=models/forward/bev_ae_frozen/dense/logs/evaluations.npz" \
+    "BEV AE unfrozen=models/forward/bev_ae_unfrozen/dense/logs/evaluations.npz" \
+    "BEV UNet frozen=models/forward/bev_unet_frozen/dense/logs/evaluations.npz" \
+    "BEV UNet unfrozen=models/forward/bev_unet_unfrozen/dense/logs/evaluations.npz"
 
 plot_curves "$FIGS/reverse_obs_ablation.pdf" "Reverse Obs Ablation (dense reward)" \
     "State=models/reverse/state/dense/logs/evaluations.npz" \

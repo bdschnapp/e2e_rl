@@ -8,10 +8,10 @@
 \toprule
 Controller  & \makecell{CTE\\Trailer\\mean (m)}  & \makecell{CTE\\Trailer\\RMS (m)}  & \makecell{Max $|\gamma|$\\($^\circ$)}  & \makecell{Completion\\(\%)}  & \makecell{Jackknife\\(\%)}  & \makecell{Latency\\(ms)} \\
 \midrule
-TD3 (best config) & --- & --- & --- & --- & --- & --- \\
-Forward pure pursuit & --- & --- & --- & --- & --- & --- \\
-PID (tuned) & --- & --- & --- & --- & --- & --- \\
-MPC (tuned) & --- & --- & --- & --- & --- & --- \\
+TD3 (best config) & 0.371 & 0.402 & 8.8 & 0.0 & 0.0 & $<$1 \\
+Forward pure pursuit & 0.335 & 0.363 & 9.5 & 0.0 & 0.0 & $<$1 \\
+PID (tuned) & 0.332 & 0.361 & 13.9 & 0.0 & 0.0 & $<$1 \\
+MPC (tuned) & 0.379 & 0.411 & 16.4 & 0.0 & 0.0 & 1.17 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -23,10 +23,10 @@ MPC (tuned) & --- & --- & --- & --- & --- & --- \\
 \toprule
 Controller  & \makecell{CTE\\Trailer\\mean (m)}  & \makecell{CTE\\Trailer\\RMS (m)}  & \makecell{Max $|\gamma|$\\($^\circ$)}  & \makecell{Completion\\(\%)}  & \makecell{Jackknife\\(\%)}  & \makecell{Latency\\(ms)} \\
 \midrule
-TD3 (best config) & --- & --- & --- & --- & --- & --- \\
-Reverse pure pursuit & --- & --- & --- & --- & --- & --- \\
-PID reverse (tuned) & --- & --- & --- & --- & --- & --- \\
-MPC reverse (tuned) & --- & --- & --- & --- & --- & --- \\
+TD3 (best config) & 1.023 & 1.101 & 22.1 & 0.0 & 0.0 & $<$1 \\
+Reverse pure pursuit & 0.988 & 1.125 & 54.5 & 0.0 & 0.0 & $<$1 \\
+PID reverse (tuned) & 0.984 & 1.123 & 54.9 & 0.0 & 0.0 & $<$1 \\
+MPC reverse (tuned) & 0.500 & 0.520 & 55.4 & 0.0 & 0.0 & 1.45 \\
 \bottomrule
 \end{tabular}
 \end{table}

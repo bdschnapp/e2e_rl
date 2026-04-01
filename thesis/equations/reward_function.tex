@@ -1,23 +1,91 @@
-The proposed reward function is:
+The thesis evaluates several reward variants rather than a single scalar shaping rule. Let
+$e_y$ and $e_\psi$ denote the tractor cross-track and heading errors, $e_{y,t}$ and
+$e_{\psi,t}$ the trailer cross-track and heading errors, $\gamma$ the hitch articulation
+angle, $\dot{x}$ the longitudinal speed, and $\delta$ the commanded steering action. The
+guide controller action is denoted $\delta_{\mathrm{pp}}$, with steering normalization
+$\Delta_\delta = (\delta - \delta_{\mathrm{pp}})/(2\delta_{\max})$.
 
+\paragraph{Forward lane-following rewards.}
+For forward driving, the terminal reward is
 \begin{equation}
-    R = w_1 e^{-|e_y|} + w_2 e^{-|e_\psi|} - w_3 |\gamma| - w_4 C
-    \label{eq:reward_additive}
+R_{\mathrm{term}}^{\mathrm{fwd}} =
+\begin{cases}
+100, & \text{success}, \\
+-10, & \text{failure},
+\end{cases}
 \end{equation}
-
-where:
-\begin{itemize}
-    \item $e_y$ = trailer cross-track error
-    \item $e_\psi$ = heading error
-    \item $\gamma$ = articulation angle
-    \item $C$ = collision penalty
-\end{itemize}
-
-A multiplicative alternative is also considered:
-
+and the common shaping terms are
+\begin{align}
+r_p^{\mathrm{fwd}} &= 0.5\,\dot{x}, \\
+P_{\mathrm{tractor}} &= e_y^2 + e_\psi^2, \\
+P_{\mathrm{trailer}} &= (0.5\,e_{y,t})^2 + (0.5\,e_{\psi,t})^2.
+\end{align}
+The four forward reward variants are then
+\begin{align}
+R_{\mathrm{dense}}^{\mathrm{fwd}} &= r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}} - P_{\mathrm{trailer}},
+\\
+R_{\mathrm{tractor}}^{\mathrm{fwd}} &= r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}},
+\\
+R_{\mathrm{mult}}^{\mathrm{fwd}} &= 4\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right)
+\exp\!\left(-1.5|\gamma|\right) + 0.5\,\mathrm{clip}(\dot{x}, 0, 1),
+\\
+R_{\mathrm{guide}}^{\mathrm{fwd}}(k) &= \alpha_k
+\left(r_p^{\mathrm{fwd}} - 5\Delta_\delta^2\right)
++ (1-\alpha_k)R_{\mathrm{dense}}^{\mathrm{fwd}},
+\end{align}
+with curriculum weight
 \begin{equation}
-    R = e^{-|e_y|} \cdot e^{-|e_\psi|}
-    \label{eq:reward_multiplicative}
+\alpha_k = \max\!\left(0, 1-\frac{k}{T_{\mathrm{guide}}}\right),
 \end{equation}
+where $k$ is the current training step in the guided transition schedule and
+$T_{\mathrm{guide}}$ is the total number of transition timesteps.
 
-% TODO: weight selection rationale, reward shaping analysis, appendix derivation reference
+\paragraph{Reverse lane-following rewards.}
+For reverse driving, the terminal reward is
+\begin{equation}
+R_{\mathrm{term}}^{\mathrm{rev}} =
+\begin{cases}
+200, & \text{success}, \\
+-500, & \text{failure},
+\end{cases}
+\end{equation}
+with shared shaping terms
+\begin{align}
+r_p^{\mathrm{rev}} &= 3\,\mathrm{clip}(-\dot{x}, 0, 1), \\
+P_{\mathrm{path}} &= e_y^2 + 0.5\,e_\psi^2 + 0.5\,e_{y,t}^2 + 0.25\,e_{\psi,t}^2,
+\\
+P_{\mathrm{jack}} &= 10\max(0, |\gamma| - 0.4)^2.
+\end{align}
+The reverse variants are
+\begin{align}
+R_{\mathrm{dense}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_{\mathrm{jack}},
+\\
+R_{\mathrm{no\mbox{-}hitch}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}},
+\\
+R_{\mathrm{mult}}^{\mathrm{rev}} &= 5\,\mathrm{clip}(-\dot{x}, 0, 1)
+\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right)
+\exp\!\left(-2|\gamma|\right),
+\\
+R_{\mathrm{guide}}^{\mathrm{rev}}(k) &= \alpha_k
+\left(r_p^{\mathrm{rev}} - 5\Delta_\delta^2 - P_{\mathrm{jack}}\right)
++ (1-\alpha_k)R_{\mathrm{dense}}^{\mathrm{rev}}.
+\end{align}
+
+\paragraph{Obstacle-aware extensions.}
+Obstacle environments inherit the underlying forward or reverse reward and add a
+difficulty-dependent speed bonus during non-terminal episodes:
+\begin{equation}
+R_{\mathrm{obs,step}} = R_{\mathrm{base}} + d\left(1-\frac{|\dot{x}|}{\dot{x}_{\max}}\right)c_{\mathrm{slow}},
+\end{equation}
+where $d \in [0,1]$ is obstacle difficulty and $c_{\mathrm{slow}} = 0.1$. If an obstacle
+episode terminates through failure before success, the reward is replaced by
+\begin{align}
+s(d) &= \frac{e^{k_d d}-1}{e^{k_d}-1}, \qquad k_d = 3, \\
+R_{\mathrm{fail}}^{\mathrm{obs}} &= p\,R_{\max}\,s(d),
+\end{align}
+where $p \in [0,1]$ is progress along the route and $R_{\max}=50$ for forward obstacle
+tasks and $R_{\max}=100$ for reverse obstacle tasks. If the vehicle instead performs a
+deliberate stop in front of an obstacle, the terminal reward becomes
+\begin{equation}
+R_{\mathrm{stop}}^{\mathrm{obs}} = 1.5\,p\,R_{\max}\,s(d).
+\end{equation}
