@@ -437,11 +437,15 @@ def run_rl_model(model_path: Path, scenario: str, obs: str, reward: str,
         rewards, lengths = [], []
         for ep in range(1, n_episodes + 1):
             obs_vec = load_env.reset()
+            if render:
+                load_env.render()
             done = np.array([False])
             total_reward, steps = 0.0, 0
             while not done[0]:
                 action, _ = model.predict(obs_vec, deterministic=True)
                 obs_vec, rew, done, _ = load_env.step(action)
+                if render:
+                    load_env.render()
                 total_reward += float(rew[0])
                 steps += 1
             rewards.append(total_reward)

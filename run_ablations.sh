@@ -18,7 +18,7 @@ fi
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-N_ENVS_FAST=12
+N_ENVS_FAST=16
 N_ENVS_BEV=12
 TIMESTEPS=100000
 EVAL_EPISODES=30
@@ -206,27 +206,27 @@ benchmark_task() {
 # PHASE 1A/B/C: observation ablations
 # ---------------------------------------------------------------------------
 log "=== PHASE 1A: Forward obs ablation ==="
-train forward state dense --n_envs "$N_ENVS_FAST"
-train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams "$LIDAR_BEAMS_DEFAULT"
-train forward bev dense --n_envs "$N_ENVS_BEV" --encoder scratch
-train forward bev dense --n_envs "$N_ENVS_BEV" --encoder ae_frozen
-train forward bev dense --n_envs "$N_ENVS_BEV" --encoder ae_unfrozen
-train forward bev dense --n_envs "$N_ENVS_BEV" --encoder unet_frozen
-train forward bev dense --n_envs "$N_ENVS_BEV" --encoder unet_unfrozen
+# train forward state dense --n_envs "$N_ENVS_FAST"
+# train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams "$LIDAR_BEAMS_DEFAULT"
+# train forward bev dense --n_envs "$N_ENVS_BEV" --encoder scratch
+# train forward bev dense --n_envs "$N_ENVS_BEV" --encoder ae_frozen
+# train forward bev dense --n_envs "$N_ENVS_BEV" --encoder ae_unfrozen
+# train forward bev dense --n_envs "$N_ENVS_BEV" --encoder unet_frozen
+# train forward bev dense --n_envs "$N_ENVS_BEV" --encoder unet_unfrozen
 
 log "=== PHASE 1B: Reverse obs ablation ==="
-train reverse state dense --n_envs "$N_ENVS_FAST"
-train reverse lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams "$LIDAR_BEAMS_DEFAULT"
-train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder scratch
-train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder ae_frozen
-train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder ae_unfrozen
-train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder unet_frozen
-train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder unet_unfrozen
+# train reverse state dense --n_envs "$N_ENVS_FAST"
+# train reverse lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams "$LIDAR_BEAMS_DEFAULT"
+# train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder scratch
+# train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder ae_frozen
+# train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder ae_unfrozen
+# train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder unet_frozen
+# train reverse bev dense --n_envs "$N_ENVS_BEV" --encoder unet_unfrozen
 
 log "=== PHASE 1C: Lidar beams ablation ==="
-train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 4
 train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 8
 train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 16
+train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 24
 train forward lidar dense --n_envs "$N_ENVS_FAST" --lidar_beams 32
 
 # ---------------------------------------------------------------------------
@@ -349,21 +349,22 @@ log "=== PLOTS ==="
 
 plot_curves "$FIGS/forward_obs_ablation.pdf" "Forward Obs Ablation (dense reward)" \
     "State=models/forward/state/dense/logs/evaluations.npz" \
-    "Lidar-16=models/forward/lidar/dense/logs/evaluations.npz" \
-    "BEV CNN=models/forward/bev/dense/logs/evaluations.npz" \
-    "BEV AE frozen=models/forward/bev_ae_frozen/dense/logs/evaluations.npz" \
-    "BEV AE unfrozen=models/forward/bev_ae_unfrozen/dense/logs/evaluations.npz" \
-    "BEV UNet frozen=models/forward/bev_unet_frozen/dense/logs/evaluations.npz" \
-    "BEV UNet unfrozen=models/forward/bev_unet_unfrozen/dense/logs/evaluations.npz"
+    "Lidar-16=models/forward/lidar/dense/logs/evaluations.npz"
+
+    # "BEV CNN=models/forward/bev/dense/logs/evaluations.npz" \
+    # "BEV AE frozen=models/forward/bev_ae_frozen/dense/logs/evaluations.npz" \
+    # "BEV AE unfrozen=models/forward/bev_ae_unfrozen/dense/logs/evaluations.npz" \
+    # "BEV UNet frozen=models/forward/bev_unet_frozen/dense/logs/evaluations.npz" \
+    # "BEV UNet unfrozen=models/forward/bev_unet_unfrozen/dense/logs/evaluations.npz"
 
 plot_curves "$FIGS/reverse_obs_ablation.pdf" "Reverse Obs Ablation (dense reward)" \
     "State=models/reverse/state/dense/logs/evaluations.npz" \
-    "Lidar-16=models/reverse/lidar/dense/logs/evaluations.npz" \
-    "BEV CNN=models/reverse/bev/dense/logs/evaluations.npz" \
-    "BEV AE frozen=models/reverse/bev_ae_frozen/dense/logs/evaluations.npz" \
-    "BEV AE unfrozen=models/reverse/bev_ae_unfrozen/dense/logs/evaluations.npz" \
-    "BEV UNet frozen=models/reverse/bev_unet_frozen/dense/logs/evaluations.npz" \
-    "BEV UNet unfrozen=models/reverse/bev_unet_unfrozen/dense/logs/evaluations.npz"
+    "Lidar-16=models/reverse/lidar/dense/logs/evaluations.npz"
+    # "BEV CNN=models/reverse/bev/dense/logs/evaluations.npz" \
+    # "BEV AE frozen=models/reverse/bev_ae_frozen/dense/logs/evaluations.npz" \
+    # "BEV AE unfrozen=models/reverse/bev_ae_unfrozen/dense/logs/evaluations.npz" \
+    # "BEV UNet frozen=models/reverse/bev_unet_frozen/dense/logs/evaluations.npz" \
+    # "BEV UNet unfrozen=models/reverse/bev_unet_unfrozen/dense/logs/evaluations.npz"
 
 plot_curves "$FIGS/lidar_beams_ablation.pdf" "Lidar Beam-Count Ablation (forward, dense)" \
     "4 beams=models/forward/lidar_4/dense/logs/evaluations.npz" \
