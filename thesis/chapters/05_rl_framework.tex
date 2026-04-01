@@ -27,7 +27,7 @@ The multiplicative reward structure forces the agent to minimise cross-track and
 
 The TD3 agent requires careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected over simulation rollouts. The training pipeline supports matched agents across state-only, lidar, and BEV observation variants. BEV policies use custom multi-input feature extractors, while the state-only and lidar policies use standard multilayer perceptron policies.
 
-To reduce wall-clock cost for image-based training, the training script supports vectorised environment execution with subprocess workers. When multiple environments are used, the data collection schedule switches from episode-based to step-based updates so that parallel workers remain saturated instead of waiting for all episodes to terminate simultaneously. This is particularly important for the CNN-based BEV policy, whose throughput is otherwise dominated by environment interaction rather than gradient computation.
+To reduce wall-clock cost for image-based training, the training script supports vectorised environment execution with subprocess workers. TD3 optimisation is performed with step-based updates so that the replay buffer and gradient schedule remain responsive for both single-environment and vectorised runs. Vectorised execution is still important for the CNN-based BEV policy because it improves throughput by overlapping environment interaction across subprocess workers, but it no longer changes the underlying update schedule.
 
 \subsection{Representation Pretraining}
 

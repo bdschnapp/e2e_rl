@@ -28,7 +28,7 @@ The CNN is trained end-to-end with the TD3 agent, allowing the feature extractor
 
 \section{Autoencoder Latent Space}
 
-To improve RL training efficiency, an autoencoder can be used to compress high-dimensional BEV image observations into a compact latent representation. The encoder $E(\cdot)$ maps the image observation $s$ to a latent vector $z$, and the decoder $D(\cdot)$ reconstructs the original image:
+To improve RL training efficiency, an autoencoder can be used to pretrain an image representation for high-dimensional BEV observations before policy optimisation. The encoder $E(\cdot)$ maps the image observation $s$ to a feature vector $z$, and the decoder $D(\cdot)$ reconstructs the original image:
 
 \begin{equation}
     z = E(s)

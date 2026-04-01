@@ -167,8 +167,6 @@ class LineFollowingEnv(TractorTrailerEnv):
         if self._get_term():
             if self.success:
                 return 100.0
-            if not getattr(self, 'feasible', True):
-                return self._get_progress_fraction() * 50.0
             return -10.0
 
         progress_reward = 0.5 * self.vehicle.xd
@@ -836,8 +834,6 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
         if self._get_term():
             if self.success:
                 return 200.0
-            if not getattr(self, 'feasible', True):
-                return self._get_progress_fraction() * 100.0
             return -500.0
 
         # --- Stability penalties ---

@@ -424,7 +424,7 @@ class ObstacleMixin:
     _SLOW_REWARD_SCALE: float = 0.1  # per-step slow bonus at max difficulty
 
     # --- Stop-detection constants ---
-    _STOP_SPEED_TOL: float = 0.1     # |xd| below this counts as stopped (m/s)
+    _STOP_SPEED_TOL: float = 0.15    # |xd| below this counts as stopped (m/s)
     _STOP_SECONDS: float = 1.0       # consecutive seconds near-zero to trigger stop
 
     def __init__(self, render_mode=None, max_episode_steps=1000, **kwargs):
@@ -481,14 +481,8 @@ class ObstacleMixin:
         error_t, error_theta_t = self.get_trailer_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
         base = super().get_reward(error, error_theta, error_t, error_theta_t)
 
-        difficulty = getattr(self, 'path_difficulty', 0.0)
-
-        # --- Terminal: replace failure penalty with exponential difficulty reward ---
-        if self._get_term() and not getattr(self, 'success', False) and difficulty > 0.0:
-            exp = self._exp_scale(difficulty)
-            return self._get_progress_fraction() * self._MAX_FAIL_REWARD * exp
-
         # --- Step: bonus for slow speed proportional to current difficulty ---
+        difficulty = getattr(self, 'path_difficulty', 0.0)
         if not self._get_term() and difficulty > 0.0:
             max_speed = max(abs(config.initial_xd), 1e-6)
             normalized_speed = np.clip(abs(self.vehicle.xd) / max_speed, 0.0, 1.0)

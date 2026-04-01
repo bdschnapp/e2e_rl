@@ -171,12 +171,150 @@ def _default_encoder_path(scenario: str, encoder: str, save_root: Path) -> Path:
     return save_root / f"encoder_{encoder_type}.pt"
 
 
+def _policy_model_path(scenario: str, obs: str, reward: str, lidar_beams: int = 16) -> Path:
+    if obs == "lidar" and lidar_beams != 16:
+        obs_tag = f"lidar_{lidar_beams}"
+    else:
+        obs_tag = obs
+    return Path(f"./models/{scenario}/{obs_tag}/{reward}/best_model.zip")
+
+
+def _lidar_obs_from_bev_env(env, vector_obs: np.ndarray) -> np.ndarray:
+    from Environments.ObstacleAvoidance import Pose, get_obstacle_distances
+
+    is_reverse = "reverse" in env.__class__.__name__.lower()
+    if is_reverse:
+        lidar_pose = Pose(
+            x=env.vehicle.trailer.x,
+            y=env.vehicle.trailer.y,
+            yaw=env.vehicle.trailer.yaw + np.pi,
+        )
+    else:
+        lidar_pose = Pose(
+            x=env.vehicle.x,
+            y=env.vehicle.y,
+            yaw=env.vehicle.p,
+        )
+
+    lidar_beams = int(getattr(env, "lidar_beams", 24 if uses_obstacles(env.unwrapped.__class__.__name__.lower()) else 16))
+    lidar_distances = get_obstacle_distances(
+        env.occ_grid,
+        lidar_pose,
+        num_sensors=lidar_beams,
+    ).astype(np.float32)
+    return np.concatenate([vector_obs.astype(np.float32, copy=False), lidar_distances], dtype=np.float32)
+
+
+def _make_driver_obs_fn(driver_obs: str, env, lidar_beams: int):
+    if driver_obs == "state":
+        return lambda obs: obs["vector"]
+    if driver_obs == "lidar":
+        def _obs_fn(obs):
+            vector_obs = obs["vector"]
+            from Environments.ObstacleAvoidance import Pose, get_obstacle_distances
+
+            is_reverse = hasattr(env.vehicle, "trailer") and "reverse" in env.__class__.__name__.lower()
+            if is_reverse:
+                lidar_pose = Pose(
+                    x=env.vehicle.trailer.x,
+                    y=env.vehicle.trailer.y,
+                    yaw=env.vehicle.trailer.yaw + np.pi,
+                )
+            else:
+                lidar_pose = Pose(
+                    x=env.vehicle.x,
+                    y=env.vehicle.y,
+                    yaw=env.vehicle.p,
+                )
+
+            lidar_distances = get_obstacle_distances(
+                env.occ_grid,
+                lidar_pose,
+                num_sensors=lidar_beams,
+            ).astype(np.float32)
+            return np.concatenate([vector_obs.astype(np.float32, copy=False), lidar_distances], dtype=np.float32)
+
+        return _obs_fn
+    raise ValueError(f"Unsupported driver observation type: {driver_obs!r}")
+
+
+def resolve_pretrain_driver_models(scenario: str, reward: str, env, lidar_beams: int):
+    """
+    Resolve compatible pretrained RL drivers for BEV encoder pretraining.
+
+    Preference order:
+      - obstacle scenarios: lidar-24, lidar-16, state
+      - regular lane-following: state, lidar-16, lidar-24, lidar-32, lidar-8
+    """
+    driver_specs = []
+    if uses_obstacles(scenario):
+        candidates = [
+            ("lidar", 24),
+            ("lidar", 16),
+            ("state", None),
+        ]
+    else:
+        candidates = [
+            ("state", None),
+            ("lidar", 16),
+            ("lidar", 24),
+            ("lidar", 32),
+            ("lidar", 8),
+        ]
+
+    for driver_obs, beams in candidates:
+        path = _policy_model_path(
+            scenario=scenario,
+            obs=driver_obs,
+            reward=reward,
+            lidar_beams=beams if beams is not None else 16,
+        )
+        if not path.exists():
+            continue
+
+        load_env = make_env(
+            scenario=scenario,
+            obs=driver_obs,
+            render_mode=None,
+            reward=reward,
+            lidar_beams=beams if beams is not None else 16,
+        )
+        try:
+            # Older checkpoints may reference numpy._core.numeric in pickled metadata.
+            sys.modules.setdefault("numpy._core.numeric", np.core.numeric)
+            model = TD3.load(
+                str(path),
+                env=load_env,
+                device="auto",
+                custom_objects={
+                    "observation_space": load_env.observation_space,
+                    "action_space": load_env.action_space,
+                },
+            )
+        except Exception as exc:
+            print(f"[pretrain] Skipping driver {path} (load failed: {exc})")
+            load_env.close()
+            continue
+
+        obs_fn = _make_driver_obs_fn(driver_obs, env, beams if beams is not None else lidar_beams)
+        driver_specs.append((model, obs_fn))
+        print(f"[pretrain] Added driver model → {path}")
+
+    return driver_specs
+
+
 def run_pretrain(scenario: str, obs: str, encoder: str, encoder_path: Path,
                  reward: str, lidar_beams: int,
                  n_collect_steps: int, epochs: int):
     """Pretrain the AE or UNet encoder and save weights to encoder_path."""
     env = make_env(scenario, obs, render_mode=None, reward=reward,
                    lidar_beams=lidar_beams)
+    driver_models = resolve_pretrain_driver_models(
+        scenario=scenario,
+        reward=reward,
+        env=env,
+        lidar_beams=lidar_beams,
+    )
     if encoder in _BEV_ENCODERS:
         from Models.AutoEncoder import pretrain_autoencoder
         pretrain_autoencoder(
@@ -184,6 +322,7 @@ def run_pretrain(scenario: str, obs: str, encoder: str, encoder_path: Path,
             save_path=str(encoder_path),
             n_collect_steps=n_collect_steps,
             epochs=epochs,
+            driver_models=driver_models,
         )
     else:
         from Models.UNet import pretrain_unet
@@ -192,6 +331,7 @@ def run_pretrain(scenario: str, obs: str, encoder: str, encoder_path: Path,
             save_path=str(encoder_path),
             n_collect_steps=n_collect_steps,
             epochs=epochs,
+            driver_models=driver_models,
         )
     env.close()
 
@@ -283,6 +423,7 @@ def make_policy_kwargs(obs: str, encoder: str, encoder_path: str | None) -> tupl
         features_extractor_class=extractor_cls,
         features_extractor_kwargs=extractor_kwargs,
         net_arch=[256, 256],
+        share_features_extractor=True,
     )
 
 
@@ -375,7 +516,6 @@ def main(
              for i in range(n_envs)],
             start_method="fork",
         )
-        train_freq = (1, "step")
     else:
         base_env = make_env(scenario, obs, render_mode=render_mode,
                             reward=reward, lidar_beams=lidar_beams)
@@ -383,7 +523,7 @@ def main(
             from Environments.wrappers import RetryOnFailureWrapper
             base_env = RetryOnFailureWrapper(base_env)
         train_env = Monitor(base_env)
-        train_freq = (1, "episode")
+    train_freq = (1, "step")
 
     # --- Eval env ---
     # SB3 auto-wraps the training VecEnv with VecTransposeImage for image obs.

@@ -46,6 +46,7 @@ class UNetFeatureExtractor(BaseFeaturesExtractor):
         total_dim = 0
         self._has_image = False
         self._has_vector = False
+        self._freeze_encoder = freeze_encoder
 
         # --- Image branch ---
         if "image" in observation_space.spaces:
@@ -69,6 +70,7 @@ class UNetFeatureExtractor(BaseFeaturesExtractor):
             if freeze_encoder:
                 for p in encoder.parameters():
                     p.requires_grad = False
+                encoder.eval()
 
             self.image_encoder = encoder
             total_dim += encoder.output_dim   # 128 with default args
@@ -95,3 +97,10 @@ class UNetFeatureExtractor(BaseFeaturesExtractor):
         if self._has_vector:
             parts.append(self.vector_mlp(observations["vector"]))
         return torch.cat(parts, dim=1)
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+        if self._freeze_encoder and self._has_image:
+            # Keep BatchNorm running statistics fixed in frozen mode.
+            self.image_encoder.eval()
+        return self
