@@ -427,6 +427,14 @@ def make_policy_kwargs(obs: str, encoder: str, encoder_path: str | None) -> tupl
     )
 
 
+def make_action_noise_sigma(n_actions: int) -> np.ndarray:
+    """Return exploration noise in environment action units."""
+    sigma = np.full(n_actions, 0.05, dtype=np.float32)
+    if n_actions > 1:
+        sigma[1:] = 0.5
+    return sigma
+
+
 # ---------------------------------------------------------------------------
 # Main training function
 # ---------------------------------------------------------------------------
@@ -507,8 +515,6 @@ def main(
     policy, policy_kwargs = make_policy_kwargs(obs, encoder, resolved_encoder_path)
 
     # --- Training env ---
-    action_noise_sigma = 0.3
-
     if n_envs > 1:
         train_env = SubprocVecEnv(
             [_make_env_fn(scenario, obs, reward, lidar_beams, rank=i,
@@ -538,9 +544,10 @@ def main(
 
     # --- TD3 model ---
     n_actions = train_env.action_space.shape[-1]
+    action_noise_sigma = make_action_noise_sigma(n_actions)
     action_noise = NormalActionNoise(
         mean=np.zeros(n_actions),
-        sigma=action_noise_sigma * np.ones(n_actions),
+        sigma=action_noise_sigma,
     )
     model = TD3(
         policy,
@@ -554,6 +561,8 @@ def main(
         batch_size=256,
         train_freq=train_freq,
         gradient_steps=-1,
+        target_policy_noise=0.05,
+        target_noise_clip=0.15,
     )
 
     # --- Callbacks ---

@@ -13,7 +13,9 @@ class CNNFeatureExtractor(BaseFeaturesExtractor):
 
     Image branch
     ------------
-    Uses ImageEncoder (NatureCNN-style: 32→64→64 filters, 3136-dim for 84×84).
+    Uses ImageEncoder (NatureCNN-style: 32→64→64 filters, 3136-dim for 84×84),
+    followed by a small projection head so the policy consumes a compact visual
+    embedding instead of the raw flattened convolutional map.
     Supports optional pretrained weights and freezing — set encoder_state_dict_path
     to the file saved by Models.AutoEncoder.pretrain_autoencoder() and freeze_encoder=True
     to get the pretrained-AE behaviour.  With no path, the encoder trains end-to-end.
@@ -22,7 +24,7 @@ class CNNFeatureExtractor(BaseFeaturesExtractor):
     -------------
     2-layer MLP: vec_dim → 64 → 64.
 
-    Combined output dim = 3136 + 64 = 3200 (for 84×84 input).
+    Combined output dim = 256 + 64 = 320 (for 84×84 input and default settings).
 
     Fixes vs old CNNFeatureExtractor
     ---------------------------------
@@ -32,12 +34,14 @@ class CNNFeatureExtractor(BaseFeaturesExtractor):
     """
 
     VECTOR_HIDDEN = 64
+    IMAGE_FEATURES_DIM = 256
 
     def __init__(
         self,
         observation_space: gym.spaces.Dict,
         encoder_state_dict_path: str | None = None,
         freeze_encoder: bool = False,
+        image_features_dim: int = IMAGE_FEATURES_DIM,
     ):
         super().__init__(observation_space, features_dim=1)
 
@@ -68,7 +72,11 @@ class CNNFeatureExtractor(BaseFeaturesExtractor):
                     p.requires_grad = False
 
             self.image_encoder = encoder
-            total_concat_size += encoder.output_dim
+            self.image_projection = nn.Sequential(
+                nn.Linear(encoder.output_dim, image_features_dim),
+                nn.ReLU(),
+            )
+            total_concat_size += image_features_dim
             self._has_image = True
 
         # --- Vector branch ---
@@ -88,7 +96,7 @@ class CNNFeatureExtractor(BaseFeaturesExtractor):
     def forward(self, observations) -> torch.Tensor:
         parts = []
         if self._has_image:
-            parts.append(self.image_encoder(observations["image"]))
+            parts.append(self.image_projection(self.image_encoder(observations["image"])))
         if self._has_vector:
             parts.append(self.vector_mlp(observations["vector"]))
         return torch.cat(parts, dim=1)

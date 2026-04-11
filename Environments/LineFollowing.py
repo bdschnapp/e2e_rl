@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from scipy.spatial import cKDTree
 
 from Environments.TractorTrailer import TractorTrailerEnv, WINDOW_WIDTH, WINDOW_HEIGHT, METERS_PER_PIXEL, COLOR_WHITE, \
-    COLOR_BLACK
+    COLOR_BLACK, TRACTOR_WIDTH, TRAILER_WIDTH
 import e2erl_utils.config as config
 
 FORWARD_REWARD_MODES = ("dense", "tractor_focus", "multiplicative", "guided")
@@ -102,8 +102,9 @@ class LineFollowingEnv(TractorTrailerEnv):
 
         if self.fixed_speed:
             self.action_space = spaces.Box(
-                low=np.array([-np.deg2rad(config.steering_action)], dtype=np.float64),
-                high=np.array([np.deg2rad(config.steering_action)], dtype=np.float64),
+                low=np.array([-np.deg2rad(config.steering_action)], dtype=np.float32),
+                high=np.array([np.deg2rad(config.steering_action)], dtype=np.float32),
+                dtype=np.float32,
             )
 
         # guided-reward curriculum state
@@ -129,14 +130,14 @@ class LineFollowingEnv(TractorTrailerEnv):
                                                               -config.cross_track_angle_observation,
                                                               -config.cross_track_distance_observation,
                                                               -config.cross_track_angle_observation
-                                                              ]),
+                                                              ], dtype=np.float32),
                                                 high=np.array([config.steering_observation,
                                                                config.hitch_angle_observation,
                                                                config.cross_track_distance_observation,
                                                                config.cross_track_angle_observation,
                                                                config.cross_track_distance_observation,
                                                                config.cross_track_angle_observation
-                                                               ]),
+                                                               ], dtype=np.float32),
                                                 dtype=np.float32)
 
         self.observation_space = spaces.Dict({
@@ -162,12 +163,14 @@ class LineFollowingEnv(TractorTrailerEnv):
         error_t, error_theta_t = self.get_trailer_errors()
         return self.get_reward(error, error_theta, error_t, error_theta_t)
 
+    def _proximity_penalty(self) -> float:
+        return 0.0
 
     def get_reward(self, error, error_theta, error_t, error_theta_t):
         if self._get_term():
             if self.success:
                 return 100.0
-            return -10.0
+            return -100.0
 
         progress_reward = 0.5 * self.vehicle.xd
         tractor_penalty = (error ** 2) + (error_theta ** 2)
@@ -175,10 +178,10 @@ class LineFollowingEnv(TractorTrailerEnv):
         hitch_angle = abs(self.vehicle.p - self.vehicle.trailer.yaw)
 
         if self.reward_mode == "dense":
-            return progress_reward - tractor_penalty - trailer_penalty
+            return progress_reward - tractor_penalty - trailer_penalty - self._proximity_penalty()
 
         if self.reward_mode == "tractor_focus":
-            return progress_reward - tractor_penalty
+            return progress_reward - tractor_penalty - self._proximity_penalty()
 
         if self.reward_mode == "multiplicative":
             path_term = np.exp(
@@ -190,7 +193,11 @@ class LineFollowingEnv(TractorTrailerEnv):
                 )
             )
             hitch_term = np.exp(-1.5 * abs(hitch_angle))
-            return 4.0 * path_term * hitch_term + 0.5 * np.clip(self.vehicle.xd, 0.0, 1.0)
+            return (
+                4.0 * path_term * hitch_term
+                + 0.5 * np.clip(self.vehicle.xd, 0.0, 1.0)
+                - self._proximity_penalty()
+            )
 
         if self.reward_mode == "guided":
             dense_rew = progress_reward - tractor_penalty - trailer_penalty
@@ -199,14 +206,14 @@ class LineFollowingEnv(TractorTrailerEnv):
             self._guide_steps += 1
 
             if alpha == 0.0:
-                return dense_rew
+                return dense_rew - self._proximity_penalty()
 
             pp_action = self._compute_guide_pp_action()
             max_steer_rate = np.deg2rad(config.steering_action)
             steer_diff = (self._last_action[0] - pp_action[0]) / (2.0 * max_steer_rate)
             guide_rew = progress_reward - 5.0 * steer_diff ** 2
 
-            return alpha * guide_rew + (1.0 - alpha) * dense_rew
+            return alpha * guide_rew + (1.0 - alpha) * dense_rew - self._proximity_penalty()
 
         raise ValueError(f"Unsupported forward reward_mode={self.reward_mode!r}")
 
@@ -447,6 +454,11 @@ class LineFollowingEnv(TractorTrailerEnv):
 
 
 class LaneDrivingEnv(LineFollowingEnv):
+    # Proximity shaping applies to the lane occupancy grid, so it covers both
+    # lane boundaries and obstacle cells inserted by obstacle environments.
+    _PROXIMITY_THRESHOLD_M: float = 2.0
+    _MAX_PROXIMITY_PENALTY: float = 5.0
+
     def __init__(self, render_mode="human", reward_mode: str = "dense", fixed_speed: bool = True):
         super().__init__(render_mode=render_mode, reward_mode=reward_mode, fixed_speed=fixed_speed)
         self.occ_grid = None  # np.uint8 [H,W], 0=free, 100=blocked
@@ -574,6 +586,60 @@ class LaneDrivingEnv(LineFollowingEnv):
             self._occ_surface = self._grid_to_surface()
             self._occ_dirty = False
 
+    def _min_clearance_to_occ_m(self) -> float:
+        """
+        Return approximate clearance from the vehicle body to the nearest
+        blocked occupancy-grid cell in metres.
+        """
+        if self.occ_grid is None or self.occ_meta is None:
+            return float("inf")
+
+        meta = self.occ_meta
+        veh_half_w = max(TRACTOR_WIDTH, TRAILER_WIDTH) / 2.0
+        search_m = self._PROXIMITY_THRESHOLD_M + veh_half_w
+        r_cells = int(np.ceil(search_m / meta.res_m))
+
+        dy_arr, dx_arr = np.mgrid[-r_cells:r_cells + 1, -r_cells:r_cells + 1]
+        dist_arr = np.hypot(dx_arr, dy_arr) * meta.res_m
+        within = dist_arr <= search_m
+        dy_w = dy_arr[within]
+        dx_w = dx_arr[within]
+        d_w = dist_arr[within]
+
+        min_clearance = float("inf")
+        for vx, vy in (
+            (self.vehicle.x, self.vehicle.y),
+            (self.vehicle.trailer.x, self.vehicle.trailer.y),
+        ):
+            gx0 = int((vx - meta.origin_x) / meta.res_m)
+            gy0 = int((vy - meta.origin_y) / meta.res_m)
+
+            gx = gx0 + dx_w
+            gy = gy0 + dy_w
+
+            oob = (gx < 0) | (gx >= meta.width) | (gy < 0) | (gy >= meta.height)
+            gx_c = np.clip(gx, 0, meta.width - 1)
+            gy_c = np.clip(gy, 0, meta.height - 1)
+            blocked = oob | (self.occ_grid[gy_c, gx_c] == 100)
+
+            if blocked.any():
+                clearance = max(0.0, float(d_w[blocked].min()) - veh_half_w)
+                min_clearance = min(min_clearance, clearance)
+
+        return min_clearance
+
+    def _proximity_penalty(self) -> float:
+        """
+        Per-step penalty for being close to a lane boundary or obstacle.
+        The penalty ramps quadratically from zero at the threshold to the
+        configured maximum at zero clearance.
+        """
+        clearance = self._min_clearance_to_occ_m()
+        if clearance >= self._PROXIMITY_THRESHOLD_M:
+            return 0.0
+        t = 1.0 - clearance / self._PROXIMITY_THRESHOLD_M
+        return t ** 2 * self._MAX_PROXIMITY_PENALTY
+
     def _check_collision(self):
         """
         Checks for collision between the vehicle (tractor and trailer) and obstacles.
@@ -690,6 +756,8 @@ class LaneDrivingEnv(LineFollowingEnv):
             world_canvas.blit(self._occ_surface, (0, 0))
         else:
             world_canvas.fill(COLOR_WHITE)
+        if getattr(self, "_show_spline_debug", False):
+            self.render_path(world_canvas)
         super()._render_frame(world_canvas)
         if not getattr(config, "use_bev_render", True):
             return np.transpose(np.array(pygame.surfarray.pixels3d(world_canvas)), axes=(1, 0, 2))
@@ -837,8 +905,9 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
 
         if not self.fixed_speed:
             self.action_space = spaces.Box(
-                low=np.array([-np.deg2rad(config.steering_action), -config.speed_action_high], dtype=np.float64),
-                high=np.array([np.deg2rad(config.steering_action), -config.speed_action_low], dtype=np.float64),
+                low=np.array([-np.deg2rad(config.steering_action), -config.speed_action_high], dtype=np.float32),
+                high=np.array([np.deg2rad(config.steering_action), -config.speed_action_low], dtype=np.float32),
+                dtype=np.float32,
             )
 
     def _get_reward(self):
@@ -870,10 +939,10 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
         reverse_reward = 3.0 * np.clip(-self.vehicle.xd, 0.0, 1.0)
 
         if self.reward_mode == "dense":
-            return reverse_reward - path_penalty - jackknife_penalty
+            return reverse_reward - path_penalty - jackknife_penalty - self._proximity_penalty()
 
         if self.reward_mode == "no_hitch":
-            return reverse_reward - path_penalty
+            return reverse_reward - path_penalty - self._proximity_penalty()
 
         if self.reward_mode == "multiplicative":
             path_term = np.exp(
@@ -885,7 +954,10 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
                 )
             )
             hitch_term = np.exp(-2.0 * abs(hitch_angle))
-            return 5.0 * np.clip(-self.vehicle.xd, 0.0, 1.0) * path_term * hitch_term
+            return (
+                5.0 * np.clip(-self.vehicle.xd, 0.0, 1.0) * path_term * hitch_term
+                - self._proximity_penalty()
+            )
 
         if self.reward_mode == "guided":
             dense_rew = reverse_reward - path_penalty - jackknife_penalty
@@ -894,14 +966,14 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
             self._guide_steps += 1
 
             if alpha == 0.0:
-                return dense_rew
+                return dense_rew - self._proximity_penalty()
 
             pp_action = self._compute_guide_pp_action()
             max_steer_rate = np.deg2rad(config.steering_action)
             steer_diff = (self._last_action[0] - pp_action[0]) / (2.0 * max_steer_rate)
             guide_rew = reverse_reward - 5.0 * steer_diff ** 2 - jackknife_penalty
 
-            return alpha * guide_rew + (1.0 - alpha) * dense_rew
+            return alpha * guide_rew + (1.0 - alpha) * dense_rew - self._proximity_penalty()
 
         raise ValueError(f"Unsupported reverse reward_mode={self.reward_mode!r}")
 

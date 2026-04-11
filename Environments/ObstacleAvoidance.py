@@ -413,6 +413,10 @@ class ObstacleMixin:
         Rewards gradual deceleration as obstacles become harder without
         dominating the base path-tracking reward.
 
+    The base LaneDrivingEnv reward adds a per-step proximity penalty for being
+    close to blocked occupancy-grid cells, so obstacle environments inherit the
+    same wall/obstacle clearance shaping as regular lane-following tasks.
+
     Override _MAX_FAIL_REWARD in subclasses to match the scale of the
     environment's success reward (default 50 ≈ half of forward success=100).
     """
@@ -481,13 +485,16 @@ class ObstacleMixin:
         error_t, error_theta_t = self.get_trailer_errors(xx=self.local_path[:, 0], yy=self.local_path[:, 1])
         base = super().get_reward(error, error_theta, error_t, error_theta_t)
 
-        # --- Step: bonus for slow speed proportional to current difficulty ---
+        if self._get_term():
+            return base
+
+        # --- Slow-speed bonus proportional to obstacle difficulty ---
         difficulty = getattr(self, 'path_difficulty', 0.0)
-        if not self._get_term() and difficulty > 0.0:
+        if difficulty > 0.0:
             max_speed = max(abs(config.initial_xd), 1e-6)
             normalized_speed = np.clip(abs(self.vehicle.xd) / max_speed, 0.0, 1.0)
             slow_bonus = difficulty * (1.0 - normalized_speed) * self._SLOW_REWARD_SCALE
-            return base + slow_bonus
+            base += slow_bonus
 
         return base
 

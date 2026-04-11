@@ -47,14 +47,16 @@ class TractorTrailerEnv(gym.Env):
         # 1. Define Action Space (MODIFIED)
         # Action: [steering_angle_rate_of_change, target_linear_velocity]
         self.action_space = spaces.Box(
-            low=np.array([-np.deg2rad(config.steering_action), config.speed_action_low], dtype=np.float64),
-            high=np.array([np.deg2rad(config.steering_action), config.speed_action_high], dtype=np.float64),
+            low=np.array([-np.deg2rad(config.steering_action), config.speed_action_low], dtype=np.float32),
+            high=np.array([np.deg2rad(config.steering_action), config.speed_action_high], dtype=np.float32),
+            dtype=np.float32,
         )
 
         # 2. Define Observation Space
         self.box_observation_space = spaces.Box(
-            low=np.array([-np.pi / 4, -10], dtype=np.float64),
-            high=np.array([np.pi / 4, 10], dtype=np.float64),
+            low=np.array([-np.pi / 4, -10], dtype=np.float32),
+            high=np.array([np.pi / 4, 10], dtype=np.float32),
+            dtype=np.float32,
         )
 
         self.image_observation_space = spaces.Box(low=0, high=255, shape=(OBS_HEIGHT, OBS_WIDTH, 1), dtype=np.uint8)

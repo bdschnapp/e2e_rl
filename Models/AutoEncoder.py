@@ -312,12 +312,14 @@ class AEFeatureExtractor(BaseFeaturesExtractor):
     """
 
     VECTOR_HIDDEN = 64
+    IMAGE_FEATURES_DIM = 256
 
     def __init__(
         self,
         observation_space: gym.spaces.Dict,
         encoder_state_dict_path: str | None = None,
         freeze_encoder: bool = True,
+        image_features_dim: int = IMAGE_FEATURES_DIM,
     ):
         super().__init__(observation_space, features_dim=1)
 
@@ -344,7 +346,11 @@ class AEFeatureExtractor(BaseFeaturesExtractor):
                     p.requires_grad = False
 
             self.image_encoder = encoder
-            total_dim += encoder.output_dim
+            self.image_projection = nn.Sequential(
+                nn.Linear(encoder.output_dim, image_features_dim),
+                nn.ReLU(),
+            )
+            total_dim += image_features_dim
             self._has_image = True
 
         if "vector" in observation_space.spaces:
@@ -363,7 +369,7 @@ class AEFeatureExtractor(BaseFeaturesExtractor):
     def forward(self, observations) -> torch.Tensor:
         parts = []
         if self._has_image:
-            parts.append(self.image_encoder(observations["image"]))
+            parts.append(self.image_projection(self.image_encoder(observations["image"])))
         if self._has_vector:
             parts.append(self.vector_mlp(observations["vector"]))
         return torch.cat(parts, dim=1)
