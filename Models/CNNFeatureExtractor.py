@@ -7,13 +7,32 @@ from stable_baselines3.common.preprocessing import is_image_space_channels_first
 from Models.AutoEncoder import ImageEncoder
 
 
+class DictStateOnlyFeatureExtractor(BaseFeaturesExtractor):
+    """
+    Ablation extractor for Dict observation spaces.
+
+    Keeps the BEV/MultiInputPolicy environment path intact, but returns only the
+    state vector. This should learn like the state-only baseline if the dict
+    policy path is healthy.
+    """
+
+    def __init__(self, observation_space: gym.spaces.Dict):
+        if "vector" not in observation_space.spaces:
+            raise ValueError("DictStateOnlyFeatureExtractor requires a 'vector' observation")
+        vec_dim = int(observation_space.spaces["vector"].shape[0])
+        super().__init__(observation_space, features_dim=vec_dim)
+
+    def forward(self, observations) -> torch.Tensor:
+        return observations["vector"]
+
+
 class CNNFeatureExtractor(BaseFeaturesExtractor):
     """
     Combined feature extractor for Dict observation spaces with 'image' and 'vector' keys.
 
     Image branch
     ------------
-    Uses ImageEncoder (NatureCNN-style: 32→64→64 filters, 3136-dim for 84×84),
+    Uses ImageEncoder (compact 1→5→5 filters, 80-dim for 32×32),
     followed by a small projection head so the policy consumes a compact visual
     embedding instead of the raw flattened convolutional map.
     Supports optional pretrained weights and freezing — set encoder_state_dict_path
@@ -24,17 +43,17 @@ class CNNFeatureExtractor(BaseFeaturesExtractor):
     -------------
     2-layer MLP: vec_dim → 64 → 64.
 
-    Combined output dim = 256 + 64 = 320 (for 84×84 input and default settings).
+    Combined output dim = 64 + 64 = 128 (for 32×32 input and default settings).
 
     Fixes vs old CNNFeatureExtractor
     ---------------------------------
     1. Properly detects n_input_channels for channels-last observation spaces
     2. Processes the 'vector' key instead of discarding it
-    3. 6× more CNN capacity (NatureCNN vs 5-filter CNN)
+    3. Compact image branch matching the prior 32×32 vision baseline
     """
 
     VECTOR_HIDDEN = 64
-    IMAGE_FEATURES_DIM = 256
+    IMAGE_FEATURES_DIM = 64
 
     def __init__(
         self,
@@ -42,12 +61,17 @@ class CNNFeatureExtractor(BaseFeaturesExtractor):
         encoder_state_dict_path: str | None = None,
         freeze_encoder: bool = False,
         image_features_dim: int = IMAGE_FEATURES_DIM,
+        image_scale: float = 1.0,
+        state_scale: float = 1.0,
     ):
         super().__init__(observation_space, features_dim=1)
 
         total_concat_size = 0
         self._has_image = False
         self._has_vector = False
+        self.register_buffer("image_scale", torch.tensor(float(image_scale), dtype=torch.float32))
+        self.register_buffer("state_scale", torch.tensor(float(state_scale), dtype=torch.float32))
+        self.register_load_state_dict_pre_hook(self._fill_missing_scale_buffers)
 
         # --- Image branch ---
         if "image" in observation_space.spaces:
@@ -93,10 +117,41 @@ class CNNFeatureExtractor(BaseFeaturesExtractor):
 
         self._features_dim = total_concat_size
 
+    def _fill_missing_scale_buffers(
+        self,
+        module,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ) -> None:
+        for name in ("image_scale", "state_scale"):
+            key = prefix + name
+            if key not in state_dict:
+                state_dict[key] = getattr(self, name).detach().clone()
+
+    def set_image_scale(self, image_scale: float) -> None:
+        self.image_scale.fill_(float(image_scale))
+
+    def set_state_scale(self, state_scale: float) -> None:
+        self.state_scale.fill_(float(state_scale))
+
+    def _scale_state_observation(self, vector_obs: torch.Tensor) -> torch.Tensor:
+        if vector_obs.shape[-1] <= 1:
+            return vector_obs
+        scaled = vector_obs.clone()
+        scaled[..., 1:] = scaled[..., 1:] * self.state_scale
+        return scaled
+
     def forward(self, observations) -> torch.Tensor:
         parts = []
         if self._has_image:
-            parts.append(self.image_projection(self.image_encoder(observations["image"])))
+            image_features = self.image_projection(self.image_encoder(observations["image"]))
+            parts.append(image_features * self.image_scale)
         if self._has_vector:
-            parts.append(self.vector_mlp(observations["vector"]))
+            vector_obs = self._scale_state_observation(observations["vector"])
+            parts.append(self.vector_mlp(vector_obs))
         return torch.cat(parts, dim=1)

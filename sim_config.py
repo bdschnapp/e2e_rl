@@ -15,7 +15,7 @@ from typing import Any, Iterable, get_args, get_origin, get_type_hints
 
 SCENARIOS = ("forward", "reverse", "forward_obs", "reverse_obs")
 OBS_CHOICES = ("state", "lidar", "bev")
-ENCODER_MODES = ("scratch", "ae_frozen", "ae_unfrozen", "unet_frozen", "unet_unfrozen")
+ENCODER_MODES = ("scratch", "state_only", "scaled_cnn", "ae_frozen", "ae_unfrozen", "unet_frozen", "unet_unfrozen")
 FORWARD_REWARD_MODES = ("dense", "tractor_focus", "multiplicative", "guided")
 REVERSE_REWARD_MODES = ("dense", "no_hitch", "multiplicative", "guided")
 ALL_REWARD_MODES = ("dense", "tractor_focus", "no_hitch", "multiplicative", "guided")
@@ -102,6 +102,14 @@ class TrainConfig(JsonConfigMixin):
     eval_episodes: int = 10
     eval_freq: int = 10_000
     normalized_eval_freq: int = 30_000
+    image_scale_start: float = 0.0
+    image_scale_end: float = 1.0
+    image_scale_warmup_steps: int = 20_000
+    image_scale_ramp_steps: int = 100_000
+    state_scale_start: float = 1.0
+    state_scale_end: float = 1.0
+    state_scale_warmup_steps: int = 120_000
+    state_scale_ramp_steps: int = 100_000
     render: bool = False
     retry_on_failure: bool = False
 
@@ -148,6 +156,14 @@ TRAIN_FIELDS = (
     FieldSpec("eval_episodes", "Eval Episodes", "int", min_value=1),
     FieldSpec("eval_freq", "Eval Freq", "int", min_value=1),
     FieldSpec("normalized_eval_freq", "Norm Eval Freq", "int", min_value=1),
+    FieldSpec("image_scale_start", "Image Scale Start", "float", min_value=0.0),
+    FieldSpec("image_scale_end", "Image Scale End", "float", min_value=0.0),
+    FieldSpec("image_scale_warmup_steps", "Image Scale Warmup", "int", min_value=0),
+    FieldSpec("image_scale_ramp_steps", "Image Scale Ramp", "int", min_value=1),
+    FieldSpec("state_scale_start", "State Scale Start", "float", min_value=0.0),
+    FieldSpec("state_scale_end", "State Scale End", "float", min_value=0.0),
+    FieldSpec("state_scale_warmup_steps", "State Scale Warmup", "int", min_value=0),
+    FieldSpec("state_scale_ramp_steps", "State Scale Ramp", "int", min_value=1),
     FieldSpec("render", "Render", "bool"),
     FieldSpec("retry_on_failure", "Retry On Failure", "bool"),
 )
@@ -255,7 +271,7 @@ def validate_common_config(scenario: str, obs: str, reward: str, encoder: str) -
     elif encoder not in ENCODER_MODES:
         errors.append(f"Unknown encoder mode: {encoder}")
     if encoder != "scratch" and obs != "bev":
-        errors.append("Pretrained/fine-tuned encoders only apply when obs='bev'.")
+        errors.append("BEV encoder/ablation modes only apply when obs='bev'.")
     if not reward:
         errors.append("Reward is required.")
     elif scenario in SCENARIOS and reward not in reward_choices_for_scenario(scenario):

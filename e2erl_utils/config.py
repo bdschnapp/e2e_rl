@@ -47,6 +47,23 @@ visualize = True
 
 environment_render_mode = 1 #1 is render.py, #2 is render_observation.py needed for the CNN based DDPG models
 
+# Pygame world canvas. Override these in deployments where the physical map
+# is smaller than the training-time semi-truck world (e.g. an AgileX lab
+# robot). Read at Environments.TractorTrailer module-load time, so any
+# override must happen BEFORE importing the env classes.
+window_width_px = 1500
+window_height_px = 900
+meters_per_pixel = 0.1
+
+# Vehicle rendering dimensions (truck + trailer rectangle sizes drawn on the
+# pygame surface). The trailer "length" here is also the kinematic wheelbase
+# (kingpin-to-rear-axle distance) used by StateSpaceTractorTrailer — they're
+# conflated in the rendering pipeline.
+tractor_length_m = 4.5
+tractor_width_m = 2.5
+trailer_length_m = 10.0
+trailer_width_m = 2.5
+
 grid_res_m = 0.10                     # meters per cell
 lane_centerline_half_width_m = 5.0    # half of the lane width (e.g., ~3.5 m lane)
 lane_shoulder_m = 0.50                # extra margin on each side
@@ -59,3 +76,7 @@ bev_offset_y_m = 0.0        # lateral offset (rarely needed)
 bev_forward_up = True       # if True, rotate so tractor forward points UP on screen
 use_bev_render = True       # toggle BEV vs global view
 bev_zoom_scale = 3.0
+bev_obs_crop_m = 20.0       # square crop size from transformed BEV before resizing to CNN input
+bev_obs_crop_anchor = "center"  # fallback: "left" | "center" | "right" | "top" | "bottom"
+bev_obs_crop_anchor_forward = "top"
+bev_obs_crop_anchor_reverse = "bottom"

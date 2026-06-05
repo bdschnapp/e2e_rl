@@ -4,6 +4,22 @@ $e_{\psi,t}$ the trailer cross-track and heading errors, $\gamma$ the hitch arti
 angle, $\dot{x}$ the longitudinal speed, and $\delta$ the commanded steering action. The
 guide controller action is denoted $\delta_{\mathrm{pp}}$, with steering normalization
 $\Delta_\delta = (\delta - \delta_{\mathrm{pp}})/(2\delta_{\max})$.
+The lane-following base environment also defines a proximity penalty
+$P_{\mathrm{prox}}$ that is subtracted from non-terminal step rewards. This
+penalty is zero when the vehicle is farther than $d_{\mathrm{prox}}=2\,\mathrm{m}$
+from blocked occupancy-grid cells and increases quadratically to
+$P_{\max}=5$ as clearance approaches zero:
+\begin{equation}
+P_{\mathrm{prox}} =
+\begin{cases}
+0, & c \ge d_{\mathrm{prox}},\\
+P_{\max}\left(1-\frac{c}{d_{\mathrm{prox}}}\right)^2, & c < d_{\mathrm{prox}},
+\end{cases}
+\end{equation}
+where $c$ is the minimum clearance between the rendered vehicle footprint and
+the lane-boundary/obstacle occupancy grid. In the no-obstacle lane-following
+environment this discourages driving near lane boundaries; obstacle environments
+inherit the same term for both lane boundaries and inserted obstacle cells.
 
 \paragraph{Forward lane-following rewards.}
 For forward driving, the terminal reward is
@@ -11,7 +27,7 @@ For forward driving, the terminal reward is
 R_{\mathrm{term}}^{\mathrm{fwd}} =
 \begin{cases}
 100, & \text{success}, \\
--10, & \text{failure},
+-100, & \text{failure},
 \end{cases}
 \end{equation}
 and the common shaping terms are
@@ -22,16 +38,17 @@ P_{\mathrm{trailer}} &= (0.5\,e_{y,t})^2 + (0.5\,e_{\psi,t})^2.
 \end{align}
 The four forward reward variants are then
 \begin{align}
-R_{\mathrm{dense}}^{\mathrm{fwd}} &= r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}} - P_{\mathrm{trailer}},
+R_{\mathrm{dense}}^{\mathrm{fwd}} &= r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}} - P_{\mathrm{trailer}} - P_{\mathrm{prox}},
 \\
-R_{\mathrm{tractor}}^{\mathrm{fwd}} &= r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}},
+R_{\mathrm{tractor}}^{\mathrm{fwd}} &= r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}} - P_{\mathrm{prox}},
 \\
 R_{\mathrm{mult}}^{\mathrm{fwd}} &= 4\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right)
-\exp\!\left(-1.5|\gamma|\right) + 0.5\,\mathrm{clip}(\dot{x}, 0, 1),
+\exp\!\left(-1.5|\gamma|\right) + 0.5\,\mathrm{clip}(\dot{x}, 0, 1) - P_{\mathrm{prox}},
 \\
 R_{\mathrm{guide}}^{\mathrm{fwd}}(k) &= \alpha_k
 \left(r_p^{\mathrm{fwd}} - 5\Delta_\delta^2\right)
-+ (1-\alpha_k)R_{\mathrm{dense}}^{\mathrm{fwd}},
++ (1-\alpha_k)\left(r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}} - P_{\mathrm{trailer}}\right)
+- P_{\mathrm{prox}},
 \end{align}
 with curriculum weight
 \begin{equation}
@@ -58,22 +75,24 @@ P_{\mathrm{jack}} &= 10\max(0, |\gamma| - 0.4)^2.
 \end{align}
 The reverse variants are
 \begin{align}
-R_{\mathrm{dense}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_{\mathrm{jack}},
+R_{\mathrm{dense}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_{\mathrm{jack}} - P_{\mathrm{prox}},
 \\
-R_{\mathrm{no\mbox{-}hitch}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}},
+R_{\mathrm{no\mbox{-}hitch}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_{\mathrm{prox}},
 \\
 R_{\mathrm{mult}}^{\mathrm{rev}} &= 5\,\mathrm{clip}(-\dot{x}, 0, 1)
 \exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right)
-\exp\!\left(-2|\gamma|\right),
+\exp\!\left(-2|\gamma|\right) - P_{\mathrm{prox}},
 \\
 R_{\mathrm{guide}}^{\mathrm{rev}}(k) &= \alpha_k
 \left(r_p^{\mathrm{rev}} - 5\Delta_\delta^2 - P_{\mathrm{jack}}\right)
-+ (1-\alpha_k)R_{\mathrm{dense}}^{\mathrm{rev}}.
++ (1-\alpha_k)\left(r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_{\mathrm{jack}}\right)
+- P_{\mathrm{prox}}.
 \end{align}
 
 \paragraph{Obstacle-aware extensions.}
-Obstacle environments inherit the underlying forward or reverse reward and add a
-difficulty-dependent speed bonus during non-terminal episodes:
+Obstacle environments inherit the underlying forward or reverse reward, including
+the proximity penalty above, and add a difficulty-dependent speed bonus during
+non-terminal episodes:
 \begin{equation}
 R_{\mathrm{obs,step}} = R_{\mathrm{base}} + d\left(1-\frac{|\dot{x}|}{\dot{x}_{\max}}\right)c_{\mathrm{slow}},
 \end{equation}

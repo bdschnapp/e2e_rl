@@ -145,12 +145,13 @@ class ConfigTab(ttk.Frame):
             self.variables[spec.name] = var
             return widget
 
-        if spec.field_type == "int":
+        if spec.field_type in {"int", "float"}:
             var = tk.StringVar(value=str(default_value))
             widget = ttk.Spinbox(
                 parent,
                 from_=spec.min_value if spec.min_value is not None else -1_000_000,
                 to=spec.max_value if spec.max_value is not None else 1_000_000_000,
+                increment=1 if spec.field_type == "int" else 0.05,
                 textvariable=var,
             )
             widget.grid(row=row_idx, column=1, sticky="ew", padx=6, pady=4)
@@ -228,6 +229,8 @@ class ConfigTab(ttk.Frame):
                 values[dc_field.name] = bool(raw)
             elif dc_field.type == int:
                 values[dc_field.name] = int(raw)
+            elif dc_field.type == float:
+                values[dc_field.name] = float(raw)
             elif dc_field.type == Path | None:
                 values[dc_field.name] = Path(raw) if raw else None
             else:

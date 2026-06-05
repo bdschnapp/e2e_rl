@@ -87,6 +87,32 @@ def resolve_model_path(scenario: str, obs: str, reward: str, encoder: str, lidar
 # Runner helpers
 # ---------------------------------------------------------------------------
 
+def _set_scaled_cnn_inference_scales(model, image_scale: float = 1.0, state_scale: float = 0.0) -> int:
+    updated = 0
+    seen_extractors: set[int] = set()
+    policy_modules = [
+        getattr(model, "policy", None),
+        getattr(model.policy, "actor", None),
+        getattr(model.policy, "actor_target", None),
+        getattr(model.policy, "critic", None),
+        getattr(model.policy, "critic_target", None),
+    ]
+
+    for module in policy_modules:
+        extractor = getattr(module, "features_extractor", None)
+        if extractor is None or id(extractor) in seen_extractors:
+            continue
+        seen_extractors.add(id(extractor))
+
+        if hasattr(extractor, "set_image_scale"):
+            extractor.set_image_scale(image_scale)
+        if hasattr(extractor, "set_state_scale"):
+            extractor.set_state_scale(state_scale)
+        updated += 1
+
+    return updated
+
+
 def _run_episodes(env, predict_fn, n_episodes: int, render: bool, label: str):
     """Generic episode loop. predict_fn(obs) -> action."""
     rewards, lengths = [], []
@@ -406,7 +432,7 @@ def run_rl_model(model_path: Path, scenario: str, obs: str, reward: str,
             if default_ep.exists():
                 resolved_encoder_path = str(default_ep)
 
-    _, policy_kwargs = make_policy_kwargs(obs, encoder, resolved_encoder_path)
+    make_policy_kwargs(obs, encoder, resolved_encoder_path)
 
     # BEV environments require VecTransposeImage
     if is_bev_obs(obs):
@@ -435,6 +461,12 @@ def run_rl_model(model_path: Path, scenario: str, obs: str, reward: str,
             from Models.CNNFeatureExtractor import CNNFeatureExtractor  # noqa: F401
 
     model = TD3.load(str(model_path), env=load_env, device="auto")
+    if encoder == "scaled_cnn":
+        updated = _set_scaled_cnn_inference_scales(model, image_scale=1.0, state_scale=0.0)
+        print(
+            "[run_model] forced scaled_cnn inference scales: "
+            f"image=1.000 state=0.000 ({updated} extractor(s))"
+        )
 
     label = f"{scenario}/{obs}" + (f"/{encoder}" if obs == "bev" else "")
 

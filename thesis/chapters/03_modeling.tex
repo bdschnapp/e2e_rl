@@ -26,7 +26,7 @@ This coupling is what distinguishes articulated reverse control from conventiona
 The control problem is cast as a Markov Decision Process (MDP) $(\mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \gamma_d)$ where:
 
 \begin{itemize}
-    \item $\mathcal{S}$: observation space consisting of a vector of state variables (steering angle, articulation angle, cross-track error, heading error) and an $84\times84$ grayscale BEV image;
+    \item $\mathcal{S}$: observation space consisting of a vector of state variables (steering angle, articulation angle, cross-track error, heading error) and, for vision-based policies, a $32\times32$ grayscale BEV image;
     \item $\mathcal{A}$: continuous action space $[\dot{\delta}, v] \in [-15^\circ/\text{s},\, 15^\circ/\text{s}] \times [0,\, 2\,\text{m/s}]$;
     \item $\mathcal{T}$: transition dynamics simulated in the custom Pygame/Gymnasium environment;
     \item $\mathcal{R}$: reward function defined in Chapter~\ref{ch:rl_framework};

@@ -25,13 +25,13 @@ Table~\ref{tab:reward_ablation_forward} and Table~\ref{tab:reward_ablation_rever
 
 \section{Hyperparameter Optimisation}
 
-The TD3 agent requires careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected over simulation rollouts. The training pipeline supports matched agents across state-only, lidar, and BEV observation variants. BEV policies use custom multi-input feature extractors, while the state-only and lidar policies use standard multilayer perceptron policies.
+The TD3 agent requires careful hyperparameter tuning. The actor-critic learning rates, replay buffer size, target network update rate, and noise scale are selected over simulation rollouts. For fixed-speed path-tracking experiments the action space is one-dimensional and contains only steering-rate control; when speed remains controllable, exploration noise is kept larger on the speed dimension than on steering. The training pipeline supports matched agents across state-only, lidar, and BEV observation variants. BEV policies use custom multi-input feature extractors, while the state-only and lidar policies use standard multilayer perceptron policies.
 
 To reduce wall-clock cost for image-based training, the training script supports vectorised environment execution with subprocess workers. TD3 optimisation is performed with step-based updates so that the replay buffer and gradient schedule remain responsive for both single-environment and vectorised runs. Vectorised execution is still important for the CNN-based BEV policy because it improves throughput by overlapping environment interaction across subprocess workers, but it no longer changes the underlying update schedule.
 
 \subsection{Representation Pretraining}
 
-Two of the BEV variants use an explicit pretraining stage before TD3 optimisation. The autoencoder-based model freezes a pretrained NatureCNN encoder, while the UNet-based model freezes a pretrained UNet encoder after transfer from the reconstruction network. Both pretraining procedures operate on BEV images collected from policy rollouts and simple geometric controllers. This separates representation learning from control learning and allows direct comparison against the end-to-end CNN baseline.
+Two of the BEV variants use an explicit pretraining stage before TD3 optimisation. The autoencoder-based model transfers a compact pretrained CNN encoder, while the UNet-based model transfers a pretrained UNet encoder after reconstruction training. Both pretraining procedures operate on BEV images collected from policy rollouts and simple geometric controllers. This separates representation learning from control learning and allows direct comparison against the end-to-end CNN baseline. A second set of BEV training diagnostics uses feature scaling: the image branch can be introduced gradually after a state-based policy has begun to solve the task, and the non-steering state inputs can later be reduced to test whether the image representation can replace the engineered tracking state.
 
 \subsection{Classical Controller Tuning}
 

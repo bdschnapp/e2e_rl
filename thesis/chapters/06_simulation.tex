@@ -14,7 +14,7 @@ The simulation environment includes:
     \item \textbf{Lane Generation}: Randomly generated lane paths using cubic spline interpolation, producing varying curvature paths for training and evaluation.
     \item \textbf{Obstacle Placement and Local Replanning}: Randomly placed static obstacles within the lane and a local path planner that perturbs the centreline around those obstacles for avoidance experiments.
     \item \textbf{Collision Detection}: Pygame sprite mask-based collision detection, providing pixel-precise contact sensing between the vehicle body and obstacles or lane boundaries.
-    \item \textbf{BEV Camera}: A configurable bird's-eye view camera anchored to the tractor's rear axle, rendering an $84 \times 84$ grayscale image of the vehicle and its surroundings.
+    \item \textbf{BEV Camera}: A configurable bird's-eye view observation derived from the Pygame render, cropped to a local vehicle-centred region and resized to a $32 \times 32$ grayscale image.
 \end{enumerate}
 
 \section{Environment Tasks}
@@ -29,14 +29,14 @@ For forward driving, the observation at each timestep may include:
 \begin{itemize}
     \item \texttt{vector}: steering angle $\delta$, hitch articulation angle $\gamma$, tractor and trailer cross-track and heading errors, and local curvature cues;
     \item \texttt{lidar}: simulated obstacle distances appended to the vector state when lidar sensing is enabled;
-    \item \texttt{image}: an $84 \times 84$ grayscale BEV image rendered from the tractor rear axle anchor point.
+    \item \texttt{image}: a $32 \times 32$ grayscale BEV crop derived from the tractor rear axle anchor point.
 \end{itemize}
 
 Reverse line-following environments use the same path generation and rendering pipeline, but reverse the longitudinal command and compute reward and tracking terms with the trailer as the leading unit. Reverse BEV and reverse lidar observation classes are implemented explicitly so that perception experiments can be repeated in backward manoeuvres without changing the task definition.
 
 \subsection{Obstacle Avoidance}
 
-The obstacle avoidance environment adds static obstacles within the lane. The agent must navigate the tractor-trailer through the lane while avoiding obstacles, which requires both path-following behaviour and collision avoidance. Instead of following the global lane centreline directly, the environment constructs a local path around the placed obstacles and evaluates tracking error relative to this locally planned path. Episode termination occurs on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion.
+The obstacle avoidance environment adds static obstacles within the lane. The agent must navigate the tractor-trailer through the lane while avoiding obstacles, which requires both path-following behaviour and collision avoidance. Instead of following the global lane centreline directly, the environment constructs a local path around the placed obstacles and evaluates tracking error relative to this locally planned path. Episode termination occurs on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion. In addition to terminal collision penalties, the lane-following base environment applies a per-step proximity penalty near blocked occupancy-grid cells, so both lane boundaries and inserted obstacles discourage the agent before contact occurs.
 
 Forward and reverse obstacle environments are both available. In addition to the lidar-based formulation, the environment includes BEV obstacle-avoidance variants for both travel directions, enabling direct comparison between range-based and image-based obstacle perception within the same local-planning task.
 

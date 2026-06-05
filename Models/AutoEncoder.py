@@ -3,12 +3,12 @@ AutoEncoder models for BEV image representation learning.
 
 Architecture
 ------------
-ImageEncoder   — NatureCNN-style encoder (32→64→64 filters) producing 3136-dim
-                 features for 84×84 input. Shared with CNNFeatureExtractor so
+ImageEncoder   — compact CNN encoder (1→5→5 filters) producing 80-dim
+                 features for 32×32 input. Shared with CNNFeatureExtractor so
                  pretrained weights transfer directly.
 
-ImageDecoder   — Transposed NatureCNN, mirrors the encoder exactly:
-                 (64,7,7) → ConvT → (64,9,9) → ConvT → (32,20,20) → ConvT → (1,84,84)
+ImageDecoder   — Transposed CNN decoder for the 32×32 encoder:
+                 (5,4,4) → ConvT → (5,8,8) → ConvT → (5,16,16) → ConvT → (1,32,32)
 
 ImageAutoencoder — Encoder + Decoder, trained on BEV images for representation
                  pretraining. After training, save encoder.state_dict() and load
@@ -35,28 +35,29 @@ from stable_baselines3.common.preprocessing import is_image_space_channels_first
 
 class ImageEncoder(nn.Module):
     """
-    NatureCNN-style encoder for 84×84 grayscale BEV images.
+    Compact CNN encoder for 32×32 grayscale BEV images.
 
-    Produces 3136-dim features for 84×84 input:
-      Conv(1→32, k=8, s=4) → (32,20,20)
-      Conv(32→64, k=4, s=2) → (64,9,9)
-      Conv(64→64, k=3, s=1) → (64,7,7)
-      Flatten → 3136
+    Produces 80-dim features for 32×32 input:
+      Conv(1→5, k=3, s=2, p=1) → (5,16,16)
+      MaxPool(2)                 → (5,8,8)
+      Conv(5→5, k=3, s=1, p=1)  → (5,8,8)
+      MaxPool(2)                 → (5,4,4)
+      Flatten → 80
 
     This is identical to the NatureCNNEncoder in CNNFeatureExtractor, so
     pretrained weights from ImageAutoencoder transfer directly.
     """
 
-    def __init__(self, n_input_channels: int = 1, height: int = 84, width: int = 84):
+    def __init__(self, n_input_channels: int = 1, height: int = 32, width: int = 32):
         super().__init__()
 
         self.net = nn.Sequential(
-            nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
+            nn.Conv2d(n_input_channels, 5, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(5, 5, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
-            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
             nn.Flatten(),
         )
 
@@ -74,26 +75,26 @@ class ImageEncoder(nn.Module):
 
 class ImageDecoder(nn.Module):
     """
-    Transpose-NatureCNN decoder.  Reconstructs 84×84 from 3136 features.
+    Transpose-CNN decoder.  Reconstructs 32×32 from 80 features.
 
-    (batch, 3136) → Unflatten(64,7,7)
-      ConvT(64→64, k=3, s=1) → (64,9,9)
-      ConvT(64→32, k=4, s=2) → (32,20,20)
-      ConvT(32→C,  k=8, s=4) → (C,84,84)
+    (batch, 80) → Unflatten(5,4,4)
+      ConvT(5→5, k=4, s=2, p=1) → (5,8,8)
+      ConvT(5→5, k=4, s=2, p=1) → (5,16,16)
+      ConvT(5→C, k=4, s=2, p=1) → (C,32,32)
       Sigmoid
     """
 
-    def __init__(self, n_output_channels: int = 1, encoded_dim: int = 3136):
+    def __init__(self, n_output_channels: int = 1, encoded_dim: int = 80):
         super().__init__()
 
-        self.unflatten = nn.Unflatten(1, (64, 7, 7))
+        self.unflatten = nn.Unflatten(1, (5, 4, 4))
 
         self.net = nn.Sequential(
-            nn.ConvTranspose2d(64, 64, kernel_size=3, stride=1, padding=0),
+            nn.ConvTranspose2d(5, 5, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),
-            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=0),
+            nn.ConvTranspose2d(5, 5, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),
-            nn.ConvTranspose2d(32, n_output_channels, kernel_size=8, stride=4, padding=0),
+            nn.ConvTranspose2d(5, n_output_channels, kernel_size=4, stride=2, padding=1),
             nn.Sigmoid(),
         )
 
@@ -126,8 +127,8 @@ class ImageAutoencoder(nn.Module):
     def __init__(
         self,
         n_input_channels: int = 1,
-        height: int = 84,
-        width: int = 84,
+        height: int = 32,
+        width: int = 32,
     ):
         super().__init__()
         self.encoder = ImageEncoder(n_input_channels, height, width)
@@ -312,7 +313,7 @@ class AEFeatureExtractor(BaseFeaturesExtractor):
     """
 
     VECTOR_HIDDEN = 64
-    IMAGE_FEATURES_DIM = 256
+    IMAGE_FEATURES_DIM = 64
 
     def __init__(
         self,

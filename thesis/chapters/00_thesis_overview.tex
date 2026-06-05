@@ -1,0 +1,32 @@
+\chapter*{Thesis Overview}
+\addcontentsline{toc}{chapter}{Thesis Overview}
+\label{ch:overview}
+
+This chapter summarises the organisation of the thesis, providing a brief description of the purpose and content of each chapter.
+
+\paragraph{Chapter 1 — Introduction.}
+The introduction motivates the problem of autonomous articulated tractor-trailer control, identifying the mechanical complexity of the hitch joint and the open-loop instability of reverse manoeuvring as the central challenges. It defines the scope of the thesis, states the research contributions, and situates the work within the Mechatronics Vehicle Systems (MVS) Lab at the University of Waterloo.
+
+\paragraph{Chapter 2 — Literature Review.}
+This chapter surveys prior work relevant to articulated vehicle control and end-to-end learning for autonomous driving. It covers classical control approaches, including PID and Model Predictive Control (MPC), as well as hitch-stability analysis methods. On the learning side, it reviews deep reinforcement learning for continuous control, with emphasis on deterministic actor-critic algorithms, and discusses perception architectures used in autonomous driving. Safety considerations, including jackknife avoidance and constrained control, are also addressed.
+
+\paragraph{Chapter 3 — Vehicle Modelling and Problem Formulation.}
+Chapter 3 develops the mathematical model of the tractor-trailer system used throughout the thesis. The tractor is modelled as a planar bicycle with longitudinal and lateral dynamics; the trailer state is derived from hitch-geometry kinematics parameterised by the articulation angle $\gamma$. The chapter analyses the instability of reverse motion and defines the Markov Decision Process (MDP) over the simulator state, action, dynamics, and reward, establishing the formal foundation for the reinforcement learning formulation.
+
+\paragraph{Chapter 4 — Perception and Observation Design.}
+This chapter describes the three families of observation used to train the RL agent: low-dimensional state vectors, synthetic lidar range scans, and Bird's-Eye View (BEV) image crops rendered from the simulator. For the image pathway, it presents and compares four encoder architectures: a compact end-to-end CNN, a scaled-CNN diagnostic variant, a pretrained convolutional autoencoder, and a pretrained UNet encoder. The goal of this comparison is to isolate the contribution of visual representation quality relative to the multi-input policy architecture.
+
+\paragraph{Chapter 5 — Reinforcement Learning Framework.}
+Chapter 5 describes the reinforcement learning algorithm and training methodology. Twin Delayed Deep Deterministic Policy Gradient (TD3) is selected as the agent and its design rationale is explained. The reward function is derived, combining terms for cross-track error, heading error, hitch articulation, collision avoidance, and lane-boundary shaping. The chapter also describes the failure-replay curriculum used to improve sample efficiency and the hyperparameter tuning procedure applied to both the RL agent and the classical baselines.
+
+\paragraph{Chapter 6 — Simulation Environment.}
+This chapter documents the custom 2D simulation environment built with Gymnasium and Pygame. It describes the four driving tasks: lane following (forward and reverse) and obstacle avoidance (forward and reverse). The BEV camera, collision detection, and episode termination conditions are explained. The design choices that enable fair comparison between the learned policy and classical controllers, such as fixed-speed operation in the no-obstacle tasks, are justified.
+
+\paragraph{Chapter 7 — Results and Evaluation.}
+Chapter 7 presents the experimental results. The evaluation is structured as an observation ablation study, a reward ablation study, a controller benchmark, and a failure-replay analysis. The main benchmark compares TD3 against pure-pursuit, PID, and MPC on the no-obstacle forward and reverse tasks at fixed speed; obstacle-avoidance results are reported separately as end-to-end navigation. Performance is assessed using trailer cross-track error, hitch angle, task completion rate, collision rate, and inference latency.
+
+\paragraph{Chapter 8 — Sim-to-Real Deployment.}
+This chapter describes the transfer of the articulated tractor-trailer controller from the 2D Pygame simulation to a physical robotic system. The hardware platform is an Agilex Hunter SE wheeled robot with an attached trailer, instrumented with a RoboSense Helios LiDAR, six Pylon cameras, a WitMotion IMU, and a u-blox RTK-GNSS receiver. The simulation-trained control architecture is ported into a ROS2 Humble stack built on the Autoware framework, with dedicated nodes for hitch-angle estimation, trailer pose reconstruction, control-command multiplexing, and CAN-bus interfacing to the vehicle drivetrain. The chapter analyses the sim-to-real gap, documenting the discrepancies between simulated and physical vehicle dynamics and the mitigations applied, including LQR and MPC gain re-tuning informed by the simulation study, steering-rate limiting, actuation-delay compensation, and a jackknife-recovery control law that activates when the articulation angle approaches its stability limit.
+
+\paragraph{Chapter 9 — Conclusion.}
+The final chapter summarises the key findings of the articulated-control benchmark, the perception study, and the sim-to-real deployment, interprets the results in the context of the stated research contributions, and acknowledges the simulation-centric scope of the main experimental work. It identifies directions for future investigation, including higher-fidelity 3D simulation, full end-to-end neural policy deployment on hardware, robustness benchmarking under distribution shift, and the integration of formal safety constraints via Control Barrier Functions.

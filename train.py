@@ -48,13 +48,13 @@ from pathlib import Path
 
 import numpy as np
 from stable_baselines3 import TD3
-from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecTransposeImage
 
 from Environments.LineFollowing import FORWARD_REWARD_MODES, REVERSE_REWARD_MODES
-from Models.CNNFeatureExtractor import CNNFeatureExtractor
+from Models.CNNFeatureExtractor import CNNFeatureExtractor, DictStateOnlyFeatureExtractor
 from Models.UNetFeatureExtractor import UNetFeatureExtractor
 from sim_config import (
     TrainConfig,
@@ -68,7 +68,7 @@ from sim_config import (
 # Constants
 # ---------------------------------------------------------------------------
 
-ENCODER_MODES = ("scratch", "ae_frozen", "ae_unfrozen", "unet_frozen", "unet_unfrozen")
+ENCODER_MODES = ("scratch", "state_only", "scaled_cnn", "ae_frozen", "ae_unfrozen", "unet_frozen", "unet_unfrozen")
 _BEV_ENCODERS  = {"ae_frozen", "ae_unfrozen"}
 _UNET_ENCODERS = {"unet_frozen", "unet_unfrozen"}
 _PRETRAIN_ENCODERS = _BEV_ENCODERS | _UNET_ENCODERS
@@ -399,22 +399,118 @@ class NormalizedEvalCallback(EvalCallback):
         return result
 
 
+class FeatureScaleScheduleCallback(BaseCallback):
+    """Ramp image contribution up and non-steering state contribution down."""
+
+    def __init__(
+        self,
+        start: float = 0.0,
+        end: float = 1.0,
+        warmup_steps: int = 20_000,
+        ramp_steps: int = 100_000,
+        state_start: float = 1.0,
+        state_end: float = 1.0,
+        state_warmup_steps: int = 120_000,
+        state_ramp_steps: int = 100_000,
+        verbose: int = 0,
+    ):
+        super().__init__(verbose)
+        self.start = float(start)
+        self.end = float(end)
+        self.warmup_steps = int(warmup_steps)
+        self.ramp_steps = max(int(ramp_steps), 1)
+        self.state_start = float(state_start)
+        self.state_end = float(state_end)
+        self.state_warmup_steps = int(state_warmup_steps)
+        self.state_ramp_steps = max(int(state_ramp_steps), 1)
+        self._last_reported_image_scale: float | None = None
+        self._last_reported_state_scale: float | None = None
+
+    @staticmethod
+    def _scale_at(timestep: int, start: float, end: float, warmup_steps: int, ramp_steps: int) -> float:
+        if timestep <= warmup_steps:
+            return start
+        progress = min((timestep - warmup_steps) / max(ramp_steps, 1), 1.0)
+        return start + progress * (end - start)
+
+    def _image_scale(self) -> float:
+        return self._scale_at(self.num_timesteps, self.start, self.end, self.warmup_steps, self.ramp_steps)
+
+    def _state_scale(self) -> float:
+        return self._scale_at(
+            self.num_timesteps,
+            self.state_start,
+            self.state_end,
+            self.state_warmup_steps,
+            self.state_ramp_steps,
+        )
+
+    def _set_extractor_scales(self, obj, image_scale: float, state_scale: float) -> None:
+        extractor = getattr(obj, "features_extractor", None)
+        if extractor is not None and hasattr(extractor, "set_image_scale"):
+            extractor.set_image_scale(image_scale)
+        if extractor is not None and hasattr(extractor, "set_state_scale"):
+            extractor.set_state_scale(state_scale)
+
+    def _apply_scales(self, image_scale: float, state_scale: float) -> None:
+        for name in ("actor", "actor_target", "critic", "critic_target"):
+            module = getattr(self.model.policy, name, None)
+            if module is not None:
+                self._set_extractor_scales(module, image_scale, state_scale)
+
+    def _on_training_start(self) -> None:
+        self._apply_scales(self.start, self.state_start)
+        print(f"[FeatureScale] initial image={self.start:.3f} state={self.state_start:.3f}")
+
+    def _on_step(self) -> bool:
+        image_scale = self._image_scale()
+        state_scale = self._state_scale()
+        self._apply_scales(image_scale, state_scale)
+        report_image = (
+            self._last_reported_image_scale is None
+            or abs(image_scale - self._last_reported_image_scale) >= 0.1
+        )
+        report_state = (
+            self._last_reported_state_scale is None
+            or abs(state_scale - self._last_reported_state_scale) >= 0.1
+        )
+        if report_image or report_state:
+            self._last_reported_image_scale = image_scale
+            self._last_reported_state_scale = state_scale
+            print(
+                f"[FeatureScale] step={self.num_timesteps} "
+                f"image={image_scale:.3f} state={state_scale:.3f}"
+            )
+        return True
+
+
 # ---------------------------------------------------------------------------
 # Policy / feature extractor factory
 # ---------------------------------------------------------------------------
 
-def make_policy_kwargs(obs: str, encoder: str, encoder_path: str | None) -> tuple[str, dict]:
+def make_policy_kwargs(
+    obs: str,
+    encoder: str,
+    encoder_path: str | None,
+    image_scale_start: float = 1.0,
+    state_scale_start: float = 1.0,
+) -> tuple[str, dict]:
     """Return (policy_name, policy_kwargs) for TD3."""
     if not is_bev_obs(obs):
         return "MlpPolicy", dict(net_arch=[256, 256])
 
     # BEV obs — MultiInputPolicy with a CNN or UNet extractor
-    if encoder in _UNET_ENCODERS:
+    if encoder == "state_only":
+        extractor_cls = DictStateOnlyFeatureExtractor
+    elif encoder in _UNET_ENCODERS:
         extractor_cls = UNetFeatureExtractor
     else:
         extractor_cls = CNNFeatureExtractor
 
     extractor_kwargs = {}
+    if encoder == "scaled_cnn":
+        extractor_kwargs["image_scale"] = image_scale_start
+        extractor_kwargs["state_scale"] = state_scale_start
     if encoder in _PRETRAIN_ENCODERS:
         extractor_kwargs["encoder_state_dict_path"] = encoder_path
         extractor_kwargs["freeze_encoder"] = encoder.endswith("frozen")
@@ -423,7 +519,7 @@ def make_policy_kwargs(obs: str, encoder: str, encoder_path: str | None) -> tupl
         features_extractor_class=extractor_cls,
         features_extractor_kwargs=extractor_kwargs,
         net_arch=[256, 256],
-        share_features_extractor=True,
+        share_features_extractor=False,
     )
 
 
@@ -455,6 +551,14 @@ def main(
     n_eval_episodes: int = 10,
     eval_freq_timesteps: int = 10_000,
     normalized_eval_freq_timesteps: int = 30_000,
+    image_scale_start: float = 0.0,
+    image_scale_end: float = 1.0,
+    image_scale_warmup_steps: int = 20_000,
+    image_scale_ramp_steps: int = 100_000,
+    state_scale_start: float = 1.0,
+    state_scale_end: float = 1.0,
+    state_scale_warmup_steps: int = 120_000,
+    state_scale_ramp_steps: int = 100_000,
     retry_on_failure: bool = False,
 ):
     # --- Validate args ---
@@ -512,7 +616,13 @@ def main(
         resolved_encoder_path = str(ep)
 
     # --- Policy ---
-    policy, policy_kwargs = make_policy_kwargs(obs, encoder, resolved_encoder_path)
+    policy, policy_kwargs = make_policy_kwargs(
+        obs,
+        encoder,
+        resolved_encoder_path,
+        image_scale_start=image_scale_start if encoder == "scaled_cnn" else 1.0,
+        state_scale_start=state_scale_start if encoder == "scaled_cnn" else 1.0,
+    )
 
     # --- Training env ---
     if n_envs > 1:
@@ -534,10 +644,21 @@ def main(
     # --- Eval env ---
     # SB3 auto-wraps the training VecEnv with VecTransposeImage for image obs.
     # EvalCallback skips this, so we pre-wrap the eval env for BEV variants.
+    # For BEV, use the same number of parallel workers as training so that
+    # EvalCallback can run n_envs episodes simultaneously and finish faster.
     if is_bev_obs(obs):
-        eval_env = VecTransposeImage(
-            DummyVecEnv([_make_env_fn(scenario, obs, reward, lidar_beams, rank=n_envs)])
-        )
+        if n_envs > 1:
+            eval_env = VecTransposeImage(
+                SubprocVecEnv(
+                    [_make_env_fn(scenario, obs, reward, lidar_beams, rank=n_envs + i)
+                     for i in range(n_envs)],
+                    start_method="fork",
+                )
+            )
+        else:
+            eval_env = VecTransposeImage(
+                DummyVecEnv([_make_env_fn(scenario, obs, reward, lidar_beams, rank=n_envs)])
+            )
     else:
         eval_env = Monitor(make_env(scenario, obs, render_mode=None,
                                     reward=reward, lidar_beams=lidar_beams))
@@ -579,6 +700,18 @@ def main(
             eval_env.env.obstacles_low  = 5
             eval_env.env.obstacles_high = 10
         cbs.append(ObstacleCallback())
+
+    if encoder == "scaled_cnn":
+        cbs.append(FeatureScaleScheduleCallback(
+            start=image_scale_start,
+            end=image_scale_end,
+            warmup_steps=image_scale_warmup_steps,
+            ramp_steps=image_scale_ramp_steps,
+            state_start=state_scale_start,
+            state_end=state_scale_end,
+            state_warmup_steps=state_scale_warmup_steps,
+            state_ramp_steps=state_scale_ramp_steps,
+        ))
 
     cbs.append(EvalCallback(
         eval_env,
@@ -640,6 +773,8 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "BEV encoder mode (--obs bev only). "
             "scratch: end-to-end from random init. "
+            "state_only: ablation that ignores BEV and feeds only the vector through MultiInputPolicy. "
+            "scaled_cnn: scratch CNN with scheduled image feature scale. "
             "ae_frozen/ae_unfrozen: pretrained NatureCNN AE. "
             "unet_frozen/unet_unfrozen: pretrained UNet encoder."
         ),
@@ -699,6 +834,44 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--image_scale_start", type=float, default=0.0,
+        help="Initial image feature scale for --encoder scaled_cnn (default: 0.0).",
+    )
+    parser.add_argument(
+        "--image_scale_end", type=float, default=1.0,
+        help="Final image feature scale for --encoder scaled_cnn (default: 1.0).",
+    )
+    parser.add_argument(
+        "--image_scale_warmup_steps", type=int, default=20_000,
+        help="Timesteps to keep image_scale at the start value (default: 20_000).",
+    )
+    parser.add_argument(
+        "--image_scale_ramp_steps", type=int, default=100_000,
+        help="Timesteps used to ramp image_scale from start to end (default: 100_000).",
+    )
+    parser.add_argument(
+        "--state_scale_start", type=float, default=1.0,
+        help=(
+            "Initial non-steering state scale for --encoder scaled_cnn "
+            "(default: 1.0). Steering angle is never scaled."
+        ),
+    )
+    parser.add_argument(
+        "--state_scale_end", type=float, default=1.0,
+        help=(
+            "Final non-steering state scale for --encoder scaled_cnn "
+            "(default: 1.0; set to 0.0 to force image reliance)."
+        ),
+    )
+    parser.add_argument(
+        "--state_scale_warmup_steps", type=int, default=120_000,
+        help="Timesteps to keep state_scale at the start value (default: 120_000).",
+    )
+    parser.add_argument(
+        "--state_scale_ramp_steps", type=int, default=100_000,
+        help="Timesteps used to ramp state_scale from start to end (default: 100_000).",
+    )
+    parser.add_argument(
         "--render", action="store_true",
         help="Enable rendering (single-env only).",
     )
@@ -745,5 +918,13 @@ if __name__ == "__main__":
         n_eval_episodes=args.eval_episodes,
         eval_freq_timesteps=args.eval_freq,
         normalized_eval_freq_timesteps=args.normalized_eval_freq,
+        image_scale_start=args.image_scale_start,
+        image_scale_end=args.image_scale_end,
+        image_scale_warmup_steps=args.image_scale_warmup_steps,
+        image_scale_ramp_steps=args.image_scale_ramp_steps,
+        state_scale_start=args.state_scale_start,
+        state_scale_end=args.state_scale_end,
+        state_scale_warmup_steps=args.state_scale_warmup_steps,
+        state_scale_ramp_steps=args.state_scale_ramp_steps,
         retry_on_failure=args.retry_on_failure,
     )

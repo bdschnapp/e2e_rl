@@ -6,8 +6,8 @@
 \toprule
 Study & Scenario & Observation sweep & Reward sweep & Runs & Purpose \\
 \midrule
-Phase 1A & forward & state, lidar, BEV & dense & 3 & Select best forward observation space \\
-Phase 1B & reverse & state, lidar, BEV & dense & 3 & Select best reverse observation space \\
+Phase 1A & forward & state, lidar, BEV variants & dense & 5+ & Select best forward observation space and BEV representation \\
+Phase 1B & reverse & state, lidar, BEV variants & dense & 5+ & Select best reverse observation space and BEV representation \\
 Phase 2A & forward & best from Phase 1A & dense, tractor\_focus, multiplicative & 3 & Select best forward reward \\
 Phase 2B & reverse & best from Phase 1B & dense, no\_hitch, multiplicative & 3 & Select best reverse reward \\
 Phase 3 & forward, reverse & best RL configuration per direction & benchmark only & 2 & Compare TD3 against tuned pure pursuit, PID, and MPC \\
@@ -15,4 +15,3 @@ Phase 4 & forward\_obs, reverse\_obs & lidar or BEV & best reward from matching 
 \bottomrule
 \end{tabular}
 \end{table}
-

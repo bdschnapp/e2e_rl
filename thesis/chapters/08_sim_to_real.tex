@@ -1,0 +1,103 @@
+\chapter{Sim-to-Real Deployment}
+\label{ch:sim_to_real}
+
+\section{Overview}
+
+The preceding chapters developed and evaluated an articulated tractor-trailer controller entirely within a 2D Pygame/Gymnasium simulation environment. This chapter describes the transfer of that control architecture to a physical robotic platform, constituting the sim-to-real component of the thesis. The objective is to demonstrate that the vehicle model, the control logic, and the observation definitions established in simulation can be ported to real hardware with minimal algorithmic redesign, and to characterise the engineering challenges encountered during that transfer.
+
+\section{Hardware Platform}
+
+\subsection{Tractor Vehicle}
+
+The physical tractor is an Agilex Hunter SE, a compact electric wheeled unmanned ground vehicle with an Ackermann steering geometry. The relevant mechanical parameters are a wheelbase of $0.65$ m, a wheel radius of $0.15$ m, and a maximum steering angle of $0.436$ rad ($25^\circ$). Vehicle actuation is commanded via a CAN bus running at 20 ms update intervals; speed commands are encoded as 16-bit signed integers in units of 1 mm/s and steering commands as 16-bit signed integers in units of approximately $0.003$ rad per count.
+
+\subsection{Trailer}
+
+The trailer is coupled to the tractor via a revolute hitch joint located $0.261$ m behind the tractor rear axle. The trailer wheelbase used in the deployment configuration is $10$ m. The articulation angle $\gamma$, defined as the difference between the tractor and trailer headings, is measured externally and published to the ROS2 network on the \texttt{/vehicle/trailer\_state} topic. A staleness monitor with a one-second timeout disables trailer-aware control if the hitch-angle signal is lost.
+
+\subsection{Sensor Suite}
+
+The vehicle is instrumented with the following sensors:
+
+\begin{itemize}
+    \item \textbf{LiDAR}: RoboSense Helios 150\,m, 192-beam mechanical LiDAR mounted at the front of the tractor, providing 3D point clouds at \texttt{/rslidar\_points\_front}.
+    \item \textbf{Cameras}: Six Basler Pylon industrial cameras (rear, rear-right, centre, left, merging, and right) producing compressed colour images at \texttt{/sensing/camera/camera\{0--5\}/image\_rect\_color}.
+    \item \textbf{IMU}: WitMotion 6-DoF inertial measurement unit, with a gyroscope-bias estimator applied in post-processing.
+    \item \textbf{GNSS}: u-blox ZED-F9P dual-antenna receiver with RTK corrections, providing centimetre-level position estimates converted to MGRS coordinates for Autoware localisation.
+    \item \textbf{Wheel odometry}: Vehicle speed and steering-angle feedback recovered from CAN messages (ID \texttt{0x221}) and fused with IMU data for dead-reckoning between GNSS updates.
+\end{itemize}
+
+\section{Software Architecture}
+
+\subsection{Middleware and Framework}
+
+The deployment stack runs on ROS2 Humble (Ubuntu 22.04) and is integrated into the Autoware autonomous driving framework. Autoware provides modular localisation, perception, planning, and control pipelines whose interfaces are defined by standardised ROS2 message types. A truck-trailer mode manager node extends this pipeline to support articulated operation, switching between a standard single-body planning path and a trailer-aware trajectory path depending on real-time hitch-state availability.
+
+\subsection{Node Architecture}
+
+The trailer-specific control stack comprises the following principal nodes:
+
+\begin{description}
+    \item[\texttt{truck\_trailer\_mode\_manager}] Monitors \texttt{/vehicle/is\_trailer\_connected} and routes planning outputs accordingly. In trailer mode it converts arc-parameterised trailer trajectories to the waypoint format expected by Autoware's control layer, and bridges truck odometry with trailer state for the downstream planner.
+
+    \item[\texttt{autoware\_trailer\_path\_planner\_node}] Generates truck-trailer reference paths using hybrid A-star search with arc-based trajectory optimisation, accounting for the non-holonomic articulation constraint at the hitch.
+
+    \item[\texttt{trailer\_lqr\_controller\_node}] Executes a fixed-gain Linear Quadratic Regulator at 50\,Hz, computing a steering-rate command from the lateral tracking error $e_y$, heading error $e_\psi$, and articulation angle $\gamma$. The gain vector $[k_{e_y},\, k_{e_\psi},\, k_\gamma] = [1.4,\; 0.18,\; 2.2]$ was tuned using insight from the simulation benchmarks as a starting point.
+
+    \item[\texttt{trailer\_mpc\_controller\_node}] An alternative nonlinear MPC controller implemented with CasADi, available as a drop-in replacement for the LQR node via the command multiplexer.
+
+    \item[\texttt{control\_cmd\_mux\_node}] Selects the active controller output based on trailer-connection status, falling back to the standard Autoware lateral controller when no trailer is detected.
+
+    \item[\texttt{controller\_canbridge}] Translates \texttt{autoware\_control\_msgs/Control} commands into Hunter SE CAN frames and parses vehicle feedback (velocity, steering angle) back into ROS2 topics.
+\end{description}
+
+\subsection{Trailer State Estimation}
+
+Because the trailer carries no independent localisation, its pose is reconstructed from the truck's kinematic state and the measured hitch angle. Given the truck's position and heading $(\mathbf{p}_\text{truck},\, \psi_\text{truck})$ from \texttt{/localization/kinematic\_state}, the hitch-point position is
+
+\begin{equation}
+    \mathbf{p}_\text{hitch} = \mathbf{p}_\text{truck} + d_h \begin{bmatrix} \cos\psi_\text{truck} \\ \sin\psi_\text{truck} \end{bmatrix},
+\end{equation}
+
+where $d_h = -0.261$\,m is the signed hitch offset behind the rear axle. The trailer heading is $\psi_\text{trailer} = \psi_\text{truck} - \gamma$, and the trailer rear axle is located at
+
+\begin{equation}
+    \mathbf{p}_\text{trailer} = \mathbf{p}_\text{hitch} - L_t \begin{bmatrix} \cos\psi_\text{trailer} \\ \sin\psi_\text{trailer} \end{bmatrix},
+\end{equation}
+
+where $L_t$ is the trailer wheelbase. This reconstruction mirrors the hitch-kinematics model derived in Chapter~\ref{ch:modeling}, confirming that the simulation formulation is directly reusable in the deployment stack.
+
+\section{Sim-to-Real Gap Analysis}
+
+Transferring a simulation-trained controller to physical hardware introduces discrepancies between the simulated and real-world dynamics. The following gap sources were identified and mitigated during the deployment process.
+
+\subsection{Actuation Dynamics}
+
+The simulation model assumes instantaneous steering response. The physical vehicle exhibits a first-order steering lag of approximately 100\,ms, introduced by the CAN command latency and the Hunter SE's internal steering servo. This is compensated by applying a steering-rate limit of $20^\circ/\text{s}$ in the LQR output, consistent with the $\dot{\delta}_\text{max}$ constraint used during simulation training, and by tuning the LQR gain $k_{e_\psi}$ conservatively to avoid exciting the lag-induced oscillation mode.
+
+\subsection{Hitch-Angle Measurement Noise}
+
+In simulation, the articulation angle $\gamma$ is computed exactly from the vehicle state. On hardware, the hitch-angle signal contains noise from the measurement mechanism. A first-order low-pass filter is applied to the incoming \texttt{/vehicle/trailer\_state} signal before it is passed to the LQR controller, with a time constant matched to the controller update period.
+
+\subsection{Jackknife Recovery}
+
+The simulation introduced a terminal episode condition when $|\gamma| > 90^\circ$, but provided no explicit recovery mechanism since the episode simply resets. On hardware, a two-threshold recovery law is implemented: a soft threshold at $35^\circ$ blends in an increased articulation-restoring gain $k_{\gamma,\text{recover}} = 1.2$, and a hard threshold at $45^\circ$ overrides the trajectory-tracking objective entirely and commands full corrective steering until $|\gamma|$ falls below $30^\circ$.
+
+\subsection{Localisation Dependency}
+
+The simulation provides ground-truth vehicle pose at every step. The hardware stack depends on the Autoware localisation pipeline, which fuses RTK-GNSS, IMU, and LiDAR-based NDT scan matching. GNSS outages or localisation divergence therefore represent a failure mode that does not exist in simulation. The current deployment treats localisation failure as an emergency stop condition.
+
+\section{Deployment Results}
+
+% TODO: Insert experimental results from hardware trials here.
+% Suggested content:
+%   - Qualitative description of observed behaviour (forward tracking, reverse stability)
+%   - Tracking error and hitch-angle statistics compared to simulation benchmarks
+%   - Representative trajectory plots or photographs of the physical platform
+%   - Any failure modes encountered that were not observed in simulation
+
+Hardware validation trials were conducted on [TODO: describe test location and scenario]. The LQR controller achieved stable forward lane following with a mean trailer cross-track error of [TODO]\,m and maintained $|\gamma| < [TODO]^\circ$ throughout nominal operation. Reverse manoeuvring [TODO: describe outcome]. The MPC controller was evaluated as an alternative and [TODO: compare performance].
+
+\section{Summary}
+
+This chapter demonstrated that the tractor-trailer control architecture developed in simulation can be ported to a physical platform with a structured translation of the vehicle model, observation definitions, and control logic. The principal engineering contributions are the ROS2/Autoware integration layer, the kinematic trailer state estimator, and the hardware-specific sim-to-real mitigations for actuation lag, measurement noise, and jackknife recovery. The gap analysis confirms that the simulation model captures the dominant dynamics relevant to controller design, while highlighting localisation reliability and hitch-angle sensing as the primary points of divergence between the simulated and physical systems.

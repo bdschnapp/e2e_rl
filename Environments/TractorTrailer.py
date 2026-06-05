@@ -6,15 +6,19 @@ from VehicleModels.tractor_trailer import StateSpaceTractorTrailer
 from e2erl_utils import config
 
 # --- Configuration ---
-WINDOW_WIDTH = 1500
-WINDOW_HEIGHT = 900
-METERS_PER_PIXEL = 0.1
+# Read from e2erl_utils.config so deployments at non-training scale (e.g. the
+# AgileX lab robot) can override before this module is imported. Defaults
+# preserve the original semi-truck training values.
+WINDOW_WIDTH = config.window_width_px
+WINDOW_HEIGHT = config.window_height_px
+METERS_PER_PIXEL = config.meters_per_pixel
 
-# Vehicle Dimensions (in meters)
-TRACTOR_LENGTH = 4.5
-TRACTOR_WIDTH = 2.5
-TRAILER_LENGTH = 10.0
-TRAILER_WIDTH = 2.5
+# Vehicle Dimensions (in meters). NB: TRAILER_LENGTH is also the kinematic
+# wheelbase (passed as `trailer_length=` to StateSpaceTractorTrailer).
+TRACTOR_LENGTH = config.tractor_length_m
+TRACTOR_WIDTH = config.tractor_width_m
+TRAILER_LENGTH = config.trailer_length_m
+TRAILER_WIDTH = config.trailer_width_m
 
 # Colors
 COLOR_BLACK = (0, 0, 0)
@@ -26,8 +30,8 @@ COLOR_TRACTOR = (20, 35, 125)
 COLOR_TRAILER = (220, 130, 10)
 
 # Observation Dimensions
-OBS_WIDTH = 84
-OBS_HEIGHT = 84
+OBS_WIDTH = 32
+OBS_HEIGHT = 32
 
 
 class TractorTrailerEnv(gym.Env):

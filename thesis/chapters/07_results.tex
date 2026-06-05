@@ -3,7 +3,7 @@
 
 \section{Path Following Performance}
 
-The results pipeline supports controlled comparison across observation modalities and controller families. Forward lane-following serves as the first benchmark task, with matched TD3 agents trained on state-only, lidar, end-to-end CNN BEV, pretrained autoencoder BEV, and pretrained UNet BEV observations. The evaluation script aggregates tractor and trailer cross-track error, hitch-angle statistics, completion rate, and inference latency across repeated episodes.
+The results pipeline supports controlled comparison across observation modalities and controller families. Forward lane-following serves as the first benchmark task, with matched TD3 agents trained on state-only, lidar, end-to-end CNN BEV, pretrained autoencoder BEV, pretrained UNet BEV, and diagnostic scaled-CNN BEV observations. The evaluation script aggregates tractor and trailer cross-track error, hitch-angle statistics, completion rate, and inference latency across repeated episodes.
 
 This structure is important for the thesis because it separates two questions that were previously entangled: whether the articulated control task benefits from richer sensing, and whether any benefit comes from the sensing modality itself or from the representation-learning pipeline used to process it.
 
@@ -24,7 +24,7 @@ Table~\ref{tab:results_plan_matrix} converts that sequence into an executable ru
 \section{Observation Space Ablation}
 \label{sec:obs_ablation}
 
-The observation space ablation compares seven configurations on the no-obstacle forward and reverse tasks: state-only, lidar (best beam count from Section~\ref{sec:lidar_ablation}), end-to-end CNN BEV from random initialisation, frozen autoencoder BEV, fine-tuned autoencoder BEV, frozen UNet BEV, and fine-tuned UNet BEV. All agents share the same TD3 backbone, reward formulation, and hyperparameters, so performance differences are attributed to the observation and representation choices alone.
+The observation space ablation compares the following configurations on the no-obstacle forward and reverse tasks: state-only, lidar (best beam count from Section~\ref{sec:lidar_ablation}), end-to-end CNN BEV from random initialisation, diagnostic BEV state-only through the multi-input policy, scaled-CNN BEV, frozen autoencoder BEV, fine-tuned autoencoder BEV, frozen UNet BEV, and fine-tuned UNet BEV. All agents share the same TD3 backbone, reward formulation, and hyperparameters wherever possible, so performance differences are attributed to the observation and representation choices alone. The diagnostic BEV state-only and scaled-CNN variants are included because early experiments showed that a randomly initialised image branch can degrade an otherwise learnable state policy. These runs distinguish a failure of the visual representation from a failure of the BEV environment or Stable Baselines3 multi-input wrapper.
 
 \begin{figure}[H]
     \centering
@@ -107,7 +107,7 @@ Reverse evaluation uses dedicated reverse line-following and reverse obstacle-av
 
 \section{Perception Robustness}
 
-The perception study uses a concrete ablation structure: state variables only, state plus lidar, end-to-end BEV learning, and frozen pretrained BEV encoders. Because all variants share the same TD3 backbone and task definition, differences in tracking performance can be attributed more directly to the observation and representation choices than to changes in the control architecture.
+The perception study uses a concrete ablation structure: state variables only, state plus lidar, end-to-end BEV learning, scaled BEV learning, and pretrained BEV encoders. Because all variants share the same TD3 backbone and task definition, differences in tracking performance can be attributed more directly to the observation and representation choices than to changes in the control architecture. The scaled-CNN experiments are interpreted as representation-learning diagnostics: if a policy learns when the image branch is initially suppressed but degrades when the image contribution reaches full scale, the result indicates that the learned visual features are not yet as reliable as the engineered state variables.
 
 In practical terms, the most meaningful observation-space study is the one run on the no-obstacle environments. Obstacle environments confound the comparison because different observation spaces change not only path-tracking quality but also how much implicit local-planning information is available to the policy. They also change how much benefit a method can obtain from modulating speed, which is undesirable in the core controller comparison.
 

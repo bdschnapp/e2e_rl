@@ -184,6 +184,15 @@ class LineFollowingEnv(TractorTrailerEnv):
             return progress_reward - tractor_penalty - self._proximity_penalty()
 
         if self.reward_mode == "multiplicative":
+            # Truly multiplicative: speed is INSIDE the product so a
+            # stopped vehicle on a perfect line gets zero reward, mirroring
+            # how the reverse multiplicative reward at line ~1011 is
+            # structured. The previous additive form
+            #     4 · path · hitch  +  0.5 · clip(xd, 0, 1) - P_prox
+            # gave the policy a free 4 reward per step for "park on line",
+            # which became its preferred behaviour at deployment-class
+            # speeds (≤ 2 m/s) where the env-truncation pressure isn't
+            # large enough to dominate.
             path_term = np.exp(
                 -(
                     abs(error)
@@ -194,8 +203,8 @@ class LineFollowingEnv(TractorTrailerEnv):
             )
             hitch_term = np.exp(-1.5 * abs(hitch_angle))
             return (
-                4.0 * path_term * hitch_term
-                + 0.5 * np.clip(self.vehicle.xd, 0.0, 1.0)
+                4.0 * np.clip(self.vehicle.xd, 0.0, 1.0)
+                * path_term * hitch_term
                 - self._proximity_penalty()
             )
 
@@ -832,6 +841,59 @@ class LaneDrivingEnv(LineFollowingEnv):
             self.vehicle.s, hitch_angle, error, error_theta, error_t, error_theta_t, k1, k2,
         ], dtype=np.float32)
 
+    def _get_bev_image_obs(self):
+        """
+        Build the CNN image observation from the already-rendered BEV frame.
+        The base renderer is left unchanged; this only crops the transformed
+        frame before downscaling to the policy input resolution.
+        """
+        from Environments.TractorTrailer import OBS_WIDTH, OBS_HEIGHT
+
+        full_frame = self._render_frame()
+
+        crop_m = getattr(config, "bev_obs_crop_m", None)
+        if crop_m is not None:
+            zoom = float(getattr(config, "bev_zoom_scale", 1.0))
+            crop_px = int(round(float(crop_m) * zoom / METERS_PER_PIXEL))
+            crop_px = max(1, min(crop_px, full_frame.shape[0], full_frame.shape[1]))
+            cy = full_frame.shape[0] // 2
+            cx = full_frame.shape[1] // 2
+            half = crop_px // 2
+            y0 = max(0, min(cy - half, full_frame.shape[0] - crop_px))
+            if "reverse" in self.__class__.__name__.lower():
+                crop_anchor = getattr(
+                    config,
+                    "bev_obs_crop_anchor_reverse",
+                    getattr(config, "bev_obs_crop_anchor", "center"),
+                )
+            else:
+                crop_anchor = getattr(
+                    config,
+                    "bev_obs_crop_anchor_forward",
+                    getattr(config, "bev_obs_crop_anchor", "center"),
+                )
+            if crop_anchor == "left":
+                x0 = 0
+            elif crop_anchor == "top":
+                y0 = 0
+                x0 = max(0, min(cx - half, full_frame.shape[1] - crop_px))
+            elif crop_anchor == "right":
+                x0 = full_frame.shape[1] - crop_px
+            elif crop_anchor == "bottom":
+                y0 = full_frame.shape[0] - crop_px
+                x0 = max(0, min(cx - half, full_frame.shape[1] - crop_px))
+            else:
+                x0 = max(0, min(cx - half, full_frame.shape[1] - crop_px))
+            full_frame = full_frame[y0:y0 + crop_px, x0:x0 + crop_px]
+
+        surface = pygame.surfarray.make_surface(
+            np.transpose(full_frame, axes=(1, 0, 2))
+        )
+        small_surface = pygame.transform.scale(surface, (OBS_WIDTH, OBS_HEIGHT))
+        small_rgb = pygame.surfarray.pixels3d(small_surface)
+        small_gray = small_rgb.mean(axis=2)
+        return np.expand_dims(small_gray, axis=-1).astype(np.uint8)
+
 
 def _make_state_obs_bounds():
     """Return (low, high) arrays for the 8-dim state observation space."""
@@ -1034,7 +1096,7 @@ class BevObservationLineFollowingEnv(LaneDrivingEnv):
     Observation space (Dict):
       'vector': 8-dim  [s, γ, e_y, e_ψ, e_y_t, e_ψ_t, κ_10, κ_20]
                (same state as StateObservationLineFollowingEnv)
-      'image':  (84, 84, 1) uint8 grayscale BEV from LaneDrivingEnv._render_frame
+      'image':  (32, 32, 1) uint8 grayscale BEV from LaneDrivingEnv._render_frame
 
     This lets image-based agents (CNNFeatureExtractor) access explicit state cues
     alongside the BEV, which is the fair comparison to lidar+state approaches.
@@ -1058,18 +1120,7 @@ class BevObservationLineFollowingEnv(LaneDrivingEnv):
         return super()._get_trunc()
 
     def _get_obs(self):
-        from Environments.TractorTrailer import OBS_WIDTH, OBS_HEIGHT
-
-        full_frame = self._render_frame()
-        full_surface = pygame.surfarray.make_surface(
-            np.transpose(full_frame, axes=(1, 0, 2))
-        )
-        small_surface = pygame.transform.scale(full_surface, (OBS_WIDTH, OBS_HEIGHT))
-        small_rgb = pygame.surfarray.pixels3d(small_surface)
-        small_gray = small_rgb.mean(axis=2)
-        image_obs = np.expand_dims(small_gray, axis=-1).astype(np.uint8)
-
-        return {'image': image_obs, 'vector': self._get_state_vector_obs()}
+        return {'image': self._get_bev_image_obs(), 'vector': self._get_state_vector_obs()}
 
 
 class ReverseLidarStateObservationLineFollowingEnv(ReverseStateObservationLineFollowingEnv):
@@ -1134,7 +1185,7 @@ class ReverseBevObservationLineFollowingEnv(ReverseStateObservationLineFollowing
 
     Observation space (Dict):
       'vector': 8-dim [s, γ, e_y, e_ψ, e_y_t, e_ψ_t, κ₁, κ₂]
-      'image':  (84, 84, 1) uint8 grayscale BEV
+      'image':  (32, 32, 1) uint8 grayscale BEV
     """
 
     def __init__(self, render_mode="human", max_episode_steps=1000, reward_mode: str = "dense",
@@ -1153,18 +1204,7 @@ class ReverseBevObservationLineFollowingEnv(ReverseStateObservationLineFollowing
         })
 
     def _get_obs(self):
-        from Environments.TractorTrailer import OBS_WIDTH, OBS_HEIGHT
-
-        full_frame = self._render_frame()
-        full_surface = pygame.surfarray.make_surface(
-            np.transpose(full_frame, axes=(1, 0, 2))
-        )
-        small_surface = pygame.transform.scale(full_surface, (OBS_WIDTH, OBS_HEIGHT))
-        small_rgb = pygame.surfarray.pixels3d(small_surface)
-        small_gray = small_rgb.mean(axis=2)
-        image_obs = np.expand_dims(small_gray, axis=-1).astype(np.uint8)
-
-        return {'image': image_obs, 'vector': self._get_state_vector_obs()}
+        return {'image': self._get_bev_image_obs(), 'vector': self._get_state_vector_obs()}
 
 
 def compute_curvature(env, lookahead_steps=10, max_curvature=0.3):
