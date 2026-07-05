@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tractor_trailer_rl"
+version = "0.1.0"
+description = "Clean-room tractor-trailer RL: config-driven envs, pure observation builder, TD3 training. Successor to e2e_rl with no monkeypatching."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "gymnasium",
+]
+
+[project.optional-dependencies]
+train = ["stable-baselines3", "torch", "tensorboard"]
+render = ["pygame"]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

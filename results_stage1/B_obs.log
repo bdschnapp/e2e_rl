@@ -1,0 +1,177 @@
+# Stage-1 sweep: 36 runs (0 done, 36 to run) -> results_stage1/B_obs  (preset=shunt steps=1500000 n_envs=256)
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 53, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/__init__.py", line 8, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/array_ops.py", line 56, in <module>
+    from pandas.core.computation import expressions
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py", line 21, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 67, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py", line 61, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/nanops.py", line 52, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 2, in <module>
+    from .reduce import (
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 8, in <module>
+    from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 10, in <module>
+    from stable_baselines3.common.base_class import BaseAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 19, in <module>
+    from stable_baselines3.common.env_util import is_wrapped
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/env_util.py", line 6, in <module>
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/atari_wrappers.py", line 10, in <module>
+    import cv2
+AttributeError: _ARRAY_API not found
+  [1/36] td3__forward__state__multiplicative__s0  completion=1.00 cte=0.402 hitch=0.135 stt=187648 (460s)
+  [2/36] td3__forward__state__multiplicative__s1  completion=0.00 cte=1.270 hitch=0.802 stt=None (469s)
+  [3/36] td3__forward__state__multiplicative__s2  completion=1.00 cte=0.360 hitch=0.101 stt=187648 (459s)
+  [4/36] td3__forward__lidar4__multiplicative__s0  completion=1.00 cte=0.357 hitch=0.105 stt=187648 (484s)
+  [5/36] td3__forward__lidar4__multiplicative__s1  completion=1.00 cte=0.355 hitch=0.087 stt=187648 (483s)
+  [6/36] td3__forward__lidar4__multiplicative__s2  completion=1.00 cte=0.330 hitch=0.098 stt=187648 (482s)
+  [7/36] td3__forward__lidar8__multiplicative__s0  completion=1.00 cte=0.409 hitch=0.092 stt=187648 (496s)
+  [8/36] td3__forward__lidar8__multiplicative__s1  completion=1.00 cte=0.371 hitch=0.109 stt=187648 (487s)
+  [9/36] td3__forward__lidar8__multiplicative__s2  completion=1.00 cte=0.353 hitch=0.101 stt=187648 (494s)
+  [10/36] td3__forward__lidar16__multiplicative__s0  completion=1.00 cte=0.358 hitch=0.081 stt=187648 (508s)
+  [11/36] td3__forward__lidar16__multiplicative__s1  completion=1.00 cte=0.384 hitch=0.109 stt=187648 (508s)
+  [12/36] td3__forward__lidar16__multiplicative__s2  completion=1.00 cte=0.366 hitch=0.091 stt=187648 (511s)
+  [13/36] td3__forward__lidar24__multiplicative__s0  completion=1.00 cte=0.417 hitch=0.102 stt=187648 (524s)
+  [14/36] td3__forward__lidar24__multiplicative__s1  completion=1.00 cte=0.420 hitch=0.093 stt=187648 (517s)
+  [15/36] td3__forward__lidar24__multiplicative__s2  completion=1.00 cte=0.346 hitch=0.095 stt=187648 (518s)
+  [16/36] td3__forward__lidar32__multiplicative__s0  completion=1.00 cte=0.674 hitch=0.098 stt=187648 (528s)
+  [17/36] td3__forward__lidar32__multiplicative__s1  completion=1.00 cte=0.409 hitch=0.094 stt=187648 (528s)
+  [18/36] td3__forward__lidar32__multiplicative__s2  completion=1.00 cte=0.403 hitch=0.112 stt=187648 (533s)
+  [19/36] td3__reverse__state__multiplicative__s0  completion=0.99 cte=0.706 hitch=0.158 stt=187648 (465s)
+  [20/36] td3__reverse__state__multiplicative__s1  completion=0.00 cte=0.988 hitch=0.949 stt=None (466s)
+  [21/36] td3__reverse__state__multiplicative__s2  completion=0.99 cte=0.728 hitch=0.162 stt=187648 (464s)
+  [22/36] td3__reverse__lidar4__multiplicative__s0  completion=1.00 cte=0.476 hitch=0.144 stt=375296 (490s)
+  [23/36] td3__reverse__lidar4__multiplicative__s1  completion=0.00 cte=0.982 hitch=0.951 stt=None (496s)
+  [24/36] td3__reverse__lidar4__multiplicative__s2  completion=1.00 cte=0.573 hitch=0.163 stt=187648 (499s)
+  [25/36] td3__reverse__lidar8__multiplicative__s0  completion=1.00 cte=0.549 hitch=0.174 stt=187648 (514s)
+  [26/36] td3__reverse__lidar8__multiplicative__s1  completion=0.00 cte=1.048 hitch=0.949 stt=None (538s)
+  [27/36] td3__reverse__lidar8__multiplicative__s2  completion=0.99 cte=0.545 hitch=0.153 stt=375296 (507s)
+  [28/36] td3__reverse__lidar16__multiplicative__s0  completion=0.99 cte=0.571 hitch=0.172 stt=187648 (529s)
+  [29/36] td3__reverse__lidar16__multiplicative__s1  completion=1.00 cte=0.462 hitch=0.157 stt=187648 (539s)
+  [30/36] td3__reverse__lidar16__multiplicative__s2  completion=0.99 cte=0.511 hitch=0.176 stt=187648 (564s)
+  [31/36] td3__reverse__lidar24__multiplicative__s0  completion=0.99 cte=0.514 hitch=0.179 stt=375296 (536s)
+  [32/36] td3__reverse__lidar24__multiplicative__s1  completion=0.00 cte=0.976 hitch=0.951 stt=None (531s)
+  [33/36] td3__reverse__lidar24__multiplicative__s2  completion=0.00 cte=0.994 hitch=0.952 stt=None (538s)
+  [34/36] td3__reverse__lidar32__multiplicative__s0  completion=0.98 cte=0.529 hitch=0.189 stt=375296 (536s)
+  [35/36] td3__reverse__lidar32__multiplicative__s1  completion=0.00 cte=0.988 hitch=0.951 stt=None (563s)
+  [36/36] td3__reverse__lidar32__multiplicative__s2  completion=0.99 cte=0.533 hitch=0.170 stt=375296 (556s)
+# wrote results_stage1/B_obs/curves.csv, results_stage1/B_obs/summary.csv, results_stage1/B_obs/manifest.jsonl

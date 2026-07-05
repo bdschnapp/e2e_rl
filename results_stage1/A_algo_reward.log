@@ -1,0 +1,377 @@
+# Stage-1 sweep: 32 runs (0 done, 32 to run) -> results_stage1/A_algo_reward  (preset=shunt steps=1500000 n_envs=256)
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 53, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/__init__.py", line 8, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/array_ops.py", line 56, in <module>
+    from pandas.core.computation import expressions
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py", line 21, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 67, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py", line 61, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/nanops.py", line 52, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 2, in <module>
+    from .reduce import (
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 8, in <module>
+    from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 10, in <module>
+    from stable_baselines3.common.base_class import BaseAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 19, in <module>
+    from stable_baselines3.common.env_util import is_wrapped
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/env_util.py", line 6, in <module>
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/atari_wrappers.py", line 10, in <module>
+    import cv2
+AttributeError: _ARRAY_API not found
+  [1/32] ppo__forward__lidar24__dense__s0  completion=0.00 cte=1.270 hitch=0.761 stt=750592 (98s)
+# Stage-1 sweep: 96 runs (1 done, 95 to run) -> results_stage1/A_algo_reward  (preset=shunt steps=1500000 n_envs=256)
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 53, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/__init__.py", line 8, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/array_ops.py", line 56, in <module>
+    from pandas.core.computation import expressions
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py", line 21, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 67, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py", line 61, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/nanops.py", line 52, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 2, in <module>
+    from .reduce import (
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 194, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 143, in main
+    curve, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 8, in <module>
+    from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 10, in <module>
+    from stable_baselines3.common.base_class import BaseAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 19, in <module>
+    from stable_baselines3.common.env_util import is_wrapped
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/env_util.py", line 6, in <module>
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/atari_wrappers.py", line 10, in <module>
+    import cv2
+AttributeError: _ARRAY_API not found
+  [1/95] ppo__forward__lidar24__dense__s1  completion=1.00 cte=0.437 hitch=0.090 stt=750592 (94s)
+  [2/95] ppo__forward__lidar24__dense__s2  completion=0.00 cte=1.259 hitch=0.795 stt=750592 (96s)
+  [3/95] ppo__forward__lidar24__tractor_focus__s0  completion=0.00 cte=0.554 hitch=0.656 stt=562944 (97s)
+  [4/95] ppo__forward__lidar24__tractor_focus__s1  completion=1.00 cte=0.412 hitch=0.099 stt=750592 (91s)
+  [5/95] ppo__forward__lidar24__tractor_focus__s2  completion=1.00 cte=0.343 hitch=0.093 stt=750592 (91s)
+  [6/95] ppo__forward__lidar24__multiplicative__s0  completion=1.00 cte=0.545 hitch=0.089 stt=187648 (89s)
+  [7/95] ppo__forward__lidar24__multiplicative__s1  completion=1.00 cte=0.384 hitch=0.083 stt=187648 (89s)
+  [8/95] ppo__forward__lidar24__multiplicative__s2  completion=1.00 cte=0.374 hitch=0.078 stt=187648 (89s)
+  [9/95] ppo__forward__lidar24__guided__s0  FAILED: ValueError: forward reward mode 'guided' not supported
+  [10/95] ppo__forward__lidar24__guided__s1  FAILED: ValueError: forward reward mode 'guided' not supported
+  [11/95] ppo__forward__lidar24__guided__s2  FAILED: ValueError: forward reward mode 'guided' not supported
+  [12/95] td3__forward__lidar24__dense__s0  completion=1.00 cte=0.467 hitch=0.137 stt=187648 (518s)
+  [13/95] td3__forward__lidar24__dense__s1  completion=1.00 cte=0.399 hitch=0.095 stt=187648 (523s)
+  [14/95] td3__forward__lidar24__dense__s2  completion=1.00 cte=0.463 hitch=0.127 stt=187648 (520s)
+  [15/95] td3__forward__lidar24__tractor_focus__s0  completion=1.00 cte=0.392 hitch=0.125 stt=187648 (520s)
+  [16/95] td3__forward__lidar24__tractor_focus__s1  completion=1.00 cte=0.438 hitch=0.113 stt=187648 (519s)
+  [17/95] td3__forward__lidar24__tractor_focus__s2  completion=1.00 cte=0.509 hitch=0.117 stt=187648 (520s)
+  [18/95] td3__forward__lidar24__multiplicative__s0  completion=1.00 cte=0.400 hitch=0.091 stt=187648 (520s)
+  [19/95] td3__forward__lidar24__multiplicative__s1  completion=1.00 cte=0.420 hitch=0.099 stt=187648 (520s)
+  [20/95] td3__forward__lidar24__multiplicative__s2  completion=1.00 cte=0.366 hitch=0.106 stt=187648 (517s)
+  [21/95] td3__forward__lidar24__guided__s0  FAILED: ValueError: forward reward mode 'guided' not supported
+  [22/95] td3__forward__lidar24__guided__s1  FAILED: ValueError: forward reward mode 'guided' not supported
+  [23/95] td3__forward__lidar24__guided__s2  FAILED: ValueError: forward reward mode 'guided' not supported
+  [24/95] ppo_disc__forward__lidar24__dense__s0  completion=0.00 cte=1.266 hitch=0.803 stt=None (99s)
+  [25/95] ppo_disc__forward__lidar24__dense__s1  completion=0.00 cte=0.935 hitch=0.707 stt=None (100s)
+  [26/95] ppo_disc__forward__lidar24__dense__s2  completion=0.00 cte=0.583 hitch=0.511 stt=None (100s)
+  [27/95] ppo_disc__forward__lidar24__tractor_focus__s0  completion=0.00 cte=0.896 hitch=0.599 stt=None (100s)
+  [28/95] ppo_disc__forward__lidar24__tractor_focus__s1  completion=0.00 cte=0.923 hitch=0.688 stt=None (100s)
+  [29/95] ppo_disc__forward__lidar24__tractor_focus__s2  completion=0.45 cte=0.374 hitch=0.123 stt=None (98s)
+  [30/95] ppo_disc__forward__lidar24__multiplicative__s0  completion=0.07 cte=1.273 hitch=0.258 stt=None (99s)
+  [31/95] ppo_disc__forward__lidar24__multiplicative__s1  completion=0.81 cte=1.082 hitch=0.210 stt=None (98s)
+  [32/95] ppo_disc__forward__lidar24__multiplicative__s2  completion=0.52 cte=0.479 hitch=0.004 stt=None (97s)
+  [33/95] ppo_disc__forward__lidar24__guided__s0  FAILED: ValueError: forward reward mode 'guided' not supported
+  [34/95] ppo_disc__forward__lidar24__guided__s1  FAILED: ValueError: forward reward mode 'guided' not supported
+  [35/95] ppo_disc__forward__lidar24__guided__s2  FAILED: ValueError: forward reward mode 'guided' not supported
+  [36/95] dqn__forward__lidar24__dense__s0  completion=1.00 cte=0.655 hitch=0.113 stt=187648 (347s)
+  [37/95] dqn__forward__lidar24__dense__s1  completion=1.00 cte=0.428 hitch=0.107 stt=375296 (346s)
+  [38/95] dqn__forward__lidar24__dense__s2  completion=1.00 cte=0.419 hitch=0.107 stt=375296 (343s)
+  [39/95] dqn__forward__lidar24__tractor_focus__s0  completion=1.00 cte=0.385 hitch=0.113 stt=375296 (347s)
+  [40/95] dqn__forward__lidar24__tractor_focus__s1  completion=1.00 cte=0.404 hitch=0.113 stt=375296 (347s)
+  [41/95] dqn__forward__lidar24__tractor_focus__s2  completion=1.00 cte=0.579 hitch=0.107 stt=375296 (344s)
+  [42/95] dqn__forward__lidar24__multiplicative__s0  completion=0.94 cte=2.443 hitch=0.115 stt=375296 (351s)
+  [43/95] dqn__forward__lidar24__multiplicative__s1  completion=1.00 cte=0.701 hitch=0.104 stt=187648 (349s)
+  [44/95] dqn__forward__lidar24__multiplicative__s2  completion=0.46 cte=1.258 hitch=0.178 stt=187648 (348s)
+  [45/95] dqn__forward__lidar24__guided__s0  FAILED: ValueError: forward reward mode 'guided' not supported
+  [46/95] dqn__forward__lidar24__guided__s1  FAILED: ValueError: forward reward mode 'guided' not supported
+  [47/95] dqn__forward__lidar24__guided__s2  FAILED: ValueError: forward reward mode 'guided' not supported
+  [48/95] ppo__reverse__lidar24__dense__s0  completion=0.00 cte=0.998 hitch=0.946 stt=None (100s)
+  [49/95] ppo__reverse__lidar24__dense__s1  completion=0.00 cte=1.062 hitch=0.793 stt=None (102s)
+  [50/95] ppo__reverse__lidar24__dense__s2  completion=0.00 cte=1.736 hitch=1.095 stt=None (101s)
+  [51/95] ppo__reverse__lidar24__no_hitch__s0  completion=0.00 cte=1.223 hitch=0.924 stt=None (102s)
+  [52/95] ppo__reverse__lidar24__no_hitch__s1  completion=0.00 cte=1.390 hitch=0.819 stt=None (102s)
+  [53/95] ppo__reverse__lidar24__no_hitch__s2  completion=0.00 cte=1.117 hitch=0.982 stt=None (102s)
+  [54/95] ppo__reverse__lidar24__multiplicative__s0  completion=0.00 cte=1.613 hitch=0.770 stt=None (101s)
+  [55/95] ppo__reverse__lidar24__multiplicative__s1  completion=0.00 cte=1.701 hitch=0.982 stt=None (102s)
+  [56/95] ppo__reverse__lidar24__multiplicative__s2  completion=0.00 cte=1.505 hitch=1.124 stt=None (102s)
+  [57/95] ppo__reverse__lidar24__guided__s0  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [58/95] ppo__reverse__lidar24__guided__s1  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [59/95] ppo__reverse__lidar24__guided__s2  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [60/95] td3__reverse__lidar24__dense__s0  completion=0.94 cte=0.608 hitch=0.216 stt=750592 (524s)
+  [61/95] td3__reverse__lidar24__dense__s1  completion=0.00 cte=1.003 hitch=0.952 stt=None (537s)
+  [62/95] td3__reverse__lidar24__dense__s2  completion=0.00 cte=0.986 hitch=0.952 stt=None (535s)
+  [63/95] td3__reverse__lidar24__no_hitch__s0  completion=0.93 cte=0.614 hitch=0.201 stt=750592 (528s)
+  [64/95] td3__reverse__lidar24__no_hitch__s1  completion=0.91 cte=0.560 hitch=0.222 stt=1125888 (530s)
+  [65/95] td3__reverse__lidar24__no_hitch__s2  completion=0.00 cte=1.020 hitch=0.952 stt=None (535s)
+  [66/95] td3__reverse__lidar24__multiplicative__s0  completion=1.00 cte=0.464 hitch=0.159 stt=187648 (530s)
+  [67/95] td3__reverse__lidar24__multiplicative__s1  completion=0.00 cte=0.986 hitch=0.955 stt=None (537s)
+  [68/95] td3__reverse__lidar24__multiplicative__s2  completion=0.00 cte=0.999 hitch=0.949 stt=None (535s)
+  [69/95] td3__reverse__lidar24__guided__s0  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [70/95] td3__reverse__lidar24__guided__s1  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [71/95] td3__reverse__lidar24__guided__s2  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [72/95] ppo_disc__reverse__lidar24__dense__s0  completion=0.50 cte=0.923 hitch=0.306 stt=None (101s)
+  [73/95] ppo_disc__reverse__lidar24__dense__s1  completion=0.47 cte=0.599 hitch=0.184 stt=None (102s)
+  [74/95] ppo_disc__reverse__lidar24__dense__s2  completion=0.00 cte=0.999 hitch=0.519 stt=None (103s)
+  [75/95] ppo_disc__reverse__lidar24__no_hitch__s0  completion=0.00 cte=1.467 hitch=0.916 stt=None (103s)
+  [76/95] ppo_disc__reverse__lidar24__no_hitch__s1  completion=0.00 cte=0.743 hitch=0.480 stt=None (104s)
+  [77/95] ppo_disc__reverse__lidar24__no_hitch__s2  completion=0.00 cte=0.589 hitch=0.605 stt=None (103s)
+  [78/95] ppo_disc__reverse__lidar24__multiplicative__s0  completion=0.00 cte=1.139 hitch=0.560 stt=None (103s)
+  [79/95] ppo_disc__reverse__lidar24__multiplicative__s1  completion=0.00 cte=1.334 hitch=0.496 stt=None (104s)
+  [80/95] ppo_disc__reverse__lidar24__multiplicative__s2  completion=0.00 cte=1.451 hitch=0.730 stt=None (104s)
+  [81/95] ppo_disc__reverse__lidar24__guided__s0  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [82/95] ppo_disc__reverse__lidar24__guided__s1  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [83/95] ppo_disc__reverse__lidar24__guided__s2  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [84/95] dqn__reverse__lidar24__dense__s0  completion=0.50 cte=1.906 hitch=0.522 stt=None (360s)
+  [85/95] dqn__reverse__lidar24__dense__s1  completion=0.00 cte=0.974 hitch=0.951 stt=None (360s)
+  [86/95] dqn__reverse__lidar24__dense__s2  completion=0.87 cte=0.621 hitch=0.166 stt=None (350s)
+  [87/95] dqn__reverse__lidar24__no_hitch__s0  completion=0.01 cte=2.296 hitch=0.365 stt=1125888 (357s)
+  [88/95] dqn__reverse__lidar24__no_hitch__s1  completion=0.00 cte=0.937 hitch=0.949 stt=1125888 (358s)
+  [89/95] dqn__reverse__lidar24__no_hitch__s2  completion=0.82 cte=1.593 hitch=0.395 stt=1313536 (355s)
+  [90/95] dqn__reverse__lidar24__multiplicative__s0  completion=0.90 cte=2.340 hitch=0.255 stt=None (363s)
+  [91/95] dqn__reverse__lidar24__multiplicative__s1  completion=0.77 cte=1.420 hitch=0.210 stt=1313536 (358s)
+  [92/95] dqn__reverse__lidar24__multiplicative__s2  completion=0.00 cte=0.995 hitch=0.951 stt=None (361s)
+  [93/95] dqn__reverse__lidar24__guided__s0  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [94/95] dqn__reverse__lidar24__guided__s1  FAILED: ValueError: reverse reward mode 'guided' not supported
+  [95/95] dqn__reverse__lidar24__guided__s2  FAILED: ValueError: reverse reward mode 'guided' not supported
+# wrote results_stage1/A_algo_reward/curves.csv, results_stage1/A_algo_reward/summary.csv, results_stage1/A_algo_reward/manifest.jsonl
