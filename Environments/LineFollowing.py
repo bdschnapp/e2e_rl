@@ -184,15 +184,16 @@ class LineFollowingEnv(TractorTrailerEnv):
             return progress_reward - tractor_penalty - self._proximity_penalty()
 
         if self.reward_mode == "multiplicative":
-            # Truly multiplicative: speed is INSIDE the product so a
-            # stopped vehicle on a perfect line gets zero reward, mirroring
-            # how the reverse multiplicative reward at line ~1011 is
-            # structured. The previous additive form
-            #     4 · path · hitch  +  0.5 · clip(xd, 0, 1) - P_prox
-            # gave the policy a free 4 reward per step for "park on line",
-            # which became its preferred behaviour at deployment-class
-            # speeds (≤ 2 m/s) where the env-truncation pressure isn't
-            # large enough to dominate.
+            # ADDITIVE speed floor restored. Commit 20b0326 folded speed INTO
+            # the product (4·clip(xd)·path·hitch) to kill a "park on line"
+            # exploit, but that removed the positive floor for a moving-but-
+            # off-line vehicle: an imperfect policy then earned ≈ −P_prox and
+            # learned to drive into the nearest wall to terminate fast (the
+            # classic "suicidal agent"). The park exploit is now prevented
+            # STRUCTURALLY by the explicit STOP action (parking ends the
+            # episode → no reward farming), so the additive +0.5·clip(xd)
+            # floor is safe again and keeps a moving vehicle out of the red
+            # while it learns to track the line.
             path_term = np.exp(
                 -(
                     abs(error)
@@ -203,8 +204,8 @@ class LineFollowingEnv(TractorTrailerEnv):
             )
             hitch_term = np.exp(-1.5 * abs(hitch_angle))
             return (
-                4.0 * np.clip(self.vehicle.xd, 0.0, 1.0)
-                * path_term * hitch_term
+                4.0 * path_term * hitch_term
+                + 0.5 * np.clip(self.vehicle.xd, 0.0, 1.0)
                 - self._proximity_penalty()
             )
 
@@ -470,6 +471,25 @@ class LaneDrivingEnv(LineFollowingEnv):
 
     def __init__(self, render_mode="human", reward_mode: str = "dense", fixed_speed: bool = True):
         super().__init__(render_mode=render_mode, reward_mode=reward_mode, fixed_speed=fixed_speed)
+
+        # Proximity-penalty band, DERIVED from the lane corridor so a well-centred
+        # vehicle is penalty-free at ANY lane scale. The previous hardcoded 2.0 m
+        # exceeded the lab's lane half-width (1.41 m), so the penalty was ALWAYS
+        # on -- even for a perfectly centred vehicle -- dragging every step's
+        # reward down by ~0.7-1.0. That made early (imperfect-tracking) driving
+        # net-negative, so policies learned to END the episode early rather than
+        # drive: the trailer-reverse policy by drifting until termination, and
+        # the stop-signal policy by firing STOP. Tie the band to the drivable
+        # clearance instead: a vehicle on the centerline has clearance
+        # ~(corridor_half - veh_half_w); set the band to half of that so the
+        # penalty only ramps in as the vehicle approaches the boundary.
+        from Environments.TractorTrailer import TRACTOR_WIDTH, TRAILER_WIDTH
+        corridor_half = (getattr(config, "lane_centerline_half_width_m", 1.75)
+                         + getattr(config, "lane_shoulder_m", 0.0))
+        veh_half_w = max(TRACTOR_WIDTH, TRAILER_WIDTH) / 2.0
+        centred_clearance = max(0.1, corridor_half - veh_half_w)
+        self._PROXIMITY_THRESHOLD_M = 0.5 * centred_clearance
+
         self.occ_grid = None  # np.uint8 [H,W], 0=free, 100=blocked
         self.occ_meta: GridMeta | None = None
         self._occ_surface = None  # pygame.Surface aligned to world extents
@@ -972,6 +992,31 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
                 dtype=np.float32,
             )
 
+    def get_errors(self, x, y, p, xx=None, yy=None):
+        """Reverse-aware heading error.
+
+        The base ``get_errors`` measures heading vs the path's FORWARD tangent,
+        so a correctly-reversing vehicle (body facing ~180° from the tangent)
+        reports a near-constant heading error of ~pi. That is a harmless
+        constant offset in the additive ``dense`` reward, but FATAL in the
+        ``multiplicative`` reward, where heading sits inside ``exp(-(...))``:
+        the constant pi collapses the whole positive reward term by
+        ``exp(-pi) ~ 0.04``, so no policy can earn positive reward and there is
+        no learning signal (the policy drives but never learns to track).
+
+        Wrap the heading error to [-pi, pi] about the REVERSE orientation so a
+        correctly-reversing vehicle reads ~0 heading error. This also makes
+        ``error_theta`` a usable (non-saturated) component of the reverse
+        observation vector. Applies to both the tractor and trailer error
+        calls (both route through this method) and to all reverse subclasses
+        (lidar / bev / tractor-only).
+        """
+        error, error_theta = super().get_errors(x, y, p, xx, yy)
+        scale = config.error_theta_scale or 1.0
+        raw = error_theta / scale            # undo scale -> (p - theta)
+        raw = (raw % (2.0 * np.pi)) - np.pi  # == wrap_to_pi(raw - pi); reverse ~pi -> ~0
+        return error, raw * scale
+
     def _get_reward(self):
         error, error_theta = self.get_vehicle_errors()
         error_t, error_theta_t = self.get_trailer_errors()
@@ -1016,8 +1061,18 @@ class ReverseStateObservationLineFollowingEnv(StateObservationLineFollowingEnv):
                 )
             )
             hitch_term = np.exp(-2.0 * abs(hitch_angle))
+            # ADDITIVE speed floor, mirroring the forward (LineFollowingEnv,
+            # ~L206) and tractor-only (TractorOnly.py) multiplicative rewards.
+            # This is the lone reward that was still fully multiplicative: with
+            # speed INSIDE the product, an imperfect moving trailer earned
+            # ~ -P_prox (negative) every step and the policy preferred to end
+            # the episode (crash / fire the STOP action) rather than keep
+            # driving. The +0.5*clip(-xd) floor keeps a moving vehicle in
+            # positive reward while it learns to track; the park-on-line exploit
+            # is prevented structurally by the explicit STOP action.
             return (
-                5.0 * np.clip(-self.vehicle.xd, 0.0, 1.0) * path_term * hitch_term
+                5.0 * path_term * hitch_term
+                + 0.5 * np.clip(-self.vehicle.xd, 0.0, 1.0)
                 - self._proximity_penalty()
             )
 

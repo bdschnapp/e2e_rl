@@ -1,0 +1,184 @@
+\chapter{Modeling, Simulation, and Problem Formulation}
+\label{ch:modeling_simulation_problem}
+\label{ch:modeling}
+
+\section{Tractor Dynamics}
+\input{equations/tractor_model}
+
+The tractor is modelled as a planar bicycle model, which captures the dominant lateral and yaw behaviour required for lane-following and low-speed manoeuvring. In this representation the front axle is replaced by a single steerable wheel and the rear axle by a single non-steered wheel. The global position $(x,y)$ evolves from the body-frame longitudinal and lateral velocities $(v_x, v_y)$ and the tractor heading $\psi$, as shown in Equations~\ref{eq:tractor_x} and \ref{eq:tractor_y}. This state description is sufficient for the control tasks studied in the thesis because the dominant quantities of interest are path-relative position error, heading error, steering angle, and hitch articulation. These kinematics are driven by the tractor's lateral dynamics: tyre slip angles (\cref{eq:slip}) generate lateral forces through a linearised tyre model (\cref{eq:tireforce}), which combine into the longitudinal, lateral, and yaw-moment balances (\crefrange{eq:long}{eq:yaw}) and, after linearisation about a constant reference speed, the discrete state-space model (\cref{eq:tractor_ss}) that the simulator advances at each timestep.
+
+The modelling objective is not to reproduce every high-speed transient of a road vehicle, but to provide a physically meaningful control environment in which steering commands, heading evolution, and articulation dynamics remain coupled. This balance is important for reinforcement learning: an overly simplified kinematic model would make the task unrealistically easy, whereas a full high-fidelity multibody model would obscure the core control-design questions addressed here.
+
+\section{Trailer Articulation and Reverse Instability}
+\input{equations/trailer_reverse_stability}
+
+The trailer introduces an additional geometric state, the articulation angle $\gamma$, which measures the relative orientation between the tractor and trailer bodies. This variable is central to articulated-vehicle control because it determines whether the trailer remains aligned with the tractor or diverges toward a jackknife configuration. Equation~\ref{eq:hitch_kinematics} captures how steering angle and longitudinal motion interact through the hitch geometry to change $\gamma$ over time.
+
+In forward motion, the hitch dynamics are naturally self-correcting over a broad operating range: modest articulation tends to decay as the tractor pulls the trailer back into alignment. In reverse motion, the sign of the longitudinal velocity changes this behaviour qualitatively. Small articulation errors can grow rather than decay, so the driver or controller must actively stabilise the hitch while simultaneously tracking the path. This instability is the defining challenge of reverse articulated manoeuvring and motivates the use of explicit hitch-angle penalties, trailer-referenced tracking metrics, and dedicated reverse-controller formulations throughout the thesis.
+
+\section{Challenges of Reverse Maneuvering}
+
+Reverse motion is characterised by a sign reversal in the kinematic equations, which transforms the stabilising effect of forward velocity into a destabilising one. Successful reverse manoeuvring therefore requires anticipatory control: the steering input must correct developing trailer error before the hitch angle grows large enough to become unrecoverable. In practical terms, the controller must regulate three coupled objectives at once: trailer path tracking, tractor placement, and articulation stability.
+
+This coupling is what distinguishes articulated reverse control from conventional rigid-vehicle lane following. A controller that focuses only on tractor cross-track error can produce apparently reasonable short-term motion while simultaneously driving the hitch toward instability. For that reason, the reinforcement-learning rewards and classical benchmark metrics used in this thesis prioritise trailer tracking and hitch-angle containment rather than treating them as secondary diagnostics.
+
+\section{Model-Based Control Formulation}
+
+The linearised state-space model of \cref{eq:tractor_ss} is not only a simulation device; it is also the foundation of the classical controllers against which the learned policy is benchmarked, and of the model-based pipeline used in the hardware deployment (\cref{ch:sim_to_real}). Because the pair $(A,B)$ is controllable across the operating-speed range, a linear state-feedback law $\mathbf{u} = -K\boldsymbol{\xi}$ can regulate the tracking states to zero. Choosing the gain $K$ as the linear-quadratic regulator (LQR) that minimises
+
+\begin{equation}
+    J = \int_0^{\infty}\!\left(\boldsymbol{\xi}^\top Q\,\boldsymbol{\xi} + \mathbf{u}^\top R\,\mathbf{u}\right)\mathrm{d}t
+    \label{eq:lqr_cost}
+\end{equation}
+
+trades tracking accuracy (through the weight $Q$) against control effort (through $R$). The block structure of \cref{eq:tractor_ss} leaves the longitudinal and lateral/yaw channels nearly decoupled, so in practice $K$ is given a block-diagonal form that separates speed regulation from steering. This linear design is exact only near its operating point: the pure-pursuit, PID, and MPC baselines tuned in \cref{ch:learning_framework} extend the same model-based philosophy to the full nonlinear path-tracking problem, and the deployment's conventional pipeline (\cref{ch:sim_to_real}) uses an analogous LQR/MPC tracker. The reinforcement-learning controller developed in this thesis is, in effect, a learned alternative to this model-based chain that requires neither an explicit linearisation nor hand-tuned gains.
+
+\section{Simulation Environment}
+\label{ch:simulation}
+
+The training and evaluation environment is a custom 2D simulation built on the Farama Foundation Gymnasium library. Gymnasium provides a standardised API for implementing environments that integrate directly with reinforcement learning algorithm libraries, including Stable Baselines3.
+
+The simulation is implemented using Pygame for rendering and physics integration. At each timestep, the discrete-time tractor-trailer state-space equations are re-evaluated using the previous state and control inputs, updating the vehicle position, heading, hitch angle, and associated error signals. Pygame renders the scene as a 2D top-down view, from which the BEV image observation is captured.
+
+The simulation environment includes:
+
+\begin{enumerate}
+    \item \textbf{Vehicle Model}: A combined dynamic tractor (bicycle model with a Pacejka tire model linearised to constant cornering stiffness, \cref{eq:tireforce}) and kinematic trailer with hitch constraints, using Tesla Model S parameters.
+    \item \textbf{Lane Generation}: Randomly generated lane paths using cubic spline interpolation, producing varying curvature paths for training and evaluation.
+    \item \textbf{Obstacle Placement and Local Replanning}: Randomly placed static obstacles within the lane and a local path planner that perturbs the centreline around those obstacles for avoidance experiments.
+    \item \textbf{Collision Detection}: Pygame sprite mask-based collision detection, providing pixel-precise contact sensing between the vehicle body and obstacles or lane boundaries.
+    \item \textbf{BEV Camera}: A configurable bird's-eye view observation derived from the Pygame render, cropped to a local vehicle-centred region and resized to a $32 \times 32$ grayscale image.
+\end{enumerate}
+
+\section{Environment Tasks}
+
+The environment implementation is structured around reusable task and observation components. A base lane-following task is combined with different observation heads (state only, lidar, or BEV), while obstacle-aware variants reuse the same task logic through a mixin that adds obstacle generation, local path planning, and obstacle-aware reward evaluation. This avoids maintaining separate forward, reverse, lidar, and BEV implementations with duplicated task logic.
+
+\subsection{Line Following}
+
+The lane-following environment extends the base tractor-trailer environment to present a lane-tracking task. A reference lane is generated at the start of each episode using cubic spline interpolation through randomly placed waypoints. The reward function encourages the agent to keep both the tractor and trailer within the lane boundaries while maintaining progress along the path.
+
+For forward driving, the observation at each timestep may include:
+\begin{itemize}
+    \item \texttt{vector}: steering angle $\delta$, hitch articulation angle $\gamma$, tractor and trailer cross-track and heading errors, and local curvature cues;
+    \item \texttt{lidar}: simulated obstacle distances appended to the vector state when lidar sensing is enabled;
+    \item \texttt{image}: a $32 \times 32$ grayscale BEV crop derived from the tractor rear axle anchor point.
+\end{itemize}
+
+Reverse line-following environments use the same path generation and rendering pipeline, but reverse the longitudinal command and compute reward and tracking terms with the trailer as the leading unit. Reverse BEV and reverse lidar observation classes are implemented explicitly so that perception experiments can be repeated in backward manoeuvres without changing the task definition.
+
+\subsection{Obstacle Avoidance}
+
+The obstacle avoidance environment adds static obstacles within the lane. The agent must navigate the tractor-trailer through the lane while avoiding obstacles, which requires both path-following behaviour and collision avoidance. Instead of following the global lane centreline directly, the environment constructs a local path around the placed obstacles and evaluates tracking error relative to this locally planned path. Episode termination occurs on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion. In addition to terminal collision penalties, the lane-following base environment applies a per-step proximity penalty near blocked occupancy-grid cells, so both lane boundaries and inserted obstacles discourage the agent before contact occurs.
+
+Forward and reverse obstacle environments are both available. In addition to the lidar-based formulation, the environment includes BEV obstacle-avoidance variants for both travel directions, enabling direct comparison between range-based and image-based obstacle perception within the same local-planning task.
+
+\section{Vehicle Parameters}
+
+The simulation uses Tesla Model S specifications for the tractor parameters:
+
+\begin{table}[H]
+\centering
+\caption{Vehicle parameters used in simulation}
+\label{tab:vehicle_params}
+\begin{tabular}{llll}
+\toprule
+Parameter & Value & Parameter & Value \\
+\midrule
+$m$ & 1500\,kg & $l_f$ & 1.2\,m \\
+$I_z$ & 3000\,kg\,m$^2$ & $l_r$ & 1.6\,m \\
+$C_f$ & 80000\,N/rad & $C_d$ & 0.208 \\
+$C_r$ & 80000\,N/rad & $A$ & 2.4\,m$^2$ \\
+$\Delta t$ & 0.1\,s & $\rho$ & 1.225\,kg/m$^3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Action Space}
+
+The agent controls the vehicle through a continuous two-dimensional action space:
+\begin{equation}
+    \mathbf{a} = [\dot{\delta},\, v] \in [-25^\circ/\text{s},\, 25^\circ/\text{s}] \times [-5,\, 15]\,\text{m/s}
+    \label{eq:action_space}
+\end{equation}
+
+where $\dot{\delta}$ is the steering rate (rate of change of steering angle) and $v$ is the commanded speed. This action parameterisation reflects the fact that the steering angle cannot be set instantaneously on a physical vehicle; controlling the rate of change is more physically realistic.
+
+For reverse tasks, the environment constrains the longitudinal command to negative speed while preserving the same steering-rate interface. This keeps the control dimensionality fixed across forward and reverse tasks and allows the same TD3 implementation to be reused.
+
+For evaluation, this full action space is not used identically in every study. In the no-obstacle line-following experiments, the longitudinal speed is held at a fixed operating value ($5$\,m/s forward, $-5$\,m/s in reverse) so that all methods are compared on the same path-tracking problem, leaving the agent to command only the steering rate. In the obstacle-avoidance experiments, speed modulation remains part of the task because the agent must trade progress against collision risk and path geometry.
+
+\section{Problem Formulation}
+
+The control problem is cast as a Markov Decision Process (MDP) $(\mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \gamma_d)$ where:
+
+\begin{itemize}
+    \item $\mathcal{S}$: observation space consisting of a vector of state variables (steering angle, articulation angle, cross-track error, heading error) and, for vision-based policies, a $32\times32$ grayscale BEV image;
+    \item $\mathcal{A}$: continuous action space $[\dot{\delta}, v] \in [-25^\circ/\text{s},\, 25^\circ/\text{s}] \times [-5,\, 15]\,\text{m/s}$ (with speed held fixed in the no-obstacle tasks);
+    \item $\mathcal{T}$: transition dynamics simulated in the custom Pygame/Gymnasium environment;
+    \item $\mathcal{R}$: reward function defined in Chapter~\ref{ch:learning_framework};
+    \item $\gamma_d$: discount factor.
+\end{itemize}
+
+Episodes terminate on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion.
+
+\section{Testing Protocols}
+
+The experimental workflow is scriptable end-to-end. Scenario generation, observation-modality training, trained-policy evaluation, controller tuning, and multi-controller benchmarking are each exposed through standalone scripts. The benchmarking pipeline runs all controllers on the same pre-generated scenario set and logs per-step metrics including tractor and trailer cross-track error, hitch angle, completion, collision, jackknife events, obstacle clearance, and inference latency.
+
+The experiments are treated as two related but distinct problem classes:
+\begin{enumerate}
+    \item \textbf{Path-tracking control}: forward and reverse lane following without obstacles. In this setting all methods are solving the same task at a common fixed speed, so TD3 can be compared directly against pure-pursuit, PID, and MPC as lateral/path-tracking controllers.
+    \item \textbf{Integrated navigation}: obstacle-avoidance tasks in which the policy must implicitly combine local planning and control. In this setting a direct comparison against controller-only baselines is not fair unless those baselines are also given a local planner.
+\end{enumerate}
+
+This distinction is important for experimental validity. A controller that only tracks a supplied path should not be evaluated against an RL policy that must both choose a collision-free local path and execute it, unless the classical baseline is paired with an equivalent planner.
+
+\subsection{Sim-to-Real and ROS2 Transition Strategy}
+
+The learning experiments in this thesis are conducted in simulation, but the software architecture was designed from the outset to port onto a ROS2-based robotics stack --- a port that has since been realised on physical hardware (\cref{ch:sim_to_real}). The key design decision is that the policy and controller interfaces are expressed in terms of generic observations and low-level control commands rather than simulator-specific rendering calls. Each control method consumes either a vector observation, a lidar-style range vector, or a BEV image paired with state variables, and produces steering-rate and speed commands. This abstraction is directly compatible with a ROS2 node graph in which sensor drivers publish observations, a policy node performs inference, and a downstream interface node converts the commands into actuator messages.
+
+For no-obstacle path-tracking experiments, the fixed-speed formulation used in the thesis also improves deployment clarity: a real vehicle implementation can treat longitudinal speed regulation as a separate closed-loop subsystem while the learned or analytical controller handles lateral and articulation control. For obstacle-navigation experiments, the policy retains speed authority because longitudinal modulation is part of the task definition. This separation reduces ambiguity when mapping the thesis experiments onto a real robotic architecture.
+
+The ROS2 transition therefore reduces to replacing only the environment-facing components:
+\begin{itemize}
+    \item the simulated state vector with subscribed vehicle-state estimates;
+    \item the simulated lidar or BEV renderer with ROS2 sensor topics or perception outputs;
+    \item the Pygame environment step call with a command publisher targeting steering and speed interfaces;
+    \item the episode reset logic with scenario initialisation and safety supervision on the robot.
+\end{itemize}
+
+The policy network, observation formatting, benchmark metrics, and controller-selection logic can remain largely unchanged. This is important because it turns ROS2 deployment from a full reimplementation problem into an interface-substitution problem.
+
+However, portability should not be overstated. To close the remaining gap, the simulator must be augmented with domain randomisation and system identification so that the learned policy is exposed to uncertainty in tire parameters, friction, mass distribution, actuator delay, sensor noise, and hitch compliance. Several of these factors are taken up directly in the deployment of \cref{ch:sim_to_real} --- notably actuator delay, which is addressed there by a Smith-predictor compensator --- but in the absence of systematic randomisation, strong simulation performance alone is not evidence of hardware readiness.
+
+\subsection{Lane Following Performance}
+
+\begin{table}[H]
+\centering
+\caption{Lane following experiment definitions}
+\label{tab:forward_experiments}
+\begin{tabular}{p{4cm} p{5cm} p{4.5cm}}
+\toprule
+Experiment & Objective & Success Metric \\
+\midrule
+Path Fidelity (Tractor)  & Maintain low CTE for tractor on varying curvature paths & Mean Absolute CTE \\
+Path Fidelity (Trailer)  & Maintain low CTE for trailer, ensuring full vehicle stays in lane & Mean Absolute CTE \\
+Hitch Stability          & Keep articulation angle within safe bounds & Max $|\gamma|$ per episode \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Obstacle Avoidance}
+
+The obstacle avoidance task tests the agent's ability to navigate through a lane containing static obstacles. Success is measured by collision rate and the agent's ability to complete the lane while maintaining hitch stability.
+
+Obstacle experiments are framed as a secondary study rather than merged into the primary controller benchmark. Two defensible comparison strategies are available:
+\begin{itemize}
+    \item \textbf{Planner-controlled comparison}: provide the classical baselines with the same obstacle-aware local path and evaluate only the downstream tracking problem; or
+    \item \textbf{End-to-end navigation comparison}: compare the RL obstacle policy against complete planner+controller stacks, not against controllers in isolation.
+\end{itemize}
+
+In the present study, obstacle avoidance is treated as an RL feasibility extension and the main quantitative comparison is reserved for the no-obstacle forward and reverse tracking tasks. Under this structure, no-obstacle experiments use fixed speed for both learned and classical methods, whereas obstacle experiments allow the RL agent to command speed as part of the end-to-end navigation problem.
+
+% Add final training curves, performance comparison figures, and qualitative trajectory plots here.

@@ -25,6 +25,7 @@ OBS_ENCODER_ORDER = [
     "state",
     "lidar",
     "bev",
+    "bev_scaled_cnn",
     "bev_ae_frozen",
     "bev_ae_unfrozen",
     "bev_unet_frozen",
@@ -138,6 +139,8 @@ def _humanize_obs_tag(obs_tag: str) -> str:
         return f"lidar-{obs_tag.split('_', 1)[1]}"
     if obs_tag == "bev":
         return "BEV CNN (scratch)"
+    if obs_tag == "bev_scaled_cnn":
+        return "BEV scaled-CNN (state$\\to$vision swap)"
     if obs_tag == "bev_ae_frozen":
         return "BEV AE (frozen)"
     if obs_tag == "bev_ae_unfrozen":
@@ -195,18 +198,23 @@ def _table_lines(
     header_lines: list[str],
     body_rows: list[str],
 ) -> str:
+    # Wrap the tabular in a resizebox that shrinks the table to the line width
+    # only when its natural width would overflow the text block (wide
+    # many-column results tables); narrower tables are left at natural size.
     lines = [
         f"\\begin{{{table_env}}}[H]",
         "\\centering",
         f"\\caption{{{caption}}}",
         f"\\label{{{label}}}",
+        "\\resizebox{\\ifdim\\width>\\linewidth \\linewidth\\else \\width\\fi}{!}{%",
         f"\\begin{{tabular}}{{{col_spec}}}",
         "\\toprule",
         *header_lines,
         "\\midrule",
         *body_rows,
         "\\bottomrule",
-        "\\end{tabular}",
+        "\\end{tabular}%",
+        "}",
         f"\\end{{{table_env}}}",
         "",
     ]

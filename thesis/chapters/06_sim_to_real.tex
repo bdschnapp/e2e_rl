@@ -1,0 +1,196 @@
+\chapter{Sim-to-Real Deployment}
+\label{ch:sim_to_real}
+
+\section{Overview}
+
+The preceding chapters developed and evaluated an articulated tractor-trailer controller entirely within a 2D Pygame/Gymnasium simulation environment. This chapter describes the transfer of that controller to a physical robotic platform, constituting the sim-to-real component of the thesis. Unlike a conventional model-based stack, the deployed system does not re-implement a hand-derived tracking law on the vehicle; instead, the simulation-trained reinforcement-learning (RL) policies are executed directly on hardware through a thin bridging layer that reproduces, in real time, the observation and action interfaces the policies were trained against. The objective is to demonstrate that the vehicle model, the observation definitions, and the learned control logic established in simulation can be ported to real hardware with minimal algorithmic redesign, and to characterise the engineering challenges encountered during that transfer.
+
+The deployment is built on a deliberately stripped-down Autoware stack. The standard Autoware localisation and perception pipelines are retained essentially unchanged, while the planning and control layers are replaced by a custom RL bridge that runs the forward and reverse policies. Two pieces of supporting infrastructure are described in detail because they are specific to the articulated, sensor-light platform: an onboard LiDAR-based hitch-angle estimator that recovers the articulation angle without any trailer-mounted sensor, and a Smith predictor that compensates for actuator delay so that delay-free-trained policies behave correctly on a lagging physical actuator.
+
+\section{Hardware Platform}
+
+\subsection{Tractor Vehicle}
+
+The physical tractor is an Agilex Hunter SE, a compact electric wheeled unmanned ground vehicle with an Ackermann steering geometry. The relevant mechanical parameters are a wheelbase of $0.65$\,m, a wheel radius of $0.15$\,m, and a maximum steering angle of $0.436$\,rad ($25^\circ$). Vehicle actuation is commanded over a CAN bus on a 20\,ms cycle; speed commands are encoded as 16-bit signed integers in units of 1\,mm/s (the commanded speed in m/s scaled by $1000$) and steering commands as 16-bit signed integers scaled by approximately $1320$ counts per radian ($\approx 0.8$\,mrad per count).
+
+\subsection{Trailer}
+
+The trailer is coupled to the tractor through a revolute hitch joint located at (or marginally behind) the tractor rear axle, matching the training-time trailer model in which the hitch coincides with the rear axle. The lab trailer has a wheelbase of approximately $2$\,m and a body width of roughly $0.33$\,m\footnote{The trailer wheelbase is recorded in the deployment configuration as a nominal $2$\,m pending an exact in-person measurement; controller and estimator parameters are not sensitive to small errors in this value.}. The articulation angle $\gamma$, defined as the difference between the tractor and trailer headings ($\gamma = \psi_\text{truck} - \psi_\text{trailer}$), is \emph{estimated onboard} from the tractor's own LiDAR rather than measured by any trailer-mounted sensor; the procedure is detailed in Section~\ref{sec:hitch_estimation}. The estimate is published to the ROS2 network on the \texttt{/vehicle/trailer\_state} topic; the control bridge consumes the most recent published value, with no staleness gating currently applied. Two distinct angular limits appear in the stack and should not be conflated: the onboard estimator clamps the \emph{published} articulation estimate to $|\gamma| \le 90^\circ$, whereas the deployment trailer model defines a tighter operational limit of $|\gamma| \le 80^\circ$ ($1.40$\,rad), itself below the $90^\circ$ jackknife condition used to terminate simulation episodes.
+
+\subsection{Sensor Suite}
+
+The vehicle is instrumented with the following sensors:
+
+\begin{itemize}
+    \item \textbf{LiDAR}: RoboSense Helios mechanical LiDAR mounted at the front of the tractor, publishing 3D point clouds on \texttt{/rslidar\_points}. This single sensor is reused for three purposes: NDT-based localisation, environment perception, and onboard hitch-angle estimation.
+    \item \textbf{Cameras}: Six Basler Pylon industrial cameras (rear, rear-right, centre, left, merging, and right) producing compressed colour images. The cameras are not consumed by the LiDAR-based RL policies and are used for logging and monitoring only.
+    \item \textbf{IMU}: WitMotion 6-DoF inertial measurement unit, with a gyroscope-bias estimator applied in the localisation pipeline.
+    \item \textbf{GNSS}: u-blox ZED-F9P receiver with RTK corrections, providing centimetre-level position estimates converted to MGRS coordinates for Autoware localisation.
+    \item \textbf{Wheel odometry}: Vehicle speed and steering-angle feedback recovered from CAN messages and fused with IMU data for dead-reckoning between GNSS and scan-matching updates.
+\end{itemize}
+
+\section{Software Architecture}
+
+\subsection{Middleware and Framework}
+
+The deployment stack runs on ROS2 Humble (Ubuntu 22.04) and is integrated into the Autoware autonomous-driving framework. Autoware provides modular localisation, perception, planning, and control pipelines whose interfaces are defined by standardised ROS2 message types. The deployment in this thesis retains the standard Autoware sensing, localisation, and perception modules but substitutes the planning and control layers with a learned RL bridge, so that the vehicle is driven by the same policies evaluated in simulation rather than by an analytical controller.
+
+\subsection{Relationship to the Conventional Articulated Pipeline}
+
+For context, Autoware's conventional approach to articulated vehicles is fully model-based: a truck-trailer mode manager routes goals to a freespace planner (a hybrid A\textsuperscript{*} search that respects the non-holonomic articulation constraint at the hitch), and the resulting reference trajectory is tracked by a model-predictive or LQR lateral controller. This model-based pipeline exists within the wider project and represents the standard, well-understood baseline for trailer control; the relevant control background is reviewed in Chapter~\ref{ch:literature_review}. The contribution of \emph{this} thesis, however, is the learned controller, and the deployment described here therefore routes control through the RL bridge instead of the planner/MPC chain. The two are mutually exclusive at run time and are selected at launch.
+
+\subsection{RL Bridge Node Architecture}
+
+The learned control path comprises the following principal nodes:
+
+\begin{description}
+    \item[\texttt{lane\_reference\_node}] Loads the Lanelet2 map, selects the active lane from the ego odometry and the current goal, and publishes the lane centreline as a reference path together with a \texttt{drive\_enabled} flag and a \texttt{drive\_direction} flag (forward or reverse). This node supplies the path geometry against which the policy's tracking observation is computed.
+
+    \item[\texttt{rl\_bridge\_node}] The core of the deployment. It loads the trained forward and reverse TD3 policies (Stable-Baselines3 / PyTorch checkpoints) and runs a 10\,Hz control loop. On each tick it assembles the policy observation in exactly the layout used during training --- an 8-dimensional state vector (steering angle, articulation angle, tractor and trailer tracking errors, and look-ahead path curvature) concatenated with a 24-beam LiDAR range vector --- queries the active policy deterministically, and converts the 2-dimensional action (steering rate and commanded speed) into the steering-angle and acceleration commands expected by the vehicle interface. Direction-dependent post-processing (action smoothing and kinematic rate scaling) is applied for the reverse policy, whose outputs are inherently more oscillatory than the forward policy's.
+
+    \item[\texttt{hitch\_angle\_estimator}] Estimates the articulation angle from the tractor LiDAR and publishes it on \texttt{/vehicle/trailer\_state} (Section~\ref{sec:hitch_estimation}).
+
+    \item[\texttt{initialpose\_shim}] Bridges the RViz \texttt{/initialpose} message to the Autoware pose-initialiser service, allowing the operator to seed localisation interactively.
+
+    \item[\texttt{controller\_canbridge}] Translates \texttt{autoware\_control\_msgs/Control} commands into Hunter SE CAN frames and parses vehicle feedback (velocity, steering angle) back into ROS2 topics.
+\end{description}
+
+The forward and reverse policies are loaded from separate checkpoints and selected according to the \texttt{drive\_direction} flag, so that the same bridge handles both manoeuvring regimes without retraining or reconfiguration.
+
+\subsection{Hitch Angle Estimation}
+\label{sec:hitch_estimation}
+
+Because the trailer carries no articulation encoder and no trailer-mounted sensing, the articulation angle is recovered geometrically from the tractor's front LiDAR, which observes the front (and, at larger angles, the side) face of the trailer. The estimator operates on each incoming point cloud as follows.
+
+\paragraph{Region of interest.} Points are first cropped to a box in the LiDAR frame that brackets the expected location of the trailer face. The lateral extent of this region is shifted to track the face as the trailer swings: using the current filtered estimate $\gamma$, the lateral offset is set to
+\begin{equation}
+    \Delta y = -\,D_\text{face}\,\sin\gamma,
+    \label{eq:hitch_roi_shift}
+\end{equation}
+where $D_\text{face}$ is the approximate longitudinal distance from the hitch pivot to the face. This keeps the cropped points on the trailer face across the full range of articulation rather than only near $\gamma = 0$.
+
+\paragraph{Rectangle fitting.} Rather than fitting a single planar normal, the estimator fits the orientation of the trailer body to the cropped points using the minimum-closeness rectangle criterion of Zhang \emph{et al.}~\cite{zhang2017lshape}. For a candidate orientation $\theta$, the points are rotated into axis-aligned coordinates $(u, v)$ and scored by their closeness to the nearest edges of the bounding rectangle,
+\begin{equation}
+    C(\theta) = \sum_i \min\!\big(d^u_i,\, d^v_i\big)^2,
+    \qquad
+    d^u_i = \min\!\big(|u_i - u_\text{min}|,\, |u_i - u_\text{max}|\big),
+    \label{eq:hitch_closeness}
+\end{equation}
+with $d^v_i$ defined analogously. The fitted orientation minimises $C(\theta)$ augmented by a dimension-prior penalty that favours rectangles consistent with the known trailer width and length:
+\begin{equation}
+    \theta^\star = \arg\min_{\theta \in [0, \pi)} \;\big[\, C(\theta) + \lambda\, P_\text{dim}(\theta) \,\big].
+    \label{eq:hitch_fit}
+\end{equation}
+This formulation is robust to whether only the front face, both the front and a side face (an ``L'' shape), or only a side face is visible --- the dominant cause of failure for a naive single-face normal estimate at large articulation. The four $90^\circ$ heading candidates implied by $\theta^\star$ are disambiguated by choosing the one closest to the previous filtered estimate and most consistent with the dimension prior, yielding a trailer longitudinal direction $\hat{\mathbf{d}}_t = (\cos\theta^\star, \sin\theta^\star)$.
+
+\paragraph{Articulation angle and filtering.} The raw articulation angle is the signed angle between the truck-forward axis $\hat{\mathbf{x}} = (1, 0)$ and $\hat{\mathbf{d}}_t$,
+\begin{equation}
+    \tilde\gamma = \operatorname{atan2}\!\big(\hat{x}_1 \hat{d}_{t,2} - \hat{x}_2 \hat{d}_{t,1},\; \hat{\mathbf{x}} \cdot \hat{\mathbf{d}}_t\big),
+    \label{eq:hitch_raw_angle}
+\end{equation}
+to which a field-calibration sign $s$ and offset $\gamma_0$ are applied and the result clamped to the operational range, $\gamma = \operatorname{clip}(s\,\tilde\gamma + \gamma_0,\, -\gamma_\text{max},\, \gamma_\text{max})$. The sign convention is chosen so that the published value matches Autoware's $\gamma = \psi_\text{truck} - \psi_\text{trailer}$. The raw per-scan estimate is then passed through a constant-angular-velocity Kalman filter on the state $[\gamma,\ \dot\gamma]$, with Mahalanobis innovation gating to reject outlier scans, and a short moving-average is maintained in parallel as a diagnostic. The filtered angle and its rate populate the \texttt{hitch\_angle} and \texttt{hitch\_rate} fields of the published \texttt{TrailerState}.
+
+This onboard, geometry-plus-filter estimator is the actual mechanism behind the \texttt{/vehicle/trailer\_state} signal; it is not an external measurement. Its noise characteristics, and the way they are handled, are revisited in the gap analysis (Section~\ref{sec:gap_hitch}).
+
+\subsection{Trailer State Estimation}
+
+Because the trailer carries no independent localisation, its full pose is reconstructed from the tractor's localised kinematic state and the estimated articulation angle. Given the tractor's rear-axle position and heading $(\mathbf{p}_\text{truck},\, \psi_\text{truck})$ from \texttt{/localization/kinematic\_state}, the hitch-point position is
+\begin{equation}
+    \mathbf{p}_\text{hitch} = \mathbf{p}_\text{truck} + d_h \begin{bmatrix} \cos\psi_\text{truck} \\ \sin\psi_\text{truck} \end{bmatrix},
+\end{equation}
+where $d_h$ is the (small, near-zero) signed hitch offset relative to the tractor rear axle. The trailer heading follows directly from the articulation angle, $\psi_\text{trailer} = \psi_\text{truck} - \gamma$, and the trailer rear axle is located at
+\begin{equation}
+    \mathbf{p}_\text{trailer} = \mathbf{p}_\text{hitch} - L_t \begin{bmatrix} \cos\psi_\text{trailer} \\ \sin\psi_\text{trailer} \end{bmatrix},
+\end{equation}
+where $L_t \approx 2$\,m is the trailer wheelbase. This reconstruction mirrors the hitch-kinematics model derived in Chapter~\ref{ch:modeling}, confirming that the simulation formulation is directly reusable in the deployment stack, and it provides the trailer-referenced tracking errors that form part of the policy observation.
+
+\subsection{Actuator-Delay Compensation: Smith Predictor}
+\label{sec:smith_predictor}
+
+The simulation trains the policies against an idealised actuator that responds instantaneously to commands, whereas the physical steering and drive systems exhibit a first-order lag of the order of $50$--$150$\,ms. A policy trained for instantaneous response will, when confronted with a delayed actuator, repeatedly over-correct and excite a lag-induced oscillation. To reconcile the two, a Smith-predictor-style compensator is implemented that lets the delay-free-trained policy act on a delay-compensated state estimate.
+
+The compensator maintains two ``shadow'' instances of the same kinematic \texttt{StateSpaceTractorTrailer} model used in simulation: a \emph{delay-free} shadow with zero actuation time constant, and a \emph{delayed} shadow whose time constant matches the measured hardware lag. On each control tick both shadows are advanced with the command currently propagating through the actuator pipeline. The discrepancy between the measured vehicle state and the delayed shadow forms a residual,
+\begin{equation}
+    \mathbf{r}_k = \mathbf{x}^\text{meas}_k - \mathbf{x}^\text{delayed}_k,
+    \label{eq:smith_residual}
+\end{equation}
+which captures model mismatch beyond pure delay (integration scheme, ground-contact effects, friction). The state presented to the policy is the delay-free shadow corrected by this residual,
+\begin{equation}
+    \hat{\mathbf{x}}_k = \mathbf{x}^\text{free}_k + \mathbf{r}_k,
+    \label{eq:smith_predict}
+\end{equation}
+so that the policy ``sees'' an effectively delay-free vehicle while the residual keeps the prediction anchored to reality. The shadows are re-synchronised to the measured state on reset and whenever a large state jump is detected. The compensator is implemented and available but is disabled by default, as the shadow time constants require per-platform tuning before the loop can be closed in anger; combined with the explicit steering-rate limit it forms the primary mitigation for the actuation gap discussed in Section~\ref{sec:gap_actuation}.
+
+\paragraph{Learned dynamics model (in progress).} The Smith predictor's fidelity is bounded by the accuracy of the analytical kinematic shadow. Work is in progress to replace, or augment, that shadow with a neural-network approximation of the true system dynamics. A data pipeline converts recorded driving logs (rosbags) into time-aligned $10$\,Hz state--action--next-state datasets --- deriving the trailer pose from the truck pose and the estimated hitch angle where it is not directly recorded --- and a multilayer-perceptron dynamics model (\texttt{DynamicsMLP}) is trained on these datasets. The learned model is evaluated both by one-step prediction error against held-out logs and by closed-loop rollout divergence from the kinematic model, the latter serving to quantify and localise the sim-to-real dynamics gap. This component is not yet part of the live control loop and is reported here as ongoing work rather than a validated result.
+
+\section{Sim-to-Real Gap Analysis}
+
+Transferring a simulation-trained policy to physical hardware introduces discrepancies between the simulated and real-world dynamics. The following gap sources were identified and addressed during the deployment process.
+
+\subsection{Actuation Dynamics}
+\label{sec:gap_actuation}
+
+The simulation model assumes instantaneous steering response, whereas the physical vehicle exhibits a first-order steering lag introduced by the CAN command latency and the Hunter SE's internal steering servo. This is the highest-impact discrepancy for a policy trained on instantaneous actuation. It is mitigated by the Smith-predictor compensator of Section~\ref{sec:smith_predictor}, which presents a delay-compensated state to the policy, and by a steering-rate limit applied to the commanded output, consistent with the $\dot{\delta}_\text{max}$ constraint used during simulation training.
+
+\subsection{Hitch-Angle Sensing}
+\label{sec:gap_hitch}
+
+In simulation, the articulation angle $\gamma$ is available exactly from the vehicle state. On hardware it is estimated from LiDAR returns and is therefore subject to noise from sparse or partial returns on the trailer face, mis-segmentation of the region of interest, and momentary loss of the face at large articulation. These error modes are addressed within the estimator itself rather than by a downstream filter: the rectangle-fitting formulation (Equation~\ref{eq:hitch_fit}) is robust to partial face visibility, and the constant-angular-velocity Kalman filter with innovation gating rejects outlier scans and smooths the published signal. If the trailer face is lost entirely the estimator withholds new estimates, and the bridge continues from the last published value until the face is reacquired; no automatic disengagement on stale data is currently implemented.
+
+\subsection{Path Distribution}
+
+The policies are trained on smooth, spline-generated reference paths, whereas the deployment reference is the centreline of a Lanelet2 lane, which is piecewise-linear and may contain comparatively sharp vertices. Re-sampling the centreline does not fully reconcile the difference in path-curvature distribution between training and deployment, and this mismatch is a contributing factor to any residual tracking error observed on hardware. It is noted here as a characterisation of the gap rather than something fully eliminated in the current deployment.
+
+\subsection{Jackknife Recovery}
+
+The simulation introduced a terminal episode condition when $|\gamma| > 90^\circ$ but provided no explicit recovery mechanism, since the episode simply resets. Rather than adding a separate runtime supervisor on the vehicle, jackknife resilience is instilled during \emph{training}, through two complementary measures. First, a recovery-scenario reset distribution spawns a fraction of reverse episodes already in the near-jackknife region (articulation magnitudes of roughly $0.35$--$0.80$\,rad, i.e.\ $20$--$45^\circ$), so the policy is repeatedly exposed to high-articulation states its nominal training distribution rarely visits and must learn to steer the trailer back toward alignment. Second, an anti-jackknife override is applied \emph{within the training environment}: whenever the articulation exceeds approximately $0.7$\,rad ($40^\circ$), the policy's steering command is replaced by a maximum counter-steer that drives the articulation back toward zero. This prevents the policy from learning that oscillatory, near-jackknife behaviour is survivable, since every dangerous excursion is corrected during training and chattering no longer pays off. No dedicated runtime recovery override is currently part of the deployed bridge; on hardware, jackknife avoidance therefore relies on the behaviour learned through these measures together with the operational $|\gamma| \le 80^\circ$ limit.
+
+\subsection{Localisation Dependency}
+
+The simulation provides ground-truth vehicle pose at every step. The hardware stack instead depends on the Autoware localisation pipeline, which fuses RTK-GNSS, gyro-based odometry, and LiDAR NDT scan matching through an extended Kalman filter. GNSS outages or localisation divergence therefore represent a failure mode that does not exist in simulation; the current deployment treats localisation failure as an emergency-stop condition.
+
+\section{High-Fidelity Geographic Simulation}
+\label{sec:geo_sim}
+
+The 2D Pygame environment of \cref{ch:modeling} is deliberately abstract: it captures the tractor-trailer kinematics and lane geometry but not the three-dimensional and photometric structure that the deployed perception and localisation stack actually consumes. A complementary, higher-fidelity simulation environment is therefore being developed to exercise the full Autoware stack --- LiDAR-based NDT localisation, perception, and the RL bridge --- inside a geographically faithful ``digital twin'' of a real operating site before committing to physical trials.
+
+This environment is built on the Gazebo simulator using an open world-generation toolchain (Rudis Labs). Real locations are reconstructed as textured 3D meshes authored in Blender, whose physically-based materials are baked into texture maps for efficient real-time rendering. Each world is anchored to GIS coordinates through the SDF \texttt{spherical\_coordinates} element, which fixes the simulation origin to a real latitude, longitude, and elevation; a templated world generator additionally computes the sun's azimuth and elevation from the site coordinates and a chosen UTC date and time, so that lighting and shadows match the real location and time of day. The \texttt{electrans} tractor and trailer models are spawned into these worlds, so that the same articulated vehicle can be driven through a virtual replica of the target environment.
+
+Because the world is georeferenced and rendered in three dimensions, this environment directly targets several of the sim-to-real gaps catalogued above. A LiDAR sensor model produces point clouds against real building and ground geometry, so NDT scan matching and the onboard hitch-angle estimator (\cref{sec:hitch_estimation}) can be exercised against realistic returns; the geographic anchoring lets the GNSS and map frames be reproduced consistently with the physical site; and the photorealistic rendering makes it possible to evaluate camera-based perception that the abstract 2D environment cannot represent. It is also the natural setting in which to prototype the infrastructure sensor nodes of \cref{sec:sensor_nodes}, since virtual LiDAR units can be placed at arbitrary surveyed locations in the georeferenced world. This effort is in progress and is reported here as a planned bridge between the abstract training environment and on-vehicle deployment rather than as a validated result.
+
+\section{Infrastructure Sensor Nodes}
+\label{sec:sensor_nodes}
+
+A structural limitation of the onboard sensing arrangement is that the trailer occludes the region directly behind it. The tractor-mounted LiDAR cannot see past the trailer, and instrumenting the trailer itself is undesirable: it would add cabling, power, calibration, and a wireless link to an otherwise passive, interchangeable body, and would have to be repeated for every trailer. This is most acute during reverse manoeuvring, precisely when visibility of the space behind the trailer matters most.
+
+A planned line of work, not yet implemented, addresses this with \emph{off-vehicle infrastructure sensor nodes}: fixed LiDAR units placed at strategic vantage points throughout the operating area, each providing a bird's-eye view of obstacles --- crucially including the region behind the trailer --- without any sensor being mounted on the trailer. Each node would be calibrated into the shared map frame so that its detections can be expressed in the same coordinates as the onboard perception output and fused into Autoware's perception and occupancy-grid representation. The intended outcome is a persistent, occlusion-resilient view of dynamic and static obstacles around the articulated vehicle that complements the limited onboard field of view.
+
+This section is a placeholder for that work. The detailed node topology, the calibration and time-synchronisation procedure, the fusion strategy with onboard perception, and the experimental evaluation remain to be specified and carried out.
+
+% TODO: Infrastructure sensor-node design and results
+%   - Node placement strategy and coverage analysis (esp. behind-trailer visibility)
+%   - Extrinsic calibration to the map frame and time synchronisation
+%   - Fusion with onboard perception / occupancy grid
+%   - Evaluation: detection coverage and latency vs. onboard-only baseline
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.8\textwidth]{figures/system_architecture/infrastructure_sensor_nodes}{Concept diagram of strategically placed infrastructure LiDAR sensor nodes providing a bird's-eye view of obstacles behind the trailer.}
+    \caption{Planned infrastructure sensor-node concept: fixed off-vehicle LiDAR units give a bird's-eye view of obstacles around the articulated vehicle, covering the region behind the trailer that the onboard sensors cannot observe.}
+    \label{fig:sensor_nodes}
+\end{figure}
+
+\section{Deployment Results}
+
+% TODO: Insert experimental results from hardware trials here.
+% Suggested content:
+%   - Qualitative description of observed behaviour (forward tracking, reverse stability)
+%   - Tracking error and hitch-angle statistics compared to simulation benchmarks
+%   - Representative trajectory plots or photographs of the physical platform
+%   - Any failure modes encountered that were not observed in simulation
+
+Hardware validation trials were conducted on [TODO: describe test location and scenario]. The forward policy achieved [TODO: describe forward lane-following behaviour], with a mean trailer cross-track error of [TODO]\,m and articulation maintained within $|\gamma| < [TODO]^\circ$ throughout nominal operation. Reverse manoeuvring [TODO: describe outcome]. [TODO: report the effect of enabling the Smith predictor on oscillation and tracking once tuned.]
+
+\section{Summary}
+
+This chapter demonstrated that the tractor-trailer control architecture developed in simulation can be ported to a physical platform by executing the trained RL policies directly through a bridging layer, rather than by re-deriving an analytical controller on the vehicle. The deployment retains Autoware's standard localisation and perception while replacing planning and control with an RL bridge that runs the forward and reverse policies at 10\,Hz over the same observation and action interfaces used in training. The principal engineering contributions are this RL bridge and its integration into a stripped-down Autoware stack, the onboard LiDAR hitch-angle estimator that recovers the articulation angle by rectangle fitting and Kalman filtering without any trailer-mounted sensor, and the Smith-predictor compensator (with an in-progress learned dynamics model) that reconciles delay-free-trained policies with a lagging physical actuator. The gap analysis confirms that the simulation captures the dominant dynamics relevant to controller design, while identifying actuation delay, hitch-angle sensing, path-distribution mismatch, and localisation reliability as the primary points of divergence between the simulated and physical systems. Finally, the planned infrastructure sensor nodes are introduced as a route to occlusion-resilient perception behind the trailer without adding sensors to the trailer itself.

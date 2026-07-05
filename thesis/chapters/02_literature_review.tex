@@ -1,6 +1,8 @@
 \chapter{Literature Review}
 \label{ch:literature_review}
 
+This chapter reviews the two methodological traditions on which the thesis draws---classical model-based control of articulated vehicles, and learning-based control with high-dimensional perception---together with the safety considerations that bound both. The intent is not an exhaustive survey but a focused positioning of the learned controller developed in later chapters against the established analytical baselines it is ultimately measured against.
+
 \section{Articulated Vehicle Control}
 
 \subsection{Classical Stabilisation Techniques}
@@ -13,26 +15,34 @@ Classical articulated vehicle control methods address the hitch instability thro
     \item \textbf{Active hitch stabilisation}: Applies an additional actuated degree of freedom at the hitch to damp articulation oscillations. Research at Waterloo into trailer sway control and active hitches demonstrates that lateral articulation at the hitch can mitigate oscillations, but for a standard autonomous tractor-trailer this must be managed purely through the tractor's steering angle $\delta$.
 \end{itemize}
 
+Of these, a Linear Quadratic Regulator (LQR) and MPC acting on a \emph{linearised} tractor-trailer state-space model form the conventional, well-understood baseline against which this thesis benchmarks its learned controller; the underlying model is derived in \cref{ch:modeling}, and the same model-based pipeline reappears as the standard alternative in the deployment discussion of \cref{ch:sim_to_real}.
+
 \subsection{Kinematic Models}
 The bicycle model provides a baseline for rigid-body longitudinal and lateral dynamics. For an articulated system, the state vector must be expanded to include the trailer heading and articulation angle, as detailed in Chapter~\ref{ch:modeling}.
 
 \section{Reinforcement Learning in Autonomous Driving}
+
+Where classical controllers encode the vehicle model explicitly and tune a fixed control law, learning-based methods infer a policy directly from interaction with the environment, trading analytical guarantees for the ability to optimise a control policy end-to-end against a task reward.
 
 \subsection{Policy Gradient Methods}
 Deep Deterministic Policy Gradient (DDPG) is an off-policy actor-critic algorithm designed for continuous action spaces. It is one of the canonical deterministic policy-gradient methods used for end-to-end vehicle control, but it is known to suffer from critic overestimation bias and training instability.
 
 Proximal Policy Optimisation (PPO) offers improved stability over DDPG through clipped probability ratios, but its on-policy sample efficiency is lower, which is a significant consideration when simulation rollouts are expensive.
 
+This thesis adopts Twin Delayed DDPG (TD3), a direct successor to DDPG that targets precisely these weaknesses---critic overestimation and update instability---through twin critics, delayed actor updates, and target-policy smoothing; the algorithm and its role here are detailed in \cref{ch:learning_framework}.
+
 \subsection{Transformer-Based Methods}
-Decision Transformers (DT) reformulate reinforcement learning as sequence modelling: an action is predicted from a context window of past states, actions, and returns-to-go using a causal self-attention mechanism. In vehicle-control settings, DT-style models can represent longer temporal dependencies than shallow actor-critic policies, but their performance depends strongly on the diversity and quality of the offline trajectory dataset. In particular, datasets dominated by nominal path-tracking behaviour can lead to poor recovery performance from high-error states. Effective DT training for articulated vehicles would therefore require explicit coverage of recovery manoeuvres and unstable reverse-driving configurations.
+Decision Transformers (DT) reformulate reinforcement learning as sequence modelling: an action is predicted from a context window of past states, actions, and returns-to-go using a causal self-attention mechanism. In vehicle-control settings, DT-style models can represent longer temporal dependencies than shallow actor-critic policies, but their performance depends strongly on the diversity and quality of the offline trajectory dataset. In particular, datasets dominated by nominal path-tracking behaviour can lead to poor recovery performance from high-error states. Effective DT training for articulated vehicles would therefore require explicit coverage of recovery manoeuvres and unstable reverse-driving configurations. The present work retains an actor-critic formulation rather than a sequence model, but this same need for recovery coverage motivates the failure-replay curriculum introduced in \cref{ch:learning_framework}.
 
 \section{Perception and Representation Learning}
+
+A second axis of the thesis concerns how the agent perceives its surroundings---whether a compact, hand-engineered state vector or a learned representation of a bird's-eye view image yields better and more transferable control.
 
 \subsection{Convolutional Neural Networks for Driving}
 CNNs have become the standard front-end for autonomous driving perception, extracting spatial features from camera images and occupancy grids. End-to-end learning approaches train CNNs directly from sensor inputs to control outputs, allowing the network to learn which visual features are most relevant for the control task. In the simulation setting of this thesis, CNNs process bird's-eye view images rendered from the Pygame environment to extract lane geometry and obstacle information.
 
 \subsection{Autoencoders for State Compression}
-Autoencoders compress high-dimensional observations into a compact latent representation, mitigating the curse of dimensionality for RL training. By pre-training an autoencoder on images collected from simulation rollouts, the encoder learns to capture essential geometric features of the road and obstacles. The RL agent then operates on the latent vector $z$, which reduces policy network parameters, accelerates convergence, and improves generalisation across environments.
+Autoencoders compress high-dimensional observations into a compact latent representation, mitigating the curse of dimensionality for RL training. By pre-training an autoencoder on images collected from simulation rollouts, the encoder learns to capture essential geometric features of the road and obstacles. The RL agent then operates on the latent vector $z$, which reduces policy network parameters, accelerates convergence, and improves generalisation across environments. The thesis treats such learned encoders as one end of a representation spectrum, with engineered state vectors at the other, and compares the two directly in \cref{ch:learning_framework}.
 
 \section{Safety in Autonomous Systems}
 

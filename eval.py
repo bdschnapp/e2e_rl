@@ -125,11 +125,11 @@ def _run_episode_vecenv(vec_env, model) -> dict:
             truncated = bool(infos[0].get("TimeLimit.truncated", False))
             terminated = not truncated
 
-    return logger.compute_summary(
-        terminated=terminated,
-        truncated=truncated,
-        completed=bool(getattr(raw_env, "success", False)),
-    )
+    # NOTE: do NOT pass completed=raw_env.success here — the VecEnv auto-resets the
+    # underlying env on `done`, so raw_env.success is read post-reset (always False),
+    # which silently zeroed every BEV completion rate. Let compute_summary derive
+    # completion from max_progress (>=95% of the route), which is logged per-step.
+    return logger.compute_summary(terminated=terminated, truncated=truncated)
 
 
 def _run_episode(env, model) -> dict:
@@ -149,11 +149,10 @@ def _run_episode(env, model) -> dict:
         logger.log_step(env, applied_action, float(reward), inference_time_s=elapsed)
         done = terminated or truncated
 
-    return logger.compute_summary(
-        terminated=terminated,
-        truncated=truncated,
-        completed=bool(getattr(env, "success", False)),
-    )
+    # Completion derives from max_progress (>=95% of the route) in compute_summary,
+    # for consistency with the BEV path and robustness to natural episode-end just
+    # short of the exact success line.
+    return logger.compute_summary(terminated=terminated, truncated=truncated)
 
 
 # ---------------------------------------------------------------------------

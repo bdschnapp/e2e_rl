@@ -4,29 +4,33 @@
 \centering
 \caption{Forward lane-following: reward formulation ablation (lidar-24 obs, no obstacles, 30~eval episodes).}
 \label{tab:reward_ablation_forward}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 Reward  & \makecell{CTE\\Tractor\\(m)}  & \makecell{CTE\\Trailer\\(m)}  & \makecell{Max $|\gamma|$\\($^\circ$)}  & \makecell{Completion\\(\%)}  & \makecell{Jackknife\\(\%)}  & \makecell{Total\\reward} \\
 \midrule
-Dense & 0.281 & 0.353 & 8.1 & 0.0 & 0.0 & 621.07 \\
-Tractor focus & 0.283 & 0.362 & 8.1 & 0.0 & 0.0 & 629.40 \\
-Multiplicative & 0.297 & 0.378 & 8.5 & 0.0 & 0.0 & 656.94 \\
-Guided & 0.640 & 0.609 & 14.8 & 0.0 & 0.0 & 621.10 \\
+Dense & 0.284 & 0.374 & 8.9 & 100.0 & 0.0 & 620.12 \\
+Tractor focus & 0.285 & 0.361 & 7.8 & 100.0 & 0.0 & 628.69 \\
+Multiplicative & 0.313 & 0.418 & 9.4 & 100.0 & 0.0 & 527.99 \\
+Guided & 0.609 & 0.576 & 12.8 & 100.0 & 0.0 & 621.19 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 \begin{table}[H]
 \centering
 \caption{Reverse lane-following: reward formulation ablation (lidar-24 obs, no obstacles, 30~eval episodes).}
 \label{tab:reward_ablation_reverse}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 Reward  & \makecell{CTE\\Tractor\\(m)}  & \makecell{CTE\\Trailer\\(m)}  & \makecell{Max $|\gamma|$\\($^\circ$)}  & \makecell{Completion\\(\%)}  & \makecell{Jackknife\\(\%)}  & \makecell{Total\\reward} \\
 \midrule
-Dense & 1.015 & 1.037 & 22.4 & 0.0 & 0.0 & -944.52 \\
-No hitch & 0.722 & 0.591 & 23.3 & 0.0 & 0.0 & -749.19 \\
-Multiplicative & 0.845 & 0.977 & 18.2 & 0.0 & 0.0 & 164.40 \\
-Guided & 1.105 & 1.358 & 14.2 & 0.0 & 0.0 & 397.16 \\
+Dense & 0.944 & 0.950 & 23.5 & 70.0 & 0.0 & -892.47 \\
+No hitch & 0.663 & 0.631 & 20.0 & 76.7 & 0.0 & -748.81 \\
+Multiplicative & 0.655 & 0.736 & 14.0 & 100.0 & 0.0 & 203.53 \\
+Guided & 1.081 & 1.384 & 16.1 & 90.0 & 0.0 & 378.09 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}

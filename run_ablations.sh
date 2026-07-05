@@ -27,10 +27,16 @@ LIDAR_BEAMS_DEFAULT=16
 # Selected best configurations for later phases.
 # Valid obs tags:
 #   state | lidar | lidar_32 | bev | bev_ae_frozen | bev_unet_unfrozen
+# NOTE: best reward differs by direction (see reward-ablation results):
+#   forward — `dense` is near-optimal on CTE, so downstream forward phases keep it.
+#   reverse — `dense` is degenerate (jackknifes; total reward ~-944), so the
+#   deployed `multiplicative` reward is used for all downstream reverse phases
+#   (failure-replay, obstacle). This matches the lab deployment and gives a
+#   non-broken base policy for those ablations.
 BEST_OBS_FORWARD="lidar_24"
 BEST_OBS_REVERSE="lidar_24"
 BEST_REWARD_FORWARD="dense"
-BEST_REWARD_REVERSE="dense"
+BEST_REWARD_REVERSE="multiplicative"
 
 LOG_DIR="logs"
 FIGS="thesis/figures/experiment_results"

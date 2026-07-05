@@ -1,10 +1,74 @@
-The tractor longitudinal and lateral dynamics are:
+The tractor is represented by a planar single-track (``bicycle'') model, in which the
+front axle is lumped into one steerable wheel and the rear axle into one fixed wheel. Its
+global position $(x,y)$ follows from the body-frame longitudinal and lateral velocities
+$(v_x, v_y)$ and the heading $\psi$:
 
 \begin{align}
     \dot{x} &= v_x \cos\psi - v_y \sin\psi \label{eq:tractor_x} \\
     \dot{y} &= v_x \sin\psi + v_y \cos\psi \label{eq:tractor_y}
 \end{align}
 
-where $v_x$ is the longitudinal velocity, $v_y$ is the lateral velocity, and $\psi$ is the vehicle heading.
+Lateral force is generated at each tyre as a function of its slip angle. Under the
+small-angle assumptions appropriate to the operating envelope, the front and rear slip
+angles are
 
-% TODO: expand to full state-space model (yaw rate, slip angles, longitudinal dynamics)
+\begin{align}
+    \alpha_f &= \delta - \frac{v_y + l_f \dot{\psi}}{v_x}, &
+    \alpha_r &= -\,\frac{v_y - l_r \dot{\psi}}{v_x},
+    \label{eq:slip}
+\end{align}
+
+where $\delta$ is the steering angle. Rather than evaluating the full Pacejka magic-formula
+tyre curve, the simulator operates in its linear region: for the modest slip angles
+encountered here the curve is well approximated by a constant cornering stiffness, giving the
+lateral tyre forces
+
+\begin{align}
+    F_{yf} &= C_f\, \alpha_f, & F_{yr} &= C_r\, \alpha_r .
+    \label{eq:tireforce}
+\end{align}
+
+This linearised-Pacejka (constant cornering-stiffness) model is what is implemented in code;
+it preserves the lateral behaviour relevant to path tracking while avoiding the
+hard-to-identify parameters of the full nonlinear tyre curve. Collecting the longitudinal,
+lateral, and yaw-moment balances --- with a quadratic aerodynamic drag
+$F_{\mathrm{drag}} = \tfrac{1}{2} C_d \rho A v_x^2$ and a net drive force $F_x$ --- yields the
+tractor dynamics
+
+\begin{align}
+    m\left(\dot{v}_x - v_y \dot{\psi}\right) &= F_x - F_{\mathrm{drag}} - F_{yf}\sin\delta,
+    \label{eq:long}\\
+    m\left(\dot{v}_y + v_x \dot{\psi}\right) &= F_{yf}\cos\delta + F_{yr},
+    \label{eq:lat}\\
+    I_z\, \ddot{\psi} &= l_f F_{yf}\cos\delta - l_r F_{yr}.
+    \label{eq:yaw}
+\end{align}
+
+For control design and for the time-stepping used in simulation, these equations are
+linearised about straight-line motion ($\delta \approx 0$) at a constant reference speed
+$v_x = v$. With state $\boldsymbol{\xi} = [\,v_x,\ v_y,\ \dot{\psi}\,]^\top$ and input
+$\mathbf{u} = [\,F_x,\ \delta\,]^\top$, the linearised dynamics take the time-invariant form
+$\dot{\boldsymbol{\xi}} = A\boldsymbol{\xi} + B\mathbf{u}$ with
+
+\begin{equation}
+    A = \begin{bmatrix}
+        -\dfrac{C_d \rho A v}{2m} & 0 & 0 \\[2.2mm]
+        0 & -\dfrac{C_f + C_r}{m v} & \dfrac{l_r C_r - l_f C_f}{m v} \\[2.2mm]
+        0 & \dfrac{l_r C_r - l_f C_f}{I_z v} & -\dfrac{l_f^2 C_f + l_r^2 C_r}{I_z v}
+    \end{bmatrix},
+    \qquad
+    B = \begin{bmatrix}
+        \dfrac{1}{m} & 0 \\[2.2mm]
+        0 & \dfrac{C_f}{m} \\[2.2mm]
+        0 & \dfrac{l_f C_f}{I_z}
+    \end{bmatrix}.
+    \label{eq:tractor_ss}
+\end{equation}
+
+The continuous system is converted to the discrete update
+$\boldsymbol{\xi}_{k+1} = A_d \boldsymbol{\xi}_k + B_d \mathbf{u}_k$ by a zero-order-hold
+discretisation at the simulation step $\Delta t = 0.1$\,s, and it is this discrete map that is
+advanced at each timestep. The block structure of \eqref{eq:tractor_ss} shows that, to first
+order, the longitudinal channel decouples from the coupled lateral/yaw channel --- a property
+the fixed-speed path-tracking experiments exploit by holding speed constant and studying only
+the lateral and articulation behaviour.

@@ -4,35 +4,41 @@
 \centering
 \caption{Forward lane-following: observation space ablation (dense reward, no obstacles, 30~eval episodes).}
 \label{tab:obs_ablation_forward}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 Observation  & \makecell{CTE\\Tractor\\(m)}  & \makecell{CTE\\Trailer\\(m)}  & \makecell{Max $|\gamma|$\\($^\circ$)}  & \makecell{Completion\\(\%)}  & \makecell{Jackknife\\(\%)}  & \makecell{Inference\\(ms)} \\
 \midrule
-State (MLP) & 0.921 & 0.428 & 14.5 & 0.0 & 0.0 & $<$1 \\
-Lidar-16 (MLP) & 1.083 & 0.610 & 9.9 & 0.0 & 0.0 & $<$1 \\
+State (MLP) & 0.356 & 0.421 & 9.5 & 100.0 & 0.0 & $<$1 \\
+Lidar-16 (MLP) & 1.005 & 0.457 & 6.8 & 0.0 & 0.0 & $<$1 \\
 BEV CNN (scratch) & 0.939 & 0.496 & 12.7 & 0.0 & 0.0 & $<$1 \\
+bev scaled cnn & 0.307 & 0.395 & 7.7 & 0.0 & 0.0 & $<$1 \\
 BEV AE (frozen) & 0.834 & 0.892 & 35.0 & 0.0 & 0.0 & $<$1 \\
 BEV AE (unfrozen) & 0.719 & 0.709 & 30.4 & 0.0 & 0.0 & $<$1 \\
 BEV UNet (frozen) & 0.891 & 0.523 & 15.5 & 0.0 & 0.0 & 1.47 \\
-BEV UNet (unfrozen) & --- & --- & --- & --- & --- & --- \\
+BEV UNet (unfrozen) & 0.302 & 0.358 & 8.7 & 100.0 & 0.0 & 1.37 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 \begin{table}[H]
 \centering
 \caption{Reverse lane-following: observation space ablation (dense reward, no obstacles, 30~eval episodes).}
 \label{tab:obs_ablation_reverse}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 Observation  & \makecell{CTE\\Tractor\\(m)}  & \makecell{CTE\\Trailer\\(m)}  & \makecell{Max $|\gamma|$\\($^\circ$)}  & \makecell{Completion\\(\%)}  & \makecell{Jackknife\\(\%)}  & \makecell{Inference\\(ms)} \\
 \midrule
-State (MLP) & 0.911 & 1.516 & 44.3 & 0.0 & 3.3 & $<$1 \\
-Lidar-16 (MLP) & 0.942 & 1.065 & 16.3 & 0.0 & 0.0 & $<$1 \\
+State (MLP) & 0.932 & 1.424 & 45.4 & 0.0 & 0.0 & $<$1 \\
+Lidar-16 (MLP) & 0.917 & 1.242 & 11.8 & 73.3 & 0.0 & $<$1 \\
 BEV CNN (scratch) & 0.535 & 1.738 & 7.7 & 0.0 & 0.0 & $<$1 \\
-BEV AE (frozen) & --- & --- & --- & --- & --- & --- \\
-BEV AE (unfrozen) & --- & --- & --- & --- & --- & --- \\
-BEV UNet (frozen) & --- & --- & --- & --- & --- & --- \\
-BEV UNet (unfrozen) & --- & --- & --- & --- & --- & --- \\
+bev scaled cnn & 0.891 & 0.828 & 47.1 & 0.0 & 0.0 & $<$1 \\
+BEV AE (frozen) & 0.950 & 0.830 & 50.2 & 0.0 & 0.0 & $<$1 \\
+BEV AE (unfrozen) & 0.890 & 0.875 & 47.1 & 0.0 & 0.0 & $<$1 \\
+BEV UNet (frozen) & 0.893 & 0.858 & 47.1 & 0.0 & 0.0 & 1.39 \\
+BEV UNet (unfrozen) & 0.951 & 0.873 & 50.1 & 0.0 & 0.0 & 1.36 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}

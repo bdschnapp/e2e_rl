@@ -1,0 +1,160 @@
+\chapter{Results and Discussion}
+\label{ch:results}
+
+\section{Path Following Performance}
+
+The results pipeline supports controlled comparison across observation modalities and controller families. Forward lane-following serves as the first benchmark task, with matched TD3 agents trained on state-only, lidar, end-to-end CNN BEV, pretrained autoencoder BEV, pretrained UNet BEV, and diagnostic scaled-CNN BEV observations. The evaluation script aggregates tractor and trailer cross-track error, hitch-angle statistics, completion rate, and inference latency across repeated episodes.
+
+This structure is important for the thesis because it separates two questions that were previously entangled: whether the articulated control task benefits from richer sensing, and whether any benefit comes from the sensing modality itself or from the representation-learning pipeline used to process it.
+
+The experiments are organised in the following order:
+\begin{enumerate}
+    \item select the best observation space on forward and reverse lane-following without obstacles;
+    \item hold that observation fixed and compare reward formulations on the same no-obstacle tasks;
+    \item benchmark the best TD3 configuration against tuned classical controllers on matched no-obstacle scenarios;
+    \item evaluate the failure replay curriculum (Section~\ref{sec:failure_replay}) on the reverse task, holding observation and reward fixed, to isolate the effect of the reset strategy on convergence and final performance.
+\end{enumerate}
+
+This sequence keeps each ablation focused on one design variable at a time and ensures that the final controller benchmark is performed on the cleanest apples-to-apples task definition. In particular, the no-obstacle benchmark is run at fixed speed for every method, so that differences in performance are attributed to path tracking and articulation stabilisation rather than to longitudinal speed selection.
+
+Table~\ref{tab:results_plan_matrix} converts that sequence into an executable run matrix. The training launcher supports all observation and reward combinations listed there through the \texttt{scenario}, \texttt{obs}, and \texttt{reward} arguments, while the benchmark scripts are used only after model selection.
+
+\input{tables/results_plan_matrix}
+
+\section{Observation Space Ablation}
+\label{sec:obs_ablation}
+
+The observation space ablation compares the following configurations on the no-obstacle forward and reverse tasks: state-only, lidar (best beam count from Section~\ref{sec:lidar_ablation}), end-to-end CNN BEV from random initialisation, diagnostic BEV state-only through the multi-input policy, scaled-CNN BEV, frozen autoencoder BEV, fine-tuned autoencoder BEV, frozen UNet BEV, and fine-tuned UNet BEV. All agents share the same TD3 backbone, reward formulation, and hyperparameters wherever possible, so performance differences are attributed to the observation and representation choices alone. The diagnostic BEV state-only and scaled-CNN variants are included because early experiments showed that a randomly initialised image branch can degrade an otherwise learnable state policy. These runs distinguish a failure of the visual representation from a failure of the BEV environment or Stable Baselines3 multi-input wrapper.
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/forward_obs_ablation}{Learning curves (mean episode return $\pm$ 1 s.d.) for forward lane-following:
+             observation space ablation. Shaded bands show one standard deviation
+             across evaluation episodes at each checkpoint.}
+    \caption{Learning curves (mean episode return $\pm$ 1 s.d.) for forward lane-following:
+             observation space ablation. Shaded bands show one standard deviation
+             across evaluation episodes at each checkpoint.}
+    \label{fig:forward_obs_ablation}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/reverse_obs_ablation}{Learning curves for reverse lane-following: observation space ablation.}
+    \caption{Learning curves for reverse lane-following: observation space ablation.}
+    \label{fig:reverse_obs_ablation}
+\end{figure}
+
+\input{tables/obs_ablation_results}
+
+\section{Lidar Beam-Count Ablation}
+\label{sec:lidar_ablation}
+
+Lidar is treated separately from image-based methods because it is a qualitatively different sensing modality: a sparse one-dimensional range scan rather than a two-dimensional bird's-eye-view image. The beam-count ablation isolates the effect of lidar resolution on path-tracking performance and inference cost, which trade off directly: more beams supply finer obstacle geometry but enlarge the observation vector and the policy network. Four beam counts are compared, $\{8, 16, 24, 32\}$, on the forward no-obstacle task with the dense reward formulation. The $24$-beam configuration is of particular interest because it matches the lidar resolution carried into the hardware deployment (Chapter~\ref{ch:sim_to_real}), so the ablation doubles as a check that the deployed resolution sits on the favourable part of this trade-off rather than being chosen arbitrarily.
+
+\input{tables/lidar_beams_ablation}
+
+\section{Reward Formulation Ablation}
+\label{sec:reward_ablation}
+
+The reward ablation holds the observation space fixed at the best configuration from Section~\ref{sec:obs_ablation} and compares reward formulations. Four variants are evaluated on forward lane-following and four on reverse lane-following.
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/forward_reward_ablation}{Learning curves for forward lane-following: reward formulation ablation.}
+    \caption{Learning curves for forward lane-following: reward formulation ablation.}
+    \label{fig:forward_reward_ablation}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/reverse_reward_ablation}{Learning curves for reverse lane-following: reward formulation ablation.}
+    \caption{Learning curves for reverse lane-following: reward formulation ablation.}
+    \label{fig:reverse_reward_ablation}
+\end{figure}
+
+\input{tables/reward_ablation_results}
+
+\section{Statistical Rigor and Generalisation}
+
+To avoid over-interpreting single aggregate scores, the evaluation protocol is designed to report more than a point estimate for each ablation and benchmark comparison: the number of training seeds, the number of held-out evaluation scenarios, and a measure of uncertainty such as standard deviation or confidence intervals. Where two methods are close in mean performance, effect sizes or simple statistical tests are intended to separate meaningful differences from the noise induced by stochastic training and random scenario generation. This matters acutely for articulated control, where training is high-variance and a gap of a few centimetres in mean cross-track error can lie well within run-to-run scatter; reporting only a single best number would risk reading such scatter as a real effect.
+
+Generalisation is treated as something to be measured rather than assumed. In the present simulator, this means constructing held-out benchmark sets that differ from the training distribution in controlled ways, for example through tighter curvature segments, different spawn offsets, unseen reverse initialisation errors, denser obstacle placements, or degraded observations. A controller that performs well only on nominal paths does not provide strong evidence of robustness for articulated autonomy, where the failure modes of interest---jackknifing, loss of trailer tracking---tend to appear precisely at the edges of the training distribution. The protocol therefore distinguishes \emph{in-distribution} benchmark performance from \emph{out-of-distribution} robustness, so that the two are reported separately rather than conflated.
+
+\section{Training Strategy: Failure Replay Curriculum}
+
+The failure replay curriculum (Section~\ref{sec:failure_replay}) is evaluated as a controlled ablation on the reverse lane-following task, where the episode failure rate is highest and the effect of replay is therefore expected to be most pronounced. Two agents are trained with identical hyperparameters, observation spaces, and reward formulations, differing only in whether the reset strategy replays failed scenarios or draws a fresh random layout.
+
+The primary comparison metric is the learning curve: mean episode return plotted against training timesteps, together with the rate at which episodes terminate in failure (jackknife or out-of-bounds). A curriculum that accelerates convergence is expected to produce a steeper early rise in return and a faster decline in the failure rate during the phase when the policy is least stable, reaching a given level of performance in fewer timesteps than the random-reset baseline. The reverse task is the natural place to look for this effect: because the open-loop reverse dynamics are unstable (Chapter~\ref{ch:modeling}), early policies fail often, and it is exactly these early failures that the replay curriculum recycles into additional learning signal.
+
+Final performance (mean absolute trailer CTE, jackknife rate, and max~$|\gamma|$ over held-out evaluation seeds) is also compared, as the curriculum may improve sample efficiency without necessarily raising the asymptotic performance ceiling. Results are evaluated on fixed held-out seeds that were not seen during training, so that any advantage from repeated exposure to particular layouts during training does not inflate the reported evaluation metrics.
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.85\textwidth]{figures/experiment_results/failure_replay_curve}{Learning curves for reverse lane-following: failure replay curriculum vs random
+             reset baseline. Both agents use identical hyperparameters, observation space,
+             and reward formulation.}
+    \caption{Learning curves for reverse lane-following: failure replay curriculum vs random
+             reset baseline. Both agents use identical hyperparameters, observation space,
+             and reward formulation.}
+    \label{fig:failure_replay_curve}
+\end{figure}
+
+\input{tables/failure_replay_results}
+
+\section{Reverse Maneuvering Success}
+
+Reverse evaluation uses dedicated reverse line-following and reverse obstacle-avoidance environments, along with reverse pure-pursuit, reverse PID, and reverse MPC baselines. All reverse controllers are formulated around hitch-angle stabilisation and trailer-referenced tracking errors, reflecting the fact that the trailer leads the manoeuvre during backing. This provides a consistent basis for comparing learned and analytical controllers on the inherently unstable reverse articulated-driving problem.
+
+\section{Perception Robustness}
+
+The perception study uses a concrete ablation structure: state variables only, state plus lidar, end-to-end BEV learning, scaled BEV learning, and pretrained BEV encoders. Because all variants share the same TD3 backbone and task definition, differences in tracking performance can be attributed more directly to the observation and representation choices than to changes in the control architecture. The scaled-CNN experiments are interpreted as representation-learning diagnostics: if a policy learns when the image branch is initially suppressed but degrades when the image contribution reaches full scale, the result indicates that the learned visual features are not yet as reliable as the engineered state variables.
+
+In practical terms, the most meaningful observation-space study is the one run on the no-obstacle environments. Obstacle environments confound the comparison because different observation spaces change not only path-tracking quality but also how much implicit local-planning information is available to the policy. They also change how much benefit a method can obtain from modulating speed, which is undesirable in the core controller comparison.
+
+\section{Obstacle Navigation}
+\label{sec:obstacle_results}
+
+Obstacle-avoidance results are reported separately from the no-obstacle benchmark because the RL agent learns a joint local-planning and control policy (including speed modulation), while the classical baselines are pure path-tracking controllers. The comparison is therefore not apples-to-apples and is interpreted as an end-to-end navigation study rather than a controller-only comparison.
+
+\input{tables/obstacle_results}
+
+\section{Benchmark Comparison}
+\input{tables/benchmark_results}
+
+Benchmarking is performed on pre-generated scenario sets so that TD3 and the classical baselines face identical lane geometry and obstacle placement. Classical controllers are tuned before comparison using differential evolution and then validated on held-out seeds. Each benchmark episode logs both control quality and computational cost, allowing comparison not only of tracking error but also of completion rate, jackknife frequency, collision rate, obstacle clearance, and controller latency.
+
+The results must be understood in terms of multi-objective performance: in rigid-body systems, success is synonymous with minimising cross-track error. In articulated systems, hitch stability takes precedence over exact path following. An agent that maintains $|\gamma| < 5^\circ$ throughout a reverse task is more successful than one that achieves lower CTE but triggers jackknife events. For that reason, the benchmark framework reports trailer tracking, articulation stability, and completion together rather than reducing performance to a single scalar.
+
+\subsection{Information Parity Between Learned and Classical Controllers}
+\label{sec:information_parity}
+
+A controller comparison is only meaningful if the methods are given comparable information about the reference path. Table~\ref{tab:information_parity} summarises what each method observes at a single control step on the no-obstacle tasks. The TD3 observation vector contains the instantaneous tractor and trailer tracking errors ($e_y$, $e_\psi$, and their trailer-referenced counterparts) together with two path-curvature samples taken at fixed distances ahead of the trailer axle ($\kappa$ at approximately $10$ and $20$~m). This is a strict superset of the reference information used by the pure-pursuit and PID baselines, which close the loop on the same instantaneous errors plus a single curvature sample at one lookahead point. The learned policy is therefore not at an information disadvantage relative to these baselines---if anything it is marginally favoured---so the no-obstacle benchmark against pure pursuit and PID is a fair, like-for-like comparison of control quality rather than a comparison confounded by what each method is allowed to see.
+
+\begin{table}[H]
+\centering
+\caption{Reference-path information available to each method at a single control step on the no-obstacle tasks. The learned policy's observation is a strict superset of the information used by the pure-pursuit and PID baselines; only MPC receives an explicit preview of the path ahead.}
+\label{tab:information_parity}
+\begin{tabular}{lccc}
+\toprule
+Method & \makecell{Instantaneous\\errors $(e_y, e_\psi)$} & \makecell{Curvature\\lookahead} & \makecell{Full path\\preview} \\
+\midrule
+Pure pursuit          & yes      & 1 pt ($\sim$10\,m)       & ---                 \\
+PID                   & yes      & 1 pt ($\sim$10\,m)       & ---                 \\
+TD3 (state/lidar/BEV) & yes      & 2 pts ($\sim$10, 20\,m)  & ---                 \\
+MPC                   & implicit & ---                      & $N{=}16/20$ steps   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The MPC baseline is the exception. It is supplied with an explicit preview of the path: a full reference trajectory of positions and headings over a receding horizon ($N{=}16$ steps forward, $20$ in reverse), reconstructed from the same centreline the policy tracks. The TD3 policy receives no equivalent preview---only the two scalar curvature samples. Where MPC attains lower cross-track error, part of that advantage is therefore attributable to horizon information that the learned policy never sees, rather than to a superior control law alone. MPC is consequently best read as an informed upper bound under near-perfect path preview, while the pure-pursuit and PID comparisons constitute the information-matched test of whether a learned policy can equal or exceed classical feedback control on the articulated tracking task. Closing the remaining gap to MPC by giving the policy an equivalent path-preview observation is identified as future work (Chapter~\ref{ch:conclusion}).
+
+For obstacle scenarios, the benchmark question changes. An RL obstacle policy is effectively learning a joint local-planning and control policy, including speed modulation, whereas pure-pursuit, PID, and MPC are primarily path-tracking controllers. Obstacle-task results are therefore not presented as directly comparable to controller-only baselines unless a matched planning layer and longitudinal policy are added to those baselines. Obstacle results are reported either as a separate end-to-end navigation study or as a comparison against planner+controller classical stacks.
+
+\section{Failure Analysis and Deployment Relevance}
+
+Average metrics alone are insufficient for articulated-vehicle control, because the operational significance of a failure depends strongly on how that failure occurs. The analysis therefore examines representative failure cases for each controller family---such as gradual corner-cutting, growing lateral oscillations, abrupt jackknife onset, and obstacle-clearance failures---rather than mean error alone. Trajectory overlays and hitch-angle traces are the natural diagnostics here, because they reveal whether an error mode is primarily geometric, dynamic, or perception-driven, and therefore which part of the pipeline a fix should target.
+
+This failure-oriented discussion also connects the simulation study to deployment relevance. A controller that attains a low mean cross-track error but exhibits rare catastrophic jackknife episodes is less deployable than a controller with slightly higher average error but consistent stability margins. For the same reason, controller latency and architectural modularity are discussed alongside tracking performance. These considerations help position the thesis as a study in autonomous articulated-system design rather than only an optimisation exercise inside a simulator.
+
+% Insert statistical tests and any reward-weight ablation details here once final results are available.
+\input{tables/experiment_matrix}

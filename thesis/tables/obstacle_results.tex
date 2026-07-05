@@ -4,27 +4,31 @@
 \centering
 \caption{Forward obstacle-avoidance: TD3 performance by observation space (dense reward, 5--10 obstacles per episode, 30~eval episodes).}
 \label{tab:obstacle_forward}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
 \begin{tabular}{lccccccc}
 \toprule
 Observation  & \makecell{CTE\\Trailer\\(m)}  & \makecell{Max $|\gamma|$\\($^\circ$)}  & \makecell{Path\\completion\\(\%)}  & \makecell{Collision\\(\%)}  & \makecell{Jackknife\\(\%)}  & \makecell{Min clearance\\(m)}  & \makecell{Inference\\(ms)} \\
 \midrule
-State (MLP) & 0.447 & 7.2 & 0.0 & 100.0 & 0.0 & --- & $<$1 \\
-Lidar-16 (MLP) & 0.501 & 8.7 & 0.0 & 100.0 & 0.0 & --- & $<$1 \\
+State (MLP) & 0.469 & 9.4 & 20.0 & 80.0 & 0.0 & --- & $<$1 \\
+Lidar-16 (MLP) & 0.479 & 7.0 & 20.0 & 80.0 & 0.0 & --- & $<$1 \\
 BEV CNN (scratch) & 0.537 & 16.5 & 0.0 & 100.0 & 0.0 & --- & $<$1 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 \begin{table}[H]
 \centering
-\caption{Reverse obstacle-avoidance: TD3 performance by observation space (dense reward, 5--10 obstacles per episode, 30~eval episodes).}
+\caption{Reverse obstacle-avoidance: TD3 performance by observation space (multiplicative reward, 5--10 obstacles per episode, 30~eval episodes).}
 \label{tab:obstacle_reverse}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
 \begin{tabular}{lccccccc}
 \toprule
 Observation  & \makecell{CTE\\Trailer\\(m)}  & \makecell{Max $|\gamma|$\\($^\circ$)}  & \makecell{Path\\completion\\(\%)}  & \makecell{Collision\\(\%)}  & \makecell{Jackknife\\(\%)}  & \makecell{Min clearance\\(m)}  & \makecell{Inference\\(ms)} \\
 \midrule
-State (MLP) & 1.022 & 10.9 & 0.0 & 96.7 & 0.0 & --- & $<$1 \\
-Lidar-16 (MLP) & 0.512 & 7.0 & 0.0 & 96.7 & 0.0 & --- & $<$1 \\
-BEV CNN (scratch) & --- & --- & --- & --- & --- & --- & --- \\
+State (MLP) & 1.060 & 28.8 & 0.0 & 96.7 & 0.0 & --- & $<$1 \\
+Lidar-16 (MLP) & 0.507 & 5.1 & 0.0 & 100.0 & 0.0 & --- & $<$1 \\
+BEV CNN (scratch) & 0.935 & 32.3 & 0.0 & 100.0 & 0.0 & --- & $<$1 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}

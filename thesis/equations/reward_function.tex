@@ -42,8 +42,8 @@ R_{\mathrm{dense}}^{\mathrm{fwd}} &= r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}} -
 \\
 R_{\mathrm{tractor}}^{\mathrm{fwd}} &= r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}} - P_{\mathrm{prox}},
 \\
-R_{\mathrm{mult}}^{\mathrm{fwd}} &= 4\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right)
-\exp\!\left(-1.5|\gamma|\right) + 0.5\,\mathrm{clip}(\dot{x}, 0, 1) - P_{\mathrm{prox}},
+R_{\mathrm{mult}}^{\mathrm{fwd}} &= 4\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right)\exp\!\left(-1.5|\gamma|\right) \nonumber\\
+&\quad + 0.5\,\mathrm{clip}(\dot{x}, 0, 1) - P_{\mathrm{prox}},
 \\
 R_{\mathrm{guide}}^{\mathrm{fwd}}(k) &= \alpha_k
 \left(r_p^{\mathrm{fwd}} - 5\Delta_\delta^2\right)
@@ -79,9 +79,8 @@ R_{\mathrm{dense}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_
 \\
 R_{\mathrm{no\mbox{-}hitch}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_{\mathrm{prox}},
 \\
-R_{\mathrm{mult}}^{\mathrm{rev}} &= 5\,\mathrm{clip}(-\dot{x}, 0, 1)
-\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right)
-\exp\!\left(-2|\gamma|\right) - P_{\mathrm{prox}},
+R_{\mathrm{mult}}^{\mathrm{rev}} &= 5\,\mathrm{clip}(-\dot{x}, 0, 1)\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right) \nonumber\\
+&\quad \times \exp\!\left(-2|\gamma|\right) - P_{\mathrm{prox}},
 \\
 R_{\mathrm{guide}}^{\mathrm{rev}}(k) &= \alpha_k
 \left(r_p^{\mathrm{rev}} - 5\Delta_\delta^2 - P_{\mathrm{jack}}\right)

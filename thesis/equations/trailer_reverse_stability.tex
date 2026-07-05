@@ -1,16 +1,60 @@
-The articulated system introduces hitch geometry defined by:
+The articulated system adds a trailer body coupled to the tractor through a revolute hitch.
+The relevant geometry is:
 \begin{itemize}
-    \item $L_h$: distance from tractor rear axle to hitch point
-    \item $L_t$: distance from hitch point to trailer axle
-    \item $\gamma$: articulation angle between tractor and trailer
+    \item $L_h$: signed distance from the tractor rear axle to the hitch point (in both the
+    training model and the hardware platform the hitch sits at the rear axle, so
+    $L_h \approx 0$);
+    \item $L_t$: distance from the hitch to the trailer axle, i.e.\ the trailer wheelbase;
+    \item $\gamma = \psi - \psi_t$: the articulation angle between the tractor heading $\psi$
+    and the trailer heading $\psi_t$ (the same convention used by the deployment in
+    \cref{ch:sim_to_real}).
 \end{itemize}
 
-The hitch angle kinematics during reverse motion are:
+The hitch point is carried rigidly by the tractor,
+\begin{align}
+    x_h &= x - L_h\cos\psi, & y_h &= y - L_h\sin\psi,
+    \label{eq:hitch_point}
+\end{align}
+and translates with the tractor's longitudinal speed $v$. Imposing a pure-rolling (no lateral
+slip) constraint on the trailer axle fixes the trailer yaw rate from the lateral component of
+the hitch velocity:
+
 \begin{equation}
-    \dot{\gamma} = \frac{v}{L_t} \sin\gamma - \frac{v}{L_h} \tan\delta \cos\gamma
+    \dot{\psi}_t = \frac{v}{L_t}\sin(\psi - \psi_t) = \frac{v}{L_t}\sin\gamma .
+    \label{eq:trailer_yaw}
+\end{equation}
+
+The articulation angle therefore evolves as
+
+\begin{equation}
+    \dot{\gamma} = \dot{\psi} - \frac{v}{L_t}\sin\gamma ,
     \label{eq:hitch_kinematics}
 \end{equation}
 
-Reverse motion introduces instability as $\gamma$ approaches the jackknife threshold.
+where the tractor yaw rate $\dot{\psi}$ is supplied by the tractor model of
+\cref{eq:tractor_ss} (equivalently $\dot{\psi} = (v/L)\tan\delta$ for a purely kinematic
+tractor of wheelbase $L = l_f + l_r$). The trailer axle pose then follows from the hitch point
+and the trailer heading,
+\begin{align}
+    x_t &= x_h - L_t\cos\psi_t, & y_t &= y_h - L_t\sin\psi_t .
+    \label{eq:trailer_axle}
+\end{align}
 
-% TODO: stability analysis, linearisation about equilibrium, phase portrait
+The sign of $v$ in \cref{eq:hitch_kinematics} is what makes reverse motion qualitatively
+harder. Linearising about the aligned configuration ($\gamma \approx 0$, so
+$\sin\gamma \approx \gamma$) and holding the steering-driven tractor yaw fixed, the unforced
+articulation mode obeys
+
+\begin{equation}
+    \dot{\gamma} \approx -\frac{v}{L_t}\,\gamma,
+    \qquad \lambda = -\frac{v}{L_t} .
+    \label{eq:hitch_eig}
+\end{equation}
+
+In forward motion ($v > 0$) the eigenvalue $\lambda$ is negative: articulation errors decay
+and the trailer self-aligns behind the tractor. In reverse ($v < 0$) the eigenvalue becomes
+positive and the same errors grow exponentially toward the jackknife condition. This is an
+open-loop instability rather than a mere tuning difficulty, and it is the defining feature of
+reverse articulated manoeuvring --- the reason the reverse task demands active hitch
+stabilisation, trailer-referenced error metrics, and the dedicated reward and curriculum
+treatments developed in \cref{ch:learning_framework}.

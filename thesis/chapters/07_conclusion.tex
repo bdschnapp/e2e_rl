@@ -1,0 +1,47 @@
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+\section{Summary of Findings}
+
+This thesis presented a reinforcement learning framework for articulated autonomous vehicle control. The key contributions demonstrated are:
+\begin{itemize}
+    \item a combined dynamic tractor and kinematic trailer model implemented in a custom Gymnasium simulation environment;
+    \item a vision-based observation space incorporating compact BEV crops derived from the Pygame simulation, enabling spatial perception of lane boundaries and obstacles;
+    \item a TD3 reinforcement learning agent trained on lane-following and obstacle avoidance tasks with reward formulations that penalise cross-track error, heading error, hitch articulation angle, terminal failures, and close proximity to lane boundaries or obstacles;
+    \item comparison of TD3 performance against tuned pure-pursuit, PID, and MPC classical control baselines on matched articulated path-tracking tasks;
+    \item a sim-to-real deployment (Chapter~\ref{ch:sim_to_real}) that runs the trained forward and reverse policies directly on a physical Agilex Hunter SE through a stripped-down Autoware stack, supported by onboard LiDAR-based hitch-angle estimation and a Smith predictor for actuator-delay compensation.
+\end{itemize}
+
+The integration of visual perception via BEV imagery broadens the control problem beyond compact vector-state tracking. By processing rendered BEV images through CNN, autoencoder, or UNet-style feature extractors, the agent gains spatial context about lane geometry and obstacle positions that vector state observations alone cannot provide. The scaled-CNN experiments further show that the visual branch must be introduced carefully: a randomly initialised image encoder can interfere with early TD3 learning, while gradually increasing the image contribution provides a cleaner diagnostic of whether the learned representation is becoming useful for control.
+
+From a research-impact perspective, the thesis is strongest when interpreted not only as an RL training exercise but as a reproducible benchmark and systems study for articulated autonomy. The combination of matched observation ablations, tuned classical baselines, fixed-scenario benchmarking, and explicit articulation-stability metrics provides a framework for asking which sensing and control choices are actually useful for tractor-trailer path tracking. This framing is more defensible and more reusable than reporting isolated policy demonstrations.
+
+\section{Limitations}
+
+The study is subject to the following constraints:
+\begin{itemize}
+    \item The bulk of the experimental evaluation is conducted within the custom 2D Pygame/Gymnasium simulation environment. A hardware deployment exists (Chapter~\ref{ch:sim_to_real}), but quantitative sim-to-real performance has not yet been characterised, and behaviour in higher-fidelity physics simulators remains untested.
+    \item The 2D simulation approximates the vehicle dynamics but does not capture all effects present in a real tractor-trailer system, such as load transfer, tire saturation at high slip angles, or hitch joint compliance.
+    \item The current framework assumes a fixed payload; hitch dynamics change significantly with varying trailer mass.
+    \item Obstacle avoidance is limited to static obstacles; dynamic obstacle handling is not addressed.
+    \item Generalisation beyond the training distribution has not yet been fully quantified; robustness to sensor degradation and stronger path-distribution shift remains to be measured explicitly. Actuator delay is actively mitigated on hardware by the Smith predictor of Chapter~\ref{ch:sim_to_real}, but its effect on closed-loop tracking has not yet been measured.
+    \item The hardware deployment of Chapter~\ref{ch:sim_to_real} runs the trained policies on the Agilex Hunter SE through the ROS2/Autoware integration, but a full characterisation of sim-to-real performance across the complete range of training tasks remains as future work.
+\end{itemize}
+
+\section{Future Work}
+
+Several directions remain open for future investigation:
+\begin{itemize}
+    \item \textbf{Higher-fidelity simulation}: Validating the trained policies in a physics-based 3D simulator with a detailed model of the tractor-trailer system, including realistic tire and hitch dynamics. This is already underway as the georeferenced Gazebo ``digital-twin'' environment of \cref{sec:geo_sim}, which reconstructs real sites from Blender-authored, GIS-anchored worlds and exercises the full Autoware perception and localisation stack; completing it and quantifying the policies' behaviour within it is the natural next step.
+    \item \textbf{Hardening the hardware deployment}: The trained TD3 policies are already deployed directly on the Hunter SE through the RL bridge of Chapter~\ref{ch:sim_to_real}, with actuator-delay compensation provided by the Smith predictor. The next steps are to collect quantitative sim-to-real results across the full task set, complete the in-progress learned neural-network system-dynamics model that augments the Smith predictor, introduce domain randomisation during training to narrow the remaining sim-to-real gap, and add a supervised safety-fallback layer.
+    \item \textbf{Infrastructure sensing}: Building the off-vehicle infrastructure LiDAR sensor nodes proposed in Chapter~\ref{ch:sim_to_real}, which provide an occlusion-resilient bird's-eye view of obstacles behind the trailer without instrumenting the trailer itself, and fusing their detections into the onboard perception stack.
+    \item \textbf{Planner-controller baselines for obstacle tasks}: Comparing obstacle-avoidance RL policies against complete classical navigation stacks, so that end-to-end navigation is evaluated on a fair task definition rather than against controller-only baselines.
+    \item \textbf{Robustness benchmarks}: Adding out-of-distribution test sets with stronger curvature, perturbed initial poses, observation noise, and parameter mismatch, so that the thesis can quantify generalisation rather than only nominal performance.
+    \item \textbf{Failure-mode analysis}: Building a structured taxonomy of controller failures, including oscillation growth, corner-cutting, hitch divergence, and obstacle-clearance collapse, to support safety-oriented comparison rather than relying on averages alone.
+    \item \textbf{Control-aligned visual pretraining}: Pretraining BEV encoders to predict control-relevant quantities such as cross-track error, heading error, hitch angle, curvature, or expected reward, rather than relying only on pixel reconstruction.
+    \item \textbf{Sequence-model policies for tractor-trailer control}: Applying transformer-based offline control methods to the articulated vehicle setting, with training data generated from the TD3 expert policy and augmented with high-error recovery trajectories.
+    \item \textbf{Multi-trailer systems}: Extending the kinematic model and RL policy to double or B-train configurations.
+    \item \textbf{Online adaptation}: Updating the policy in real time to compensate for varying payloads and road conditions.
+    \item \textbf{Control Barrier Function overlays}: Implementing CBFs as a hard safety layer that overrides the RL agent when a collision or jackknife is imminent.
+    \item \textbf{Dynamic obstacles}: Extending the obstacle avoidance environment to include moving obstacles and integrating predictive collision avoidance.
+\end{itemize}
