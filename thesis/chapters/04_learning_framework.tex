@@ -21,9 +21,9 @@ Forward and reverse variants of the BEV environment share the same image size an
 
 \section{CNN Encoder}
 
-A Convolutional Neural Network (CNN) serves as the front-end of the RL agent, processing the BEV image to extract spatial features relevant to lane tracking and obstacle avoidance. The CNN enables the agent to perceive the environment directly from rendered images, without requiring a pre-defined symbolic representation of every object.
+A Convolutional Neural Network (CNN)~\cite{lecun1998gradient} serves as the front-end of the RL agent, processing the BEV image to extract spatial features relevant to lane tracking and obstacle avoidance. The CNN enables the agent to perceive the environment directly from rendered images, without requiring a pre-defined symbolic representation of every object.
 
-The CNN architecture is implemented as a custom feature extractor within the Stable Baselines3 framework. The current end-to-end image branch is deliberately small, matching the scale of the $32 \times 32$ observation: a two-layer convolutional encoder with $1 \rightarrow 5 \rightarrow 5$ channels maps the image to an 80-dimensional feature vector, followed by a linear projection to 64 image features. A separate two-layer multilayer perceptron embeds the 8-dimensional vector state to 64 dimensions. The two branches are concatenated before being passed to the TD3 actor and critic networks, producing a 128-dimensional feature vector for the policy and critic heads. Actor and critic feature extractors are not shared, following the TD3 default, so that critic representation updates do not directly overwrite the actor's feature representation.
+The CNN architecture is implemented as a custom feature extractor within the Stable Baselines3 framework~\cite{raffin2021sb3}. The current end-to-end image branch is deliberately small, matching the scale of the $32 \times 32$ observation: a two-layer convolutional encoder with $1 \rightarrow 5 \rightarrow 5$ channels maps the image to an 80-dimensional feature vector, followed by a linear projection to 64 image features. A separate two-layer multilayer perceptron embeds the 8-dimensional vector state to 64 dimensions. The two branches are concatenated before being passed to the TD3 actor and critic networks, producing a 128-dimensional feature vector for the policy and critic heads. Actor and critic feature extractors are not shared, following the TD3 default, so that critic representation updates do not directly overwrite the actor's feature representation.
 
 The CNN can be trained end-to-end with the TD3 agent, allowing the feature extractor to learn which visual features are most relevant for path maintenance and collision avoidance. Initial experiments showed that inserting a randomly initialised CNN branch into an otherwise successful state-based policy can harm early TD3 learning: the agent converged to a short-horizon wall-collision behaviour even though the same vector state was sufficient for rapid learning. To isolate this effect, two diagnostic BEV encoders are included. The \texttt{state\_only} BEV encoder keeps the dictionary observation and multi-input policy path but ignores the image branch, confirming that the BEV environment and multi-input wrapper can still learn from the vector state. The \texttt{scaled\_cnn} encoder introduces the image branch gradually using a scalar schedule:
 \begin{equation}
@@ -51,7 +51,7 @@ The steering angle $\delta$ is intentionally preserved because it is not reliabl
 
 \section{Autoencoder Latent Space}
 
-The diagnostics above motivate decoupling representation learning from control. If a randomly initialised image branch can derail early TD3 learning even when the underlying vector state is easily learnable, then supplying the agent with a usable visual representation from the first training step should remove that failure mode. To improve RL training efficiency, an autoencoder can be used to pretrain an image representation for high-dimensional BEV observations before policy optimisation. The encoder $E(\cdot)$ maps the image observation $s$ to a feature vector $z$, and the decoder $D(\cdot)$ reconstructs the original image:
+The diagnostics above motivate decoupling representation learning from control. If a randomly initialised image branch can derail early TD3 learning even when the underlying vector state is easily learnable, then supplying the agent with a usable visual representation from the first training step should remove that failure mode. To improve RL training efficiency, an autoencoder can be used to pretrain an image representation for high-dimensional BEV observations before policy optimisation~\cite{lange2010deep}. The encoder $E(\cdot)$ maps the image observation $s$ to a feature vector $z$, and the decoder $D(\cdot)$ reconstructs the original image:
 
 \begin{equation}
     z = E(s)
@@ -66,7 +66,7 @@ The autoencoder is pre-trained on images collected from simulation rollouts, all
 
 \section{UNet Encoder Variant}
 
-In addition to the CNN autoencoder, a UNet-style autoencoder is used for BEV representation learning. The encoder uses repeated double-convolution blocks with max pooling, followed by global average pooling to produce a compact 128-dimensional image descriptor. During pretraining, the full UNet decoder retains skip connections to improve image reconstruction quality; for RL, only the encoder path is kept and concatenated with the 64-dimensional vector embedding.
+In addition to the CNN autoencoder, a UNet-style~\cite{ronneberger2015unet} autoencoder is used for BEV representation learning. The encoder uses repeated double-convolution blocks with max pooling, followed by global average pooling to produce a compact 128-dimensional image descriptor. During pretraining, the full UNet decoder retains skip connections to improve image reconstruction quality; for RL, only the encoder path is kept and concatenated with the 64-dimensional vector embedding.
 
 This second pretrained encoder provides a stronger structural prior than the plain CNN autoencoder. It is intended to test whether preserving multi-scale spatial detail during representation learning improves downstream control performance, particularly in scenes where obstacle shape and lane boundaries must both be interpreted from the BEV image.
 
@@ -109,16 +109,16 @@ The TD3 actor network $\mu(s \mid \theta^\mu)$ maps states to deterministic acti
     \label{eq:td3_target}
 \end{equation}
 
-where $\epsilon \sim \text{clip}(\mathcal{N}(0, \sigma), -c, c)$ is clipped Gaussian noise added to the target action for smoothing. Parameters are updated by minimising the temporal difference error in the critics and maximising the expected return through the actor using the deterministic policy gradient theorem.
+where $\epsilon \sim \text{clip}(\mathcal{N}(0, \sigma), -c, c)$ is clipped Gaussian noise added to the target action for smoothing. Parameters are updated by minimising the temporal difference error in the critics and maximising the expected return through the actor using the deterministic policy gradient theorem~\cite{silver2014dpg}.
 
-TD3 is implemented using the Stable Baselines3 library, which provides a reliable implementation integrated with the Gymnasium environment API.
+TD3 is implemented using the Stable Baselines3 library~\cite{raffin2021sb3}, which provides a reliable implementation integrated with the Gymnasium environment API~\cite{towers2024gymnasium}.
 
 \subsection{Reward Function}
 \input{equations/reward_function}
 
 \subsection{Multiplicative vs.\ Additive Reward Structures}
 
-Table~\ref{tab:reward_ablation_forward} and Table~\ref{tab:reward_ablation_reverse} compare these reward variants directly. The dense and tractor/no-hitch forms are additive penalties, while the multiplicative form forces the agent to reduce tracking and articulation errors jointly instead of collecting partial credit from only one term. The guided reward is a curriculum-shaped interpolation: it initially rewards agreement with a pure-pursuit controller and then decays smoothly into the dense objective.
+Table~\ref{tab:reward_ablation_forward} and Table~\ref{tab:reward_ablation_reverse} compare these reward variants directly. The dense and tractor/no-hitch forms are additive penalties, while the multiplicative form forces the agent to reduce tracking and articulation errors jointly instead of collecting partial credit from only one term. The guided reward is a curriculum-shaped interpolation: it initially rewards agreement with a pure-pursuit controller~\cite{coulter1992pure} and then decays smoothly into the dense objective.
 
 \section{Hyperparameter Optimisation}
 
@@ -132,7 +132,7 @@ Two of the BEV variants use an explicit pretraining stage before TD3 optimisatio
 
 \subsection{Classical Controller Tuning}
 
-A reproducible tuning pipeline is used for the classical baselines in later comparison chapters. Forward and reverse pure-pursuit, PID, and MPC controllers are optimised using differential evolution over repeated simulation episodes. The scalar objective penalises trailer cross-track error, jackknife events, collisions, and non-completion. After optimisation, each controller is validated on held-out seeds and a two-dimensional sensitivity sweep is generated over the most influential parameters. This ensures that comparisons against TD3 are made against tuned baselines rather than hand-picked nominal gains.
+A reproducible tuning pipeline is used for the classical baselines in later comparison chapters. Forward and reverse pure-pursuit, PID, and MPC controllers are optimised using differential evolution~\cite{storn1997differential} over repeated simulation episodes. The scalar objective penalises trailer cross-track error, jackknife events, collisions, and non-completion. After optimisation, each controller is validated on held-out seeds and a two-dimensional sensitivity sweep is generated over the most influential parameters. This ensures that comparisons against TD3 are made against tuned baselines rather than hand-picked nominal gains.
 
 \section{Failure Replay Curriculum}
 \label{sec:failure_replay}
@@ -141,7 +141,7 @@ A persistent challenge in training RL agents on the reverse lane-following task 
 
 To address this, a \emph{failure replay curriculum} is implemented as a transparent environment wrapper. At each episode boundary the wrapper inspects the episode outcome: if the episode terminated due to a failure---jackknife, collision, or out-of-bounds departure before reaching the goal---the next reset reuses the same random seed that generated the current path and spawn position, exactly replaying the same scenario. If the episode was completed successfully or timed out, a fresh seed is drawn and a new random layout is used. A configurable consecutive-retry ceiling (default five retries) prevents the agent from being trapped indefinitely on a pathologically difficult layout.
 
-This strategy is a form of automatic curriculum learning: rather than constructing a manually graded task sequence, the curriculum emerges from the agent's own failure signal. It is implemented orthogonally to the reward formulation and observation representation ablations. The wrapper modifies only the episode-level sampling policy---not the per-step reward signal or the information available to the agent---and is therefore controlled by a separate training flag. Models trained with and without failure replay are saved to distinct directories to ensure clean comparison.
+This strategy is a form of automatic curriculum learning~\cite{bengio2009curriculum}: rather than constructing a manually graded task sequence, the curriculum emerges from the agent's own failure signal. Its emphasis on repeatedly revisiting the transitions the agent handles worst is shared, in spirit, with prioritized experience replay~\cite{schaul2016per}, though here the emphasis acts at the level of episode sampling rather than replay-buffer weighting. It is implemented orthogonally to the reward formulation and observation representation ablations. The wrapper modifies only the episode-level sampling policy---not the per-step reward signal or the information available to the agent---and is therefore controlled by a separate training flag. Models trained with and without failure replay are saved to distinct directories to ensure clean comparison.
 
 The curriculum is most meaningful for scenarios where the per-episode failure rate is high and layout difficulty is non-uniform, namely reverse lane-following and reverse obstacle avoidance. For forward lane-following the failure rate is low after minimal training and the benefit is expected to be negligible.
 

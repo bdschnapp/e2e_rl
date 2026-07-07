@@ -5,7 +5,7 @@
 \section{Tractor Dynamics}
 \input{equations/tractor_model}
 
-The tractor is modelled as a planar bicycle model, which captures the dominant lateral and yaw behaviour required for lane-following and low-speed manoeuvring. In this representation the front axle is replaced by a single steerable wheel and the rear axle by a single non-steered wheel. The global position $(x,y)$ evolves from the body-frame longitudinal and lateral velocities $(v_x, v_y)$ and the tractor heading $\psi$, as shown in Equations~\ref{eq:tractor_x} and \ref{eq:tractor_y}. This state description is sufficient for the control tasks studied in the thesis because the dominant quantities of interest are path-relative position error, heading error, steering angle, and hitch articulation. These kinematics are driven by the tractor's lateral dynamics: tyre slip angles (\cref{eq:slip}) generate lateral forces through a linearised tyre model (\cref{eq:tireforce}), which combine into the longitudinal, lateral, and yaw-moment balances (\crefrange{eq:long}{eq:yaw}) and, after linearisation about a constant reference speed, the discrete state-space model (\cref{eq:tractor_ss}) that the simulator advances at each timestep.
+The tractor is modelled as a planar bicycle model~\cite{rajamani2011vehicle}, which captures the dominant lateral and yaw behaviour required for lane-following and low-speed manoeuvring. In this representation the front axle is replaced by a single steerable wheel and the rear axle by a single non-steered wheel. The global position $(x,y)$ evolves from the body-frame longitudinal and lateral velocities $(v_x, v_y)$ and the tractor heading $\psi$, as shown in Equations~\ref{eq:tractor_x} and \ref{eq:tractor_y}. This state description is sufficient for the control tasks studied in the thesis because the dominant quantities of interest are path-relative position error, heading error, steering angle, and hitch articulation. These kinematics are driven by the tractor's lateral dynamics: tyre slip angles (\cref{eq:slip}) generate lateral forces through a linearised tyre model (\cref{eq:tireforce}), which combine into the longitudinal, lateral, and yaw-moment balances (\crefrange{eq:long}{eq:yaw}) and, after linearisation about a constant reference speed, the discrete state-space model (\cref{eq:tractor_ss}) that the simulator advances at each timestep.
 
 The modelling objective is not to reproduce every high-speed transient of a road vehicle, but to provide a physically meaningful control environment in which steering commands, heading evolution, and articulation dynamics remain coupled. This balance is important for reinforcement learning: an overly simplified kinematic model would make the task unrealistically easy, whereas a full high-fidelity multibody model would obscure the core control-design questions addressed here.
 
@@ -36,14 +36,14 @@ trades tracking accuracy (through the weight $Q$) against control effort (throug
 \section{Simulation Environment}
 \label{ch:simulation}
 
-The training and evaluation environment is a custom 2D simulation built on the Farama Foundation Gymnasium library. Gymnasium provides a standardised API for implementing environments that integrate directly with reinforcement learning algorithm libraries, including Stable Baselines3.
+The training and evaluation environment is a custom 2D simulation built on the Farama Foundation Gymnasium library~\cite{towers2024gymnasium}. Gymnasium provides a standardised API for implementing environments that integrate directly with reinforcement learning algorithm libraries, including Stable Baselines3~\cite{raffin2021sb3}.
 
 The simulation is implemented using Pygame for rendering and physics integration. At each timestep, the discrete-time tractor-trailer state-space equations are re-evaluated using the previous state and control inputs, updating the vehicle position, heading, hitch angle, and associated error signals. Pygame renders the scene as a 2D top-down view, from which the BEV image observation is captured.
 
 The simulation environment includes:
 
 \begin{enumerate}
-    \item \textbf{Vehicle Model}: A combined dynamic tractor (bicycle model with a Pacejka tire model linearised to constant cornering stiffness, \cref{eq:tireforce}) and kinematic trailer with hitch constraints, using Tesla Model S parameters.
+    \item \textbf{Vehicle Model}: A combined dynamic tractor (bicycle model with a Pacejka tire model~\cite{pacejka2012tyre} linearised to constant cornering stiffness, \cref{eq:tireforce}) and kinematic trailer with hitch constraints, using Tesla Model S parameters.
     \item \textbf{Lane Generation}: Randomly generated lane paths using cubic spline interpolation, producing varying curvature paths for training and evaluation.
     \item \textbf{Obstacle Placement and Local Replanning}: Randomly placed static obstacles within the lane and a local path planner that perturbs the centreline around those obstacles for avoidance experiments.
     \item \textbf{Collision Detection}: Pygame sprite mask-based collision detection, providing pixel-precise contact sensing between the vehicle body and obstacles or lane boundaries.

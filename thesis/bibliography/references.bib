@@ -1,13 +1,738 @@
 % Main references bibliography
-% Add BibTeX entries here
+% NOTE: Entries flagged "% verify" below have page/venue details reconstructed
+% from memory; double-check them against the original source before final submission.
 
-@article{placeholder,
-  author  = {},
-  title   = {},
-  journal = {},
-  year    = {},
+% ---------------------------------------------------------------------------
+% Reinforcement learning algorithms
+% ---------------------------------------------------------------------------
+@book{sutton2018rl,
+  author    = {Sutton, Richard S. and Barto, Andrew G.},
+  title     = {Reinforcement Learning: An Introduction},
+  edition   = {2},
+  publisher = {MIT Press},
+  address   = {Cambridge, MA},
+  year      = {2018},
 }
 
+@inproceedings{lillicrap2016ddpg,
+  author    = {Lillicrap, Timothy P. and Hunt, Jonathan J. and Pritzel, Alexander and Heess, Nicolas and Erez, Tom and Tassa, Yuval and Silver, David and Wierstra, Daan},
+  title     = {Continuous Control with Deep Reinforcement Learning},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2016},
+}
+
+@article{schulman2017ppo,
+  author  = {Schulman, John and Wolski, Filip and Dhariwal, Prafulla and Radford, Alec and Klimov, Oleg},
+  title   = {Proximal Policy Optimization Algorithms},
+  journal = {arXiv preprint arXiv:1707.06347},
+  year    = {2017},
+}
+
+@inproceedings{fujimoto2018td3,
+  author    = {Fujimoto, Scott and van Hoof, Herke and Meger, David},
+  title     = {Addressing Function Approximation Error in Actor-Critic Methods},
+  booktitle = {Proceedings of the 35th International Conference on Machine Learning (ICML)},
+  pages     = {1587--1596},
+  year      = {2018},
+}
+
+@inproceedings{haarnoja2018sac,
+  author    = {Haarnoja, Tuomas and Zhou, Aurick and Abbeel, Pieter and Levine, Sergey},
+  title     = {Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor},
+  booktitle = {Proceedings of the 35th International Conference on Machine Learning (ICML)},
+  pages     = {1861--1870},
+  year      = {2018},
+}
+
+@article{mnih2015dqn,
+  author  = {Mnih, Volodymyr and Kavukcuoglu, Koray and Silver, David and Rusu, Andrei A. and Veness, Joel and Bellemare, Marc G. and Graves, Alex and Riedmiller, Martin and Fidjeland, Andreas K. and Ostrovski, Georg and Petersen, Stig and Beattie, Charles and Sadik, Amir and Antonoglou, Ioannis and King, Helen and Kumaran, Dharshan and Wierstra, Daan and Legg, Shane and Hassabis, Demis},
+  title   = {Human-Level Control through Deep Reinforcement Learning},
+  journal = {Nature},
+  volume  = {518},
+  number  = {7540},
+  pages   = {529--533},
+  year    = {2015},
+}
+
+@inproceedings{silver2014dpg,
+  author    = {Silver, David and Lever, Guy and Heess, Nicolas and Degris, Thomas and Wierstra, Daan and Riedmiller, Martin},
+  title     = {Deterministic Policy Gradient Algorithms},
+  booktitle = {Proceedings of the 31st International Conference on Machine Learning (ICML)},
+  pages     = {387--395},
+  year      = {2014},
+}
+
+@inproceedings{chen2021decision,
+  author    = {Chen, Lili and Lu, Kevin and Rajeswaran, Aravind and Lee, Kimin and Grover, Aditya and Laskin, Michael and Abbeel, Pieter and Srinivas, Aravind and Mordatch, Igor},
+  title     = {Decision Transformer: Reinforcement Learning via Sequence Modeling},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {34},
+  pages     = {15084--15097},
+  year      = {2021},
+}
+
+@inproceedings{schaul2016per,
+  author    = {Schaul, Tom and Quan, John and Antonoglou, Ioannis and Silver, David},
+  title     = {Prioritized Experience Replay},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2016},
+}
+
+@inproceedings{bengio2009curriculum,
+  author    = {Bengio, Yoshua and Louradour, J{\'e}r{\^o}me and Collobert, Ronan and Weston, Jason},
+  title     = {Curriculum Learning},
+  booktitle = {Proceedings of the 26th International Conference on Machine Learning (ICML)},
+  pages     = {41--48},
+  year      = {2009},
+}
+
+% ---------------------------------------------------------------------------
+% RL / deep-learning software
+% ---------------------------------------------------------------------------
+@article{raffin2021sb3,
+  author  = {Raffin, Antonin and Hill, Ashley and Gleave, Adam and Kanervisto, Anssi and Ernestus, Maximilian and Dormann, Noah},
+  title   = {Stable-Baselines3: Reliable Reinforcement Learning Implementations},
+  journal = {Journal of Machine Learning Research},
+  volume  = {22},
+  number  = {268},
+  pages   = {1--8},
+  year    = {2021},
+}
+
+@article{towers2024gymnasium,
+  author  = {Towers, Mark and Kwiatkowski, Ariel and Terry, Jordan and Balis, John U. and De Cola, Gianluca and Deleu, Tristan and Goul{\~a}o, Manuel and Kallinteris, Andreas and Krimmel, Markus and KG, Arjun and others},
+  title   = {Gymnasium: A Standard Interface for Reinforcement Learning Environments},
+  journal = {arXiv preprint arXiv:2407.17032},
+  year    = {2024},
+}
+
+@inproceedings{paszke2019pytorch,
+  author    = {Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  title     = {PyTorch: An Imperative Style, High-Performance Deep Learning Library},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {32},
+  pages     = {8024--8035},
+  year      = {2019},
+}
+
+% ---------------------------------------------------------------------------
+% Perception / representation learning
+% ---------------------------------------------------------------------------
+@article{lecun1998gradient,
+  author  = {LeCun, Yann and Bottou, L{\'e}on and Bengio, Yoshua and Haffner, Patrick},
+  title   = {Gradient-Based Learning Applied to Document Recognition},
+  journal = {Proceedings of the IEEE},
+  volume  = {86},
+  number  = {11},
+  pages   = {2278--2324},
+  year    = {1998},
+}
+
+@inproceedings{krizhevsky2012alexnet,
+  author    = {Krizhevsky, Alex and Sutskever, Ilya and Hinton, Geoffrey E.},
+  title     = {ImageNet Classification with Deep Convolutional Neural Networks},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {25},
+  pages     = {1097--1105},
+  year      = {2012},
+}
+
+@article{bojarski2016end,
+  author  = {Bojarski, Mariusz and Del Testa, Davide and Dworakowski, Daniel and Firner, Bernhard and Flepp, Beat and Goyal, Prasoon and Jackel, Lawrence D. and Monfort, Mathew and Muller, Urs and Zhang, Jiakai and Zhang, Xin and Zhao, Jake and Zieba, Karol},
+  title   = {End to End Learning for Self-Driving Cars},
+  journal = {arXiv preprint arXiv:1604.07316},
+  year    = {2016},
+}
+
+@inproceedings{ronneberger2015unet,
+  author    = {Ronneberger, Olaf and Fischer, Philipp and Brox, Thomas},
+  title     = {U-Net: Convolutional Networks for Biomedical Image Segmentation},
+  booktitle = {Medical Image Computing and Computer-Assisted Intervention (MICCAI)},
+  pages     = {234--241},
+  year      = {2015},
+}
+
+@article{hinton2006reducing,
+  author  = {Hinton, Geoffrey E. and Salakhutdinov, Ruslan R.},
+  title   = {Reducing the Dimensionality of Data with Neural Networks},
+  journal = {Science},
+  volume  = {313},
+  number  = {5786},
+  pages   = {504--507},
+  year    = {2006},
+}
+
+@inproceedings{lange2010deep,
+  author    = {Lange, Sascha and Riedmiller, Martin},
+  title     = {Deep Auto-Encoder Neural Networks in Reinforcement Learning},
+  booktitle = {International Joint Conference on Neural Networks (IJCNN)},
+  pages     = {1--8},
+  year      = {2010},
+}
+
+% ---------------------------------------------------------------------------
+% Vehicle dynamics / classical control
+% ---------------------------------------------------------------------------
+@book{rajamani2011vehicle,
+  author    = {Rajamani, Rajesh},
+  title     = {Vehicle Dynamics and Control},
+  edition   = {2},
+  publisher = {Springer},
+  address   = {New York},
+  year      = {2011},
+}
+
+@book{pacejka2012tyre,
+  author    = {Pacejka, Hans B.},
+  title     = {Tyre and Vehicle Dynamics},
+  edition   = {3},
+  publisher = {Butterworth-Heinemann},
+  address   = {Oxford},
+  year      = {2012},
+}
+
+@book{rawlings2017mpc,
+  author    = {Rawlings, James B. and Mayne, David Q. and Diehl, Moritz M.},
+  title     = {Model Predictive Control: Theory, Computation, and Design},
+  edition   = {2},
+  publisher = {Nob Hill Publishing},
+  address   = {Madison, WI},
+  year      = {2017},
+}
+
+@article{mayne2000constrained,
+  author  = {Mayne, David Q. and Rawlings, James B. and Rao, Christopher V. and Scokaert, Pierre O. M.},
+  title   = {Constrained Model Predictive Control: Stability and Optimality},
+  journal = {Automatica},
+  volume  = {36},
+  number  = {6},
+  pages   = {789--814},
+  year    = {2000},
+}
+
+@techreport{coulter1992pure,
+  author      = {Coulter, R. Craig},
+  title       = {Implementation of the Pure Pursuit Path Tracking Algorithm},
+  institution = {Robotics Institute, Carnegie Mellon University},
+  number      = {CMU-RI-TR-92-01},
+  year        = {1992},
+}
+
+@article{smith1957closer,
+  author  = {Smith, Otto J. M.},
+  title   = {Closer Control of Loops with Dead Time},
+  journal = {Chemical Engineering Progress},
+  volume  = {53},
+  number  = {5},
+  pages   = {217--219},
+  year    = {1957},
+}
+
+@article{kalman1960new,
+  author  = {Kalman, Rudolph E.},
+  title   = {A New Approach to Linear Filtering and Prediction Problems},
+  journal = {Journal of Basic Engineering},
+  volume  = {82},
+  number  = {1},
+  pages   = {35--45},
+  year    = {1960},
+}
+
+@article{nguyen1990truck,
+  author  = {Nguyen, Derrick H. and Widrow, Bernard},
+  title   = {Neural Networks for Self-Learning Control Systems},
+  journal = {IEEE Control Systems Magazine},
+  volume  = {10},
+  number  = {3},
+  pages   = {18--23},
+  year    = {1990},
+}
+
+@article{storn1997differential,
+  author  = {Storn, Rainer and Price, Kenneth},
+  title   = {Differential Evolution -- A Simple and Efficient Heuristic for Global Optimization over Continuous Spaces},
+  journal = {Journal of Global Optimization},
+  volume  = {11},
+  number  = {4},
+  pages   = {341--359},
+  year    = {1997},
+}
+
+% ---------------------------------------------------------------------------
+% Safety
+% ---------------------------------------------------------------------------
+@inproceedings{ames2019cbf,
+  author    = {Ames, Aaron D. and Coogan, Samuel and Egerstedt, Magnus and Notomista, Gennaro and Sreenath, Koushil and Tabuada, Paulo},
+  title     = {Control Barrier Functions: Theory and Applications},
+  booktitle = {18th European Control Conference (ECC)},
+  pages     = {3420--3431},
+  year      = {2019},
+}
+
+@misc{iso21448,
+  author       = {{International Organization for Standardization}},
+  title        = {{ISO 21448:2022} Road Vehicles --- Safety of the Intended Functionality},
+  howpublished = {ISO Standard},
+  year         = {2022},
+}
+
+% ---------------------------------------------------------------------------
+% Deployment: Autoware / ROS2 / planning / localisation / simulation
+% ---------------------------------------------------------------------------
+@inproceedings{kato2018autoware,
+  author    = {Kato, Shinpei and Tokunaga, Shota and Maruyama, Yuya and Maeda, Seiya and Hirabayashi, Manato and Kitsukawa, Yuki and Monrroy, Abraham and Ando, Tomohito and Fujii, Yusuke and Azumi, Takuya},
+  title     = {Autoware on Board: Enabling Autonomous Vehicles with Embedded Systems},
+  booktitle = {ACM/IEEE International Conference on Cyber-Physical Systems (ICCPS)},
+  pages     = {287--296},
+  year      = {2018},
+}
+
+@article{macenski2022ros2,
+  author  = {Macenski, Steven and Foote, Tully and Gerkey, Brian and Lalancette, Chris and Woodall, William},
+  title   = {Robot Operating System 2: Design, Architecture, and Uses in the Wild},
+  journal = {Science Robotics},
+  volume  = {7},
+  number  = {66},
+  pages   = {eabm6074},
+  year    = {2022},
+}
+
+@article{dolgov2010hybridastar,
+  author  = {Dolgov, Dmitri and Thrun, Sebastian and Montemerlo, Michael and Diebel, James},
+  title   = {Path Planning for Autonomous Vehicles in Unknown Semi-Structured Environments},
+  journal = {International Journal of Robotics Research},
+  volume  = {29},
+  number  = {5},
+  pages   = {485--501},
+  year    = {2010},
+}
+
+@inproceedings{biber2003ndt,
+  author    = {Biber, Peter and Stra{\ss}er, Wolfgang},
+  title     = {The Normal Distributions Transform: A New Approach to Laser Scan Matching},
+  booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  pages     = {2743--2748},
+  year      = {2003},
+}
+
+@inproceedings{koenig2004gazebo,
+  author    = {Koenig, Nathan and Howard, Andrew},
+  title     = {Design and Use Paradigms for Gazebo, an Open-Source Multi-Robot Simulator},
+  booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  pages     = {2149--2154},
+  year      = {2004},
+}
+
+% ---------------------------------------------------------------------------
+% Articulated-vehicle motion planning
+% ---------------------------------------------------------------------------
+@inproceedings{ljungqvist2017lattice,
+  author    = {Ljungqvist, Oskar and Evestedt, Niclas and Cirillo, Marcello and Axehill, Daniel and Holmer, Olov},
+  title     = {Lattice-Based Motion Planning for a General 2-Trailer System},
+  booktitle = {2017 IEEE Intelligent Vehicles Symposium (IV)},
+  pages     = {819--824},
+  year      = {2017},
+}
+
+@article{oliveira2020optimization,
+  author  = {Oliveira, Rui and Ljungqvist, Oskar and Lima, Pedro F. and Wahlberg, Bo},
+  title   = {Optimization-Based On-Road Path Planning for Articulated Vehicles},
+  journal = {IFAC-PapersOnLine},
+  volume  = {53},
+  number  = {2},
+  pages   = {15572--15579},
+  year    = {2020},
+}
+
+@inproceedings{beglini2020antijackknife,
+  author    = {Beglini, Manuel and Lanari, Leonardo and Oriolo, Giuseppe},
+  title     = {Anti-Jackknifing Control of Tractor-Trailer Vehicles via Intrinsically Stable {MPC}},
+  booktitle = {2020 IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {8806--8812},
+  year      = {2020},
+}
+
+% ---------------------------------------------------------------------------
+% RL for articulated vehicles + delay-aware RL
+% ---------------------------------------------------------------------------
+@inproceedings{bejar2018backing,
+  author    = {Bejar, Eduardo and Mor{\'a}n, Antonio},
+  title     = {Backing Up Control of a Self-Driving Truck-Trailer Vehicle with Deep Reinforcement Learning and Fuzzy Logic},
+  booktitle = {2018 IEEE International Symposium on Signal Processing and Information Technology (ISSPIT)},
+  pages     = {202--207},
+  year      = {2018},
+}
+
+@inproceedings{kang2024tractortrailer,
+  author    = {Kang, Qi and Hartmannsgruber, Andreas and Tan, Sze-Hui and Zhang, Xian and Chew, Chee-Meng},
+  title     = {Deep Reinforcement Learning Based Tractor-Trailer Tracking Control},
+  booktitle = {2024 IEEE International Conference on Intelligent Transportation Systems (ITSC)},
+  pages     = {3147--3153},
+  year      = {2024},
+}
+
+@article{walsh2009delayed,
+  author  = {Walsh, Thomas J. and Nouri, Ali and Li, Lihong and Littman, Michael L.},
+  title   = {Learning and Planning in Environments with Delayed Feedback},
+  journal = {Autonomous Agents and Multi-Agent Systems},
+  volume  = {18},
+  number  = {1},
+  pages   = {83--105},
+  year    = {2009},
+}
+
+@inproceedings{bouteiller2021delays,
+  author    = {Bouteiller, Yann and Ramstedt, Simon and Beltrame, Giovanni and Pal, Christopher and Binas, Jonathan},
+  title     = {Reinforcement Learning with Random Delays},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2021},
+}
+
+% ---------------------------------------------------------------------------
+% Sim-to-real transfer
+% ---------------------------------------------------------------------------
+@inproceedings{tobin2017domain,
+  author    = {Tobin, Josh and Fong, Rachel and Ray, Alex and Schneider, Jonas and Zaremba, Wojciech and Abbeel, Pieter},
+  title     = {Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World},
+  booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  pages     = {23--30},
+  year      = {2017},
+}
+
+@inproceedings{zhao2020sim2real,
+  author    = {Zhao, Wenshuai and Queralta, Jorge Pe{\~n}a and Westerlund, Tomi},
+  title     = {Sim-to-Real Transfer in Deep Reinforcement Learning for Robotics: A Survey},
+  booktitle = {2020 IEEE Symposium Series on Computational Intelligence (SSCI)},
+  pages     = {737--744},
+  year      = {2020},
+}
+
+% ---------------------------------------------------------------------------
+% Functional-safety / automation standards
+% ---------------------------------------------------------------------------
+@misc{sae_j3016,
+  author       = {{SAE International}},
+  title        = {{J3016}: Taxonomy and Definitions for Terms Related to Driving Automation Systems for On-Road Motor Vehicles},
+  howpublished = {SAE Standard},
+  year         = {2021},
+}
+
+@misc{ul4600,
+  author       = {{Underwriters Laboratories}},
+  title        = {{UL 4600}: Standard for Safety for the Evaluation of Autonomous Products},
+  howpublished = {UL Standard},
+  year         = {2022},
+}
+
+@misc{iso26262,
+  author       = {{International Organization for Standardization}},
+  title        = {{ISO 26262}: Road Vehicles --- Functional Safety},
+  howpublished = {ISO Standard},
+  year         = {2018},
+}
+
+% ---------------------------------------------------------------------------
+% Articulated-vehicle dynamics, stability, and steering control
+% ---------------------------------------------------------------------------
+@article{fancher2007directional,
+  author  = {Fancher, Paul and Winkler, Christopher},
+  title   = {Directional Performance Issues in Evaluation and Design of Articulated Heavy Vehicles},
+  journal = {Vehicle System Dynamics},
+  volume  = {45},
+  pages   = {607--647},
+  year    = {2007},
+}
+
+@article{jujnovich2013path,
+  author  = {Jujnovich, B. A. and Cebon, D.},
+  title   = {Path-Following Steering Control for Articulated Vehicles},
+  journal = {Journal of Dynamic Systems, Measurement, and Control},
+  volume  = {135},
+  number  = {3},
+  pages   = {031006},
+  year    = {2013},
+}
+
+@article{odhams2011active,
+  author  = {Odhams, A. M. C. and Roebuck, R. L. and Jujnovich, B. A. and Cebon, D.},
+  title   = {Active Steering of a Tractor--Semi-Trailer},
+  journal = {Proceedings of the Institution of Mechanical Engineers, Part D: Journal of Automobile Engineering},
+  volume  = {225},
+  number  = {7},
+  pages   = {847--869},
+  year    = {2011},
+}
+
+% ---------------------------------------------------------------------------
+% Geometric / nonlinear control of non-holonomic and trailer systems
+% ---------------------------------------------------------------------------
+@article{fliess1995flatness,
+  author  = {Fliess, Michel and L{\'e}vine, Jean and Martin, Philippe and Rouchon, Pierre},
+  title   = {Flatness and Defect of Non-Linear Systems: Introductory Theory and Examples},
+  journal = {International Journal of Control},
+  volume  = {61},
+  number  = {6},
+  pages   = {1327--1361},
+  year    = {1995},
+}
+
+@article{samson1995chained,
+  author  = {Samson, Claude},
+  title   = {Control of Chained Systems: Application to Path Following and Time-Varying Point-Stabilization of Mobile Robots},
+  journal = {IEEE Transactions on Automatic Control},
+  volume  = {40},
+  number  = {1},
+  pages   = {64--77},
+  year    = {1995},
+}
+
+@article{altafini2001reversing,
+  author  = {Altafini, Claudio and Speranzon, Alberto and Wahlberg, Bo},
+  title   = {A Feedback Control Scheme for Reversing a Truck and Trailer Vehicle},
+  journal = {IEEE Transactions on Robotics and Automation},
+  volume  = {17},
+  number  = {6},
+  pages   = {915--922},
+  year    = {2001},
+}
+
+% ---------------------------------------------------------------------------
+% Reward-shaping theory
+% ---------------------------------------------------------------------------
+@inproceedings{ng1999shaping,
+  author    = {Ng, Andrew Y. and Harada, Daishi and Russell, Stuart},
+  title     = {Policy Invariance under Reward Transformations: Theory and Application to Reward Shaping},
+  booktitle = {Proceedings of the 16th International Conference on Machine Learning (ICML)},
+  pages     = {278--287},
+  year      = {1999},
+}
+
+% ---------------------------------------------------------------------------
+% Point-cloud perception; additional sim-to-real
+% ---------------------------------------------------------------------------
+@inproceedings{qi2017pointnet,
+  author    = {Qi, Charles R. and Su, Hao and Mo, Kaichun and Guibas, Leonidas J.},
+  title     = {{PointNet}: Deep Learning on Point Sets for 3D Classification and Segmentation},
+  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {652--660},
+  year      = {2017},
+}
+
+@inproceedings{chebotar2019closingloop,
+  author    = {Chebotar, Yevgen and Handa, Ankur and Makoviychuk, Viktor and Macklin, Miles and Issac, Jan and Ratliff, Nathan and Fox, Dieter},
+  title     = {Closing the Sim-to-Real Loop: Adapting Simulation Randomization with Real World Experience},
+  booktitle = {2019 IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {8973--8979},
+  year      = {2019},
+}
+
+@inproceedings{bousmalis2018domainadapt,
+  author    = {Bousmalis, Konstantinos and Irpan, Alex and Wohlhart, Paul and Bai, Yunfei and Kelcey, Matthew and Kalakrishnan, Mrinal and Downs, Laura and Ibarz, Julian and Pastor, Peter and Konolige, Kurt and Levine, Sergey and Vanhoucke, Vincent},
+  title     = {Using Simulation and Domain Adaptation to Improve Efficiency of Deep Robotic Grasping},
+  booktitle = {2018 IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {4243--4250},
+  year      = {2018},
+}
+
+% ---------------------------------------------------------------------------
+% Motion planning / path tracking (general)
+% ---------------------------------------------------------------------------
+@book{lavalle2006planning,
+  author    = {LaValle, Steven M.},
+  title     = {Planning Algorithms},
+  publisher = {Cambridge University Press},
+  address   = {Cambridge, UK},
+  year      = {2006},
+}
+
+@article{karaman2011sampling,
+  author  = {Karaman, Sertac and Frazzoli, Emilio},
+  title   = {Sampling-Based Algorithms for Optimal Motion Planning},
+  journal = {The International Journal of Robotics Research},
+  volume  = {30},
+  number  = {7},
+  pages   = {846--894},
+  year    = {2011},
+}
+
+@inproceedings{hoffmann2007autonomous,
+  author    = {Hoffmann, Gabriel M. and Tomlin, Claire J. and Montemerlo, Michael and Thrun, Sebastian},
+  title     = {Autonomous Automobile Trajectory Tracking for Off-Road Driving: Controller Design, Experimental Validation and Racing},
+  booktitle = {American Control Conference (ACC)},
+  pages     = {2296--2301},
+  year      = {2007},
+}
+
+@book{anderson1990optimal,
+  author    = {Anderson, Brian D. O. and Moore, John B.},
+  title     = {Optimal Control: Linear Quadratic Methods},
+  publisher = {Prentice-Hall},
+  address   = {Englewood Cliffs, NJ},
+  year      = {1990},
+}
+
+% ---------------------------------------------------------------------------
+% RL for autonomous driving; curriculum
+% ---------------------------------------------------------------------------
+@article{kiran2022survey,
+  author  = {Kiran, B. Ravi and Sobh, Ibrahim and Talpaert, Victor and Mannion, Patrick and Al Sallab, Ahmad A. and Yogamani, Senthil and P{\'e}rez, Patrick},
+  title   = {Deep Reinforcement Learning for Autonomous Driving: A Survey},
+  journal = {IEEE Transactions on Intelligent Transportation Systems},
+  volume  = {23},
+  number  = {6},
+  pages   = {4909--4926},
+  year    = {2022},
+}
+
+@inproceedings{kendall2019learningdrive,
+  author    = {Kendall, Alex and Hawke, Jeffrey and Janz, David and Mazur, Przemyslaw and Reda, Daniele and Allen, John-Mark and Lam, Vinh-Dieu and Bewley, Alex and Shah, Amar},
+  title     = {Learning to Drive in a Day},
+  booktitle = {2019 IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {8248--8254},
+  year      = {2019},
+}
+
+@article{sallab2017framework,
+  author  = {El Sallab, Ahmad and Abdou, Mohammed and Perot, Etienne and Yogamani, Senthil},
+  title   = {Deep Reinforcement Learning Framework for Autonomous Driving},
+  journal = {Electronic Imaging, Autonomous Vehicles and Machines},
+  volume  = {29},
+  pages   = {70--76},
+  year    = {2017},
+}
+
+@article{narvekar2020curriculum,
+  author  = {Narvekar, Sanmit and Peng, Bei and Leonetti, Matteo and Sinapov, Jivko and Taylor, Matthew E. and Stone, Peter},
+  title   = {Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey},
+  journal = {Journal of Machine Learning Research},
+  volume  = {21},
+  number  = {181},
+  pages   = {1--50},
+  year    = {2020},
+}
+
+% ---------------------------------------------------------------------------
+% Deep perception / representation learning (additional)
+% ---------------------------------------------------------------------------
+@inproceedings{he2016resnet,
+  author    = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+  title     = {Deep Residual Learning for Image Recognition},
+  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {770--778},
+  year      = {2016},
+}
+
+@inproceedings{kingma2014vae,
+  author    = {Kingma, Diederik P. and Welling, Max},
+  title     = {Auto-Encoding Variational Bayes},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2014},
+}
+
+@article{elfes1989occupancy,
+  author  = {Elfes, Alberto},
+  title   = {Using Occupancy Grids for Mobile Robot Perception and Navigation},
+  journal = {Computer},
+  volume  = {22},
+  number  = {6},
+  pages   = {46--57},
+  year    = {1989},
+}
+
+@inproceedings{philion2020lss,
+  author    = {Philion, Jonah and Fidler, Sanja},
+  title     = {Lift, Splat, Shoot: Encoding Images from Arbitrary Camera Rigs by Implicitly Unprojecting to 3D},
+  booktitle = {European Conference on Computer Vision (ECCV)},
+  pages     = {194--210},
+  year      = {2020},
+}
+
+@inproceedings{finn2016spatial,
+  author    = {Finn, Chelsea and Tan, Xin Yu and Duan, Yan and Darrell, Trevor and Levine, Sergey and Abbeel, Pieter},
+  title     = {Deep Spatial Autoencoders for Visuomotor Learning},
+  booktitle = {2016 IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {512--519},
+  year      = {2016},
+}
+
+@inproceedings{codevilla2018cil,
+  author    = {Codevilla, Felipe and M{\"u}ller, Matthias and L{\'o}pez, Antonio M. and Koltun, Vladlen and Dosovitskiy, Alexey},
+  title     = {End-to-End Driving via Conditional Imitation Learning},
+  booktitle = {2018 IEEE International Conference on Robotics and Automation (ICRA)},
+  year      = {2018},
+}
+
+% ---------------------------------------------------------------------------
+% Sim-to-real (additional) and simulators
+% ---------------------------------------------------------------------------
+@inproceedings{peng2018dynamicsrand,
+  author    = {Peng, Xue Bin and Andrychowicz, Marcin and Zaremba, Wojciech and Abbeel, Pieter},
+  title     = {Sim-to-Real Transfer of Robotic Control with Dynamics Randomization},
+  booktitle = {2018 IEEE International Conference on Robotics and Automation (ICRA)},
+  year      = {2018},
+}
+
+@inproceedings{dosovitskiy2017carla,
+  author    = {Dosovitskiy, Alexey and Ros, Germ{\'a}n and Codevilla, Felipe and L{\'o}pez, Antonio and Koltun, Vladlen},
+  title     = {{CARLA}: An Open Urban Driving Simulator},
+  booktitle = {Conference on Robot Learning (CoRL)},
+  pages     = {1--16},
+  year      = {2017},
+}
+
+% ---------------------------------------------------------------------------
+% Safety (additional): safe RL, AV pipeline, formal safety model
+% ---------------------------------------------------------------------------
+@article{garcia2015saferl,
+  author  = {Garc{\'i}a, Javier and Fern{\'a}ndez, Fernando},
+  title   = {A Comprehensive Survey on Safe Reinforcement Learning},
+  journal = {Journal of Machine Learning Research},
+  volume  = {16},
+  pages   = {1437--1480},
+  year    = {2015},
+}
+
+@article{shalevshwartz2017rss,
+  author  = {Shalev-Shwartz, Shai and Shammah, Shaked and Shashua, Amnon},
+  title   = {On a Formal Model of Safe and Scalable Self-Driving Cars},
+  journal = {arXiv preprint arXiv:1708.06374},
+  year    = {2017},
+}
+
+@article{pendleton2017survey,
+  author  = {Pendleton, Scott Drew and Andersen, Hans and Du, Xinxin and Shen, Xiaotong and Meghjani, Malika and Eng, You Hong and Rus, Daniela and Ang, Marcelo H.},
+  title   = {Perception, Planning, Control, and Coordination for Autonomous Vehicles},
+  journal = {Machines},
+  volume  = {5},
+  number  = {1},
+  pages   = {6},
+  year    = {2017},
+}
+
+% ---------------------------------------------------------------------------
+% Author's foundational graduate coursework (self-cited prior work)
+% ---------------------------------------------------------------------------
+@techreport{tymkow2024me780,
+  author      = {Tymkow, Ryan and Schnapp, Benjamin},
+  title       = {Application of Deep Deterministic Policy Gradient (DDPG) and Decision Transformer Reinforcement Learning to Vehicle Path Following},
+  institution = {University of Waterloo, Dept. of Mechanical and Mechatronics Engineering},
+  number      = {ME~780 Course Project Report},
+  year        = {2024},
+  note        = {Unpublished graduate course report},
+}
+
+@techreport{schnapp2024ece682,
+  author      = {Schnapp, Benjamin},
+  title       = {{LQR} Control of Vehicle Bicycle Model},
+  institution = {University of Waterloo, Dept. of Mechanical and Mechatronics Engineering},
+  number      = {ECE~682 Course Project Report},
+  year        = {2024},
+  note        = {Unpublished graduate course report},
+}
+
+% ---------------------------------------------------------------------------
+% Perception primitive (already used in Ch.6)
+% ---------------------------------------------------------------------------
 @inproceedings{zhang2017lshape,
   author    = {Zhang, Xiao and Xu, Wenda and Dong, Chiyu and Dolan, John M.},
   title     = {Efficient {L}-Shape Fitting for Vehicle Detection Using Laser Scanners},

@@ -72,6 +72,19 @@ Highest priority; unblocks the draft. Most items are writing, not experiments.
   the blank TD3 table — LR, batch, buffer, noise, target rate — read from
   `train.py`/SB3 defaults), `appendix_additional_plots`, `appendix_a_reward_derivation`
   (full reward-shaping derivation).
+- [ ] **A3b. Route peripheral implementation detail into appendices (NEW).** General
+  principle: content a reader needs for reproducibility but that is *not central to the
+  RL contribution* belongs in an appendix, not the main chapters. Concrete example
+  (user-flagged): the **classical-controller implementations** — pure-pursuit, PID, LQR,
+  and MPC formulations, their gains, and the differential-evolution tuning procedure —
+  must be shown for reproducibility of the Ch5 benchmark, but their internals would
+  clutter the RL narrative. Put them in a dedicated `appendix_classical_controllers`
+  and reference it from Ch5's benchmark section. Other candidates for this treatment:
+  full config/hyperparameter dumps, extended derivations, and ROS2 node/message detail.
+  *Status:* the classical baselines now all work in both directions (see
+  `GPU_ABLATION_FINDINGS.md` §"Classical controller baselines" — PP/PID/LQR/MPC), so the
+  implementations exist and only need writing up. Priority: medium (below A1/A2), but do
+  before the final benchmark write-up so Ch5 can cite the appendix.
 - [ ] **A4. Resolve the four in-chapter `% TODO` markers:** `04:98` (architecture
   diagrams, UNet desc, BEV anchor, attention viz), `04:148` (TD3 HP table),
   `05:159` (statistical tests + reward-weight ablation), `03:184` (training curves).
