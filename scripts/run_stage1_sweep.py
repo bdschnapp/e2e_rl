@@ -13,8 +13,24 @@ thesis figures/tables later WITHOUT re-training:
 
 Every figure/table then derives from these CSVs; re-run only to change the experiment.
 
+LOCKED Phase-1 config (V1 — the definitive state-obs ablation of record; results at
+e2e_rl/thesis/data/phase1_ablation_V1/). The argparse defaults below ARE this config,
+so a bare invocation reproduces V1 exactly:
+
+    TTRL_BACKEND=cupy python scripts/run_stage1_sweep.py
+
+which is equivalent to the explicit form that produced results_stage1_V1/:
+
     TTRL_BACKEND=cupy python scripts/run_stage1_sweep.py --preset shunt \
-        --algos ppo td3 ppo_disc dqn --seeds 0 1 2 --steps 800000 --outdir results_stage1
+        --algos td3 dqn ppo ppo_disc --directions forward reverse \
+        --obs state --seeds 0 1 2 \
+        --steps 500000 --rev_steps 1300000 --ppo_steps 2000000 --eval_every 100000 \
+        --eval_pool_file path_pools/shunt_mild_safe.npz --eval_no_stop \
+        --guide_transition -1 --save_models --outdir results_stage1_V1
+
+(Re-running bare is idempotent: the resume logic sees 96/96 done and does nothing.)
+Later phases (obs/perception, obstacles) get their OWN run_phaseN_*.py so this file
+stays pinned to the locked Phase-1 experiment.
 """
 
 import os
@@ -48,17 +64,55 @@ METRICS = ["completion", "trailer_cte", "max_hitch", "jackknife", "ep_return"]
 def train_one(algo, direction, obs, reward, seed, args):
     from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
     sb3_algo, discrete = ALGO_MAP[algo]
+    speed_range = ((args.speed_min, args.speed_max)
+                   if args.speed_min is not None and args.speed_max is not None else None)
     cfg = cell_to_cfg(f"{direction}:{obs}:{reward}", preset=args.preset,
-                      fixed_speed=args.fixed_speed, mild_paths=args.mild_paths)
+                      fixed_speed=args.fixed_speed, mild_paths=args.mild_paths,
+                      pool_file=args.pool_file, speed_range=speed_range,
+                      lidar_step=args.lidar_step, guide_transition=args.guide_transition,
+                      stop_penalty=args.stop_penalty, stop_threshold=args.stop_threshold)
+    # Action space is 2-D stop-capable for ALL cells: discrete algos use flat
+    # Discrete(n_steer_bins*2)=steer x {go,stop}; continuous algos use STOP_SIGNAL
+    # ([steer, stop]). This keeps the 2x2 symmetric (every algo has the stop) and
+    # lets the trained policies carry straight into the STOP_SIGNAL obstacle env
+    # (curriculum warm-start, no action-space surgery). In pure lane-following the
+    # stop is dominated (a stop => -stop_penalty + terminate), so it stays dormant.
     if discrete:
         cfg = replace(cfg, action=replace(cfg.action, mode=ActionMode.DISCRETE))
-    lr = 1e-3 if sb3_algo == "ppo" else 2e-3
-    steps = args.ppo_steps if sb3_algo == "ppo" else args.steps  # per-algo budget
+    else:
+        cfg = replace(cfg, action=replace(cfg.action, mode=ActionMode.STOP_SIGNAL))
+    lr = 1e-3  # proven-stable for all algos (2e-3 off-policy was brittle: diverged with the stop)
+    # per-direction budget: forward off-policy converges by ~250k; reverse is
+    # non-minimum-phase, converges late (~0.9+ only after ~900k) and is high-variance,
+    # so it needs a large budget + frequent eval to catch a good best-checkpoint.
+    if sb3_algo == "ppo":
+        steps = args.ppo_steps
+    else:
+        steps = args.rev_steps if direction == "reverse" else args.steps
+    # per-algo env count: on-policy (PPO) benefits from many parallel envs; off-policy
+    # (TD3/SAC/DQN) is trained in the gentle, stable regime at a modest env count.
+    n_envs = args.ppo_n_envs if sb3_algo == "ppo" else args.n_envs
 
-    env = SB3BatchedVecEnv(cfg, args.n_envs, path_pool_size=1024)
-    eval_env = SB3BatchedVecEnv(cfg, min(args.n_envs, 256), path_pool_size=512)
+    # eval can use a DIFFERENT (feasible) pool than train: train on random paths, eval on
+    # the PP-validated safe pool. eval_cfg inherits train_cfg's action mode + speed, swaps pool.
+    eval_cfg = cfg
+    if args.eval_pool_file:
+        eval_cfg = replace(cfg, path=replace(cfg.path, pool_file=args.eval_pool_file))
+    env = SB3BatchedVecEnv(cfg, n_envs, path_pool_size=1024)
+    eval_env = SB3BatchedVecEnv(eval_cfg, 256, path_pool_size=512)
+    if getattr(args, "eval_no_stop", False):
+        # train WITH the stop action (carries to the obstacle task), eval WITHOUT it
+        # (fair vs classical controllers that can't stop; removes stop-misfire misses)
+        eval_env.env._eval_no_stop = True
     model = build_model(sb3_algo, env, lr, args.batch_size, seed)
-    cb = EvalCurveCallback(eval_env, args.eval_every or max(steps // 8, 1))
+    run_id = f"{algo}__{direction}__{obs}__{reward}__s{seed}"
+    best_model_path = None
+    if getattr(args, "save_models", False):
+        models_dir = os.path.join(args.outdir, "models")
+        os.makedirs(models_dir, exist_ok=True)
+        best_model_path = os.path.join(models_dir, run_id)
+    cb = EvalCurveCallback(eval_env, args.eval_every or max(steps // 8, 1),
+                           best_model_path=best_model_path)
     t0 = time.perf_counter()
     model.learn(total_timesteps=steps, progress_bar=False, callback=cb)
     wall = time.perf_counter() - t0
@@ -85,18 +139,53 @@ def main():
     ap.add_argument("--algos", nargs="+", default=["ppo", "td3", "ppo_disc", "dqn"])
     ap.add_argument("--rewards", nargs="+", default=None, help="default: all valid per direction")
     ap.add_argument("--directions", nargs="+", default=["forward", "reverse"])
-    ap.add_argument("--obs", nargs="+", default=["lidar24"],
-                    help="observation(s) to cross: state, lidar4/8/16/24/32")
+    ap.add_argument("--obs", nargs="+", default=["state"],
+                    help="observation(s) to cross: state, lidar4/8/16/24/32 (LOCKED V1: state)")
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     ap.add_argument("--preset", choices=["lab", "truck", "shunt"], default="shunt")
     ap.add_argument("--fixed_speed", action="store_true", default=True)
     ap.add_argument("--mild_paths", action="store_true", default=True)
-    ap.add_argument("--n_envs", type=int, default=256)
-    ap.add_argument("--steps", type=int, default=500000, help="budget for off-policy (TD3/DQN/SAC)")
+    ap.add_argument("--n_envs", type=int, default=32, help="off-policy env count (gentle/stable regime)")
+    ap.add_argument("--ppo_n_envs", type=int, default=256, help="on-policy (PPO) env count")
+    ap.add_argument("--steps", type=int, default=500000, help="FORWARD off-policy budget (converges ~250k)")
+    ap.add_argument("--rev_steps", type=int, default=1300000, help="REVERSE off-policy budget (late/high-variance; LOCKED V1: 1.3M)")
     ap.add_argument("--ppo_steps", type=int, default=2000000, help="budget for PPO/PPO-disc (on-policy)")
     ap.add_argument("--batch_size", type=int, default=4096)
-    ap.add_argument("--eval_every", type=int, default=None)
-    ap.add_argument("--outdir", default="results_stage1")
+    ap.add_argument("--eval_every", type=int, default=100_000,
+                    help="eval every N steps; frequent so best-checkpoint catches reverse's spiky peaks")
+    ap.add_argument("--outdir", default="results_stage1_V1", help="LOCKED V1 output dir")
+    ap.add_argument("--pool_file", default=None,
+                    help="TRAIN path pool .npz (scripts/build_safe_pool.py); "
+                         "None => generate a fresh random pool as before (v4 behaviour)")
+    ap.add_argument("--eval_pool_file", default="path_pools/shunt_mild_safe.npz",
+                    help="EVAL path pool .npz (decoupled from train). LOCKED V1: the PP-validated "
+                         "safe pool, so eval is on guaranteed-feasible paths while training is on "
+                         "random ones. Pass '' / None to eval on the same pool as train.")
+    ap.add_argument("--speed_min", type=float, default=None,
+                    help="if set with --speed_max, train at a VARIABLE speed in [min,max] m/s "
+                         "(regularisation) instead of fixed_speed")
+    ap.add_argument("--speed_max", type=float, default=None)
+    ap.add_argument("--lidar_step", type=float, default=None,
+                    help="override lidar march step (m); use 0.15 to reproduce v4's pre-fix "
+                         "effective step. Default None => config value (0.05, e2e-matched)")
+    ap.add_argument("--guide_transition", type=int, default=-1,
+                    help="guided reward alpha-decay horizon in env-steps; <=0 => NO decay "
+                         "(alpha=1, pure PP imitation the whole run). LOCKED V1: -1 (pure clone). "
+                         "Pass a positive N (e.g. 100000) for a decaying PP->multiplicative warmup.")
+    ap.add_argument("--stop_penalty", type=float, default=None,
+                    help="lane-following stop penalty; set >= crash (500) to make the stop "
+                         "dominated so the agent never stops on a feasible path")
+    ap.add_argument("--stop_threshold", type=float, default=None,
+                    help="stop fires when a[1] > this (default 0.75); raise to 0.9 to shrink "
+                         "the accidental-trigger band")
+    ap.add_argument("--eval_no_stop", action=argparse.BooleanOptionalAction, default=True,
+                    help="disable the stop action AT EVAL only (train keeps it) so completion "
+                         "is a fair comparison to classical controllers that cannot stop. "
+                         "LOCKED V1: on. Use --no-eval_no_stop to keep the stop at eval.")
+    ap.add_argument("--save_models", action=argparse.BooleanOptionalAction, default=True,
+                    help="save each run's best checkpoint to <outdir>/models/<run_id>.zip "
+                         "(so the trained policies can be re-evaluated later). LOCKED V1: on. "
+                         "Use --no-save_models to skip.")
     args = ap.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)

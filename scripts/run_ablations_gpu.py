@@ -30,28 +30,59 @@ from tractor_trailer_rl.config import (lab_config, truck_config, shunt_truck_con
 import numpy as np  # noqa: E402
 
 
-def cell_to_cfg(cell, preset="lab", fixed_speed=False, mild_paths=False):
+def cell_to_cfg(cell, preset="lab", fixed_speed=False, mild_paths=False, pool_file=None,
+                speed_range=None, lidar_step=None, guide_transition=None,
+                stop_penalty=None, stop_threshold=None):
     direction_s, obs_s, reward_s = cell.split(":")
     direction = Direction.REVERSE if direction_s == "reverse" else Direction.FORWARD
     preset_fn = {"truck": truck_config, "lab": lab_config,
                  "shunt": shunt_truck_config}[preset]
     base = preset_fn(direction=direction, vehicle_kind=VehicleKind.TRAILER)
+    # BEV perception cell: bevN => 32x32 image obs (bevN sets S=N; bare "bev" => 32),
+    # lidar off. Otherwise state (beams=0) or lidarN.
+    bev_size = 0
     if obs_s == "state":
         beams = 0
+    elif obs_s.startswith("bev"):
+        beams = 0
+        bev_size = int(obs_s[3:]) if obs_s[3:].isdigit() else 32
     elif obs_s.startswith("lidar") and obs_s[5:].isdigit():
         beams = int(obs_s[5:])   # lidar4 / lidar8 / lidar16 / lidar24 / lidar32
     else:
         beams = 24
-    cfg = replace(base, obs=replace(base.obs, lidar_beams=beams),
+    cfg = replace(base, obs=replace(base.obs, lidar_beams=beams, bev_size=bev_size),
                   reward=replace(base.reward, mode=reward_s))
+    if guide_transition is not None:
+        # guided reward alpha-decay horizon (env-steps); <=0 => no decay (pure PP imitation)
+        cfg = replace(cfg, reward=replace(cfg.reward, guide_transition_steps=int(guide_transition)))
+    if stop_penalty is not None or stop_threshold is not None:
+        # lane-following stop-gate stability: dominate the stop (penalty >= crash) so the
+        # agent never stops on a feasible path, and/or raise the trigger threshold.
+        ov = {}
+        if stop_penalty is not None: ov["stop_penalty"] = float(stop_penalty)
+        if stop_threshold is not None: ov["stop_threshold"] = float(stop_threshold)
+        cfg = replace(cfg, action=replace(cfg.action, **ov))
+    if lidar_step is not None:
+        # override lidar march step (e.g. 0.15 to reproduce v4's pre-fix effective step)
+        cfg = replace(cfg, obs=replace(cfg.obs, lidar_step_m=float(lidar_step)))
     if mild_paths:
         # Stage-1 task: straight + gentle only (solvable from scratch, clean
         # attribution). Drops sharp/winding/lab_* kinds.
         cfg = replace(cfg, path=replace(cfg.path, mild_only=True))
-    if fixed_speed:
+    if speed_range is not None:
+        # Variable speed as REGULARISATION (agilex/tractor_trailer_rl finding: a fixed
+        # speed trains brittle policies). explicit_min/max override all path kinds.
+        smin, smax = speed_range
+        cfg = replace(cfg, speed_random=replace(cfg.speed_random, enabled=True,
+                                                explicit_min=float(smin), explicit_max=float(smax)))
+    elif fixed_speed:
         # No-obstacle ablation protocol: hold speed fixed (as the SB3 tables do) so
         # completion isn't capped by low-speed episodes timing out before the goal.
         cfg = replace(cfg, speed_random=replace(cfg.speed_random, enabled=False))
+    if pool_file:
+        # Load the PP-validated "safe spawn" pool (scripts/build_safe_pool.py) so no
+        # run can fail from an infeasible path geometry. Speeds come from the file.
+        cfg = replace(cfg, path=replace(cfg.path, pool_file=pool_file))
     return cfg
 
 

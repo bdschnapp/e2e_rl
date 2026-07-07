@@ -128,6 +128,13 @@ class ObsConfig:
     cross_track_angle_observation: float = math.pi / 4
     curvature_observation: float = 0.3
     error_theta_scale: float = 1.0
+    # Bird's-eye-view (BEV) occupancy image for the Stage-2 perception ablation.
+    # bev_size=0 disables it (default => vector/lidar obs unchanged). When >0 the
+    # observation becomes Dict{vector, image=(1,S,S)}, the image rendered analytically
+    # in the vehicle frame (batched/bev.py) — no pygame, GPU-parallel. bev_range_m is
+    # the half-extent (metres) the S x S grid spans around the anchor pose.
+    bev_size: int = 0
+    bev_range_m: float = 20.0
 
 
 @dataclass(frozen=True)
@@ -196,6 +203,13 @@ class PathConfig:
         "straight": 0.18, "gentle": 0.12, "sharp": 0.15,
         "winding": 0.18, "lab_seam": 0.12, "lab_corner": 0.25,
     })
+    # SAFE POOL: if set, the env loads a pre-validated path pool from this .npz
+    # (keys: xs, ys, lo, hi) instead of generating one, and asserts xs matches the
+    # cfg-derived x grid. The pool is built by scripts/build_safe_pool.py, which
+    # keeps only paths a pure-pursuit controller completes both forward AND reverse
+    # (so no policy can fail merely from an infeasible/"unlucky" spawn geometry).
+    # None => generate a fresh random pool as before (default; no behaviour change).
+    pool_file: str | None = None
 
 
 @dataclass(frozen=True)
@@ -237,6 +251,10 @@ class TargetSpeedConfig:
 @dataclass(frozen=True)
 class RewardConfig:
     mode: str = "multiplicative"        # dense | tractor_focus | multiplicative | guided | no_hitch
+    # guided reward: env-steps over which the PP-imitation weight alpha decays 1->0
+    # (then it is pure multiplicative). <=0 => NO decay: alpha pinned at 1.0, so guided
+    # stays a pure PP-imitation reward the whole run (Phase-1 "clone PP", fine-tune later).
+    guide_transition_steps: int = 100_000
     path_tightness: float = 1.0         # parity 1.0 (lab training used 2.0)
     multiplicative_floor: bool = True   # fix B: additive +0.5*clip(|xd|) floor
     curvature_speed_weight: float = 0.0  # beta; 0 disables curvature speed penalty
@@ -251,6 +269,40 @@ class RewardConfig:
     # crash (worst) < stop < drive-well/success (best).
     terminal_success: float | None = None
     terminal_fail: float | None = None
+
+
+@dataclass(frozen=True)
+class ObstacleConfig:
+    """In-lane obstacle avoidance + binary stop-gate (Track D).
+
+    ``None`` on ``Config`` (the default) = the pure lane-following env, so the
+    reward-shaping / algorithm ablation is completely unaffected. Set this (via
+    ``shunt_truck_obstacle_config``) to switch the env factory to the obstacle
+    subclass. Obstacles are circles placed near the centreline; the agent sees
+    them only through lidar (never the planned avoidance path -> the "hidden local
+    planner" reward), and can fire the STOP_SIGNAL action, which is rewarded iff
+    the layout difficulty is high and penalised when it is low.
+    """
+    enabled: bool = True
+    max_obstacles: int = 2              # one event cluster per episode (main + optional pair)
+    start_margin_m: float = 15.0        # keep clear near spawn (the decision distance)
+    goal_margin_m: float = 15.0         # keep clear near the goal band
+    influence_radius_m: float = 8.0     # planner longitudinal influence window
+    difficulty_bins: int = 61           # lateral bins for the free-gap scan
+    # Each episode draws one layout CATEGORY, so the difficulty distribution is
+    # controlled and stratifiable (clear/shift = drive-through/around; squeeze =
+    # hard-but-passable; blocked = impassable -> stopping is correct). Renormalised.
+    layout_probs: dict = field(default_factory=lambda: {
+        "clear": 0.30, "shift": 0.25, "squeeze": 0.20, "blocked": 0.25,
+    })
+    # stop-gate reward, keyed on layout difficulty (position-robust, unlike a
+    # progress-scaled bonus). exp_scale(d) = (e^{k d}-1)/(e^k-1) in [0,1].
+    stop_difficulty_k: float = 3.0
+    stop_hard_reward: float = 60.0      # stop on an impassable layout (must beat a crash)
+    stop_easy_penalty: float = 60.0     # stop on an easy layout (must lose to driving on)
+    stop_progress_bonus: float = 20.0   # small credit for reaching the obstacle first
+    slow_reward_scale: float = 0.1      # difficulty * (1 - norm_speed) * scale
+    reward_mode: str = "dense"          # hidden-planner tracking reward (proven forward)
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +322,7 @@ class Config:
     speed_random: SpeedRandomConfig = field(default_factory=SpeedRandomConfig)
     spawn: SpawnConfig = field(default_factory=SpawnConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)
+    obstacle: ObstacleConfig | None = None   # None => pure lane-following (ablation) env
     max_episode_steps: int = 1000
     seed: int | None = None
 
@@ -354,10 +407,55 @@ def shunt_truck_config(direction: Direction = Direction.FORWARD,
     # 12.5 m trailer, so they're excluded. bend_scale=4.5 puts 'sharp' at ~18-22 m
     # radius (min ~15 m, above the ~13 m trailer jackknife limit) — tight-but-
     # achievable full-size yard turns; 'gentle' stays ~34 m.
-    path = PathConfig(bend_scale=4.5,
+    # spacing_m=0.25 (not the e2e_rl default 1.0): with 1 m path samples the
+    # nearest-POINT cross-track error carries a ~0.5 m period-2 artifact (half the
+    # spacing) that robust controllers/RL tolerate but high-gain optimal controllers
+    # (LQR, aggressive MPC) chase into instability. Finer sampling shrinks it ~4x and
+    # makes the optimal-control baselines well-posed; also cleans the RL observation.
+    path = PathConfig(bend_scale=4.5, spacing_m=0.25,
                       kind_probs={"straight": 0.2, "gentle": 0.4, "sharp": 0.4})
+    # Terminal-reward ordering (match the sibling repos, and the RewardConfig comment):
+    # crash (worst) < intentional stop < success. The default forward terminal_fail
+    # (-100) is LESS negative than the stop penalty, which inverts the ordering and makes
+    # a struggling policy prefer to crash rather than stop once the stop action is live
+    # (2-D). Fix: crash = -500 (both directions), stop = -300. The tracking reward is
+    # unchanged, so the 1-D-validated stabilization behaviour is preserved; only the
+    # (previously dormant, mis-set) stop penalty is corrected.
+    reward = RewardConfig(terminal_fail=-500.0)
+    # Stop must fire only when clearly intended: high threshold (0.75 of the [-1,1]
+    # stop channel) + low stop-action noise (0.05). A prior run used threshold 0.0 +
+    # noise 0.5, which tripped the stop constantly. steer_noise_sigma stays 0.05.
+    action = ActionConfig(stop_penalty=300.0, stop_threshold=0.75, stop_noise_sigma=0.05)
     return Config(direction=direction, vehicle_kind=vehicle_kind,
-                  vehicle=vehicle, path=path, **overrides)
+                  vehicle=vehicle, path=path, reward=reward, action=action, **overrides)
+
+
+def shunt_truck_obstacle_config(direction: Direction = Direction.FORWARD,
+                                vehicle_kind: VehicleKind = VehicleKind.TRAILER,
+                                **overrides) -> Config:
+    """Obstacle-avoidance + binary stop-gate variant of the shunt truck (Track D).
+
+    Same vehicle / world / path machinery as ``shunt_truck_config`` (so a
+    lane-following policy warm-starts cleanly and the two share the parity-tested
+    dynamics), but: (a) ``obstacle`` is populated -> the env factory builds the
+    obstacle subclass; (b) the action mode is STOP_SIGNAL so the policy can stop;
+    (c) the base reward mode is 'dense' (the obstacle env tracks the *hidden* local
+    planner path in dense mode -- the formulation that worked well forward in
+    e2e_rl). Paths lean straight/gentle so the obstacle geometry (not the corner)
+    is what makes a layout hard. This is a SEPARATE preset -- the lane-following
+    ablation presets (obstacle=None) are unchanged and still run as before.
+    """
+    base = shunt_truck_config(direction=direction, vehicle_kind=vehicle_kind)
+    action = replace(base.action, mode=ActionMode.STOP_SIGNAL,
+                     stop_threshold=0.5, stop_noise_sigma=0.1)
+    reward = replace(base.reward, mode="dense")
+    # obstacle-focused path mix: mostly straight/gentle so difficulty comes from
+    # the obstacles rather than the corner geometry.
+    path = replace(base.path, kind_probs={"straight": 0.5, "gentle": 0.4, "sharp": 0.1})
+    return Config(direction=direction, vehicle_kind=vehicle_kind,
+                  vehicle=base.vehicle, world=base.world, path=path,
+                  action=action, reward=reward, obstacle=ObstacleConfig(),
+                  **overrides)
 
 
 def lab_chicane_config(direction: Direction = Direction.REVERSE,

@@ -77,6 +77,11 @@ def aggregate(runs, keys):
         for m in ["completion", "trailer_cte", "max_hitch", "jackknife", "ep_return"]:
             vals = [r[f"best_{m}"] for r in recs if f"best_{m}" in r]
             agg[m] = (float(np.mean(vals)), ci95(vals)) if vals else (float("nan"), 0.0)
+        # deployment/reliability columns for completion: best-seed (max, "deploy the best")
+        # and robustness (# seeds >= 0.9 — surfaces the "one dead seed per cell" story)
+        cvals = [r["best_completion"] for r in recs if "best_completion" in r]
+        agg["completion_best_seed"] = float(np.max(cvals)) if cvals else float("nan")
+        agg["completion_n_ge_090"] = int(sum(1 for c in cvals if c >= 0.9))
         stts = [r["steps_to_threshold"] for r in recs if r.get("steps_to_threshold")]
         agg["steps_to_threshold"] = float(np.mean(stts)) if stts else None
         out[key] = agg
@@ -126,8 +131,8 @@ def _table(caption, label, header_cells, rows):
 def reward_table(agg, direction, algo):
     """Reward-shaping ablation at a fixed algorithm (rows = reward modes)."""
     hdr = ["Reward", "\\makecell{CTE\\\\Trailer\\\\(m)}", "\\makecell{Max $|\\gamma|$\\\\($^\\circ$)}",
-           "\\makecell{Completion\\\\(\\%)}", "\\makecell{Jackknife\\\\(\\%)}",
-           "\\makecell{Return}"]
+           "\\makecell{Completion\\\\(\\%)}", "\\makecell{Best\\\\seed\\\\(\\%)}",
+           "\\makecell{Seeds\\\\$\\geq$0.9}", "\\makecell{Jackknife\\\\(\\%)}"]
     rows = []
     for reward in REWARD_ORDER:
         a = agg.get((algo, direction, reward))
@@ -135,18 +140,20 @@ def reward_table(agg, direction, algo):
             continue
         rows.append([REWARD_NAME.get(reward, reward),
                      _pm(*a["trailer_cte"]), _deg(*a["max_hitch"]),
-                     _pct(*a["completion"]), _pct(*a["jackknife"]),
-                     _pm(*a["ep_return"], digits=0)])
+                     _pct(*a["completion"]),
+                     f"{a['completion_best_seed'] * 100:.1f}",
+                     f"{a['completion_n_ge_090']}/{a['n_seeds']}",
+                     _pct(*a["jackknife"])])
     cap = (f"{direction.capitalize()} lane-following: reward-shaping ablation "
-           f"({ALGO_NAME.get(algo, algo)}, lidar-24 obs, multi-seed).")
+           f"({ALGO_NAME.get(algo, algo)}, multi-seed; mean $\\pm$ CI, best-seed, robustness).")
     return _table(cap, f"tab:reward_ablation_{direction}", hdr, rows)
 
 
 def algorithm_table(agg, direction, reward):
     """Algorithm comparison at a fixed reward (rows = algorithms)."""
     hdr = ["Algorithm", "\\makecell{CTE\\\\Trailer\\\\(m)}", "\\makecell{Max $|\\gamma|$\\\\($^\\circ$)}",
-           "\\makecell{Completion\\\\(\\%)}", "\\makecell{Jackknife\\\\(\\%)}",
-           "\\makecell{Steps to\\\\threshold}"]
+           "\\makecell{Completion\\\\(\\%)}", "\\makecell{Best\\\\seed\\\\(\\%)}",
+           "\\makecell{Seeds\\\\$\\geq$0.9}", "\\makecell{Steps to\\\\threshold}"]
     rows = []
     for algo in ALGO_ORDER:
         a = agg.get((algo, direction, reward))
@@ -154,10 +161,12 @@ def algorithm_table(agg, direction, reward):
             continue
         rows.append([ALGO_NAME.get(algo, algo),
                      _pm(*a["trailer_cte"]), _deg(*a["max_hitch"]),
-                     _pct(*a["completion"]), _pct(*a["jackknife"]),
+                     _pct(*a["completion"]),
+                     f"{a['completion_best_seed'] * 100:.1f}",
+                     f"{a['completion_n_ge_090']}/{a['n_seeds']}",
                      _steps(a["steps_to_threshold"])])
     cap = (f"{direction.capitalize()} lane-following: RL algorithm comparison "
-           f"({REWARD_NAME.get(reward, reward)} reward, lidar-24 obs, multi-seed).")
+           f"({REWARD_NAME.get(reward, reward)} reward, multi-seed; mean $\\pm$ CI, best-seed, robustness).")
     return _table(cap, f"tab:algorithm_comparison_{direction}", hdr, rows)
 
 
@@ -220,7 +229,7 @@ def curve_figures(outdir, export_dir, algo, reward):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--outdir", default="results_stage1_v2")
+    ap.add_argument("--outdir", default="results_stage1_v3")
     ap.add_argument("--algo", default=None, help="fix reward table to this algo (default: best by completion)")
     ap.add_argument("--reward", default=None, help="fix algorithm table to this reward (default: best)")
     ap.add_argument("--thesis_tables", default=None,

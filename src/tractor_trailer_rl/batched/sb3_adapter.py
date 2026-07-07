@@ -28,9 +28,34 @@ from .backend import to_numpy  # noqa: E402
 from .env import BatchedLaneFollowingEnv  # noqa: E402
 
 
+def _obs_to_np(obs):
+    """Move a batched obs to host float32. Dict obs (BEV: {vector, image}) is
+    converted per key; a plain array is converted directly."""
+    if isinstance(obs, dict):
+        return {k: to_numpy(v).astype(np.float32) for k, v in obs.items()}
+    return to_numpy(obs).astype(np.float32)
+
+
+def _index_obs(obs, i):
+    """Slice env i out of a batched host obs (array or Dict)."""
+    if isinstance(obs, dict):
+        return {k: v[i] for k, v in obs.items()}
+    return obs[i]
+
+
+def make_batched_env(cfg, num_envs, path_pool_size=4096):
+    """Env factory: the obstacle subclass iff ``cfg.obstacle`` is set, else the
+    pure lane-following env. Keeps the two paths fully separate so the ablation
+    (obstacle=None) and the Track-D obstacle study can both run unchanged."""
+    if getattr(cfg, "obstacle", None) is not None:
+        from .obstacle_env import BatchedObstacleAvoidanceEnv
+        return BatchedObstacleAvoidanceEnv(cfg, num_envs, path_pool_size=path_pool_size)
+    return BatchedLaneFollowingEnv(cfg, num_envs, path_pool_size=path_pool_size)
+
+
 class SB3BatchedVecEnv(VecEnv):
     def __init__(self, cfg, num_envs, path_pool_size=4096):
-        self.env = BatchedLaneFollowingEnv(cfg, num_envs, path_pool_size=path_pool_size)
+        self.env = make_batched_env(cfg, num_envs, path_pool_size=path_pool_size)
         super().__init__(num_envs, self.env.single_observation_space,
                          self.env.single_action_space)
         self._actions = None
@@ -38,14 +63,14 @@ class SB3BatchedVecEnv(VecEnv):
 
     def reset(self):
         obs = self.env.reset(seed=self._seed)
-        return to_numpy(obs).astype(np.float32)
+        return _obs_to_np(obs)
 
     def step_async(self, actions):
         self._actions = actions
 
     def step_wait(self):
         obs, rew, term, trunc, info = self.env.step(self._actions)
-        obs = to_numpy(obs).astype(np.float32)
+        obs = _obs_to_np(obs)
         rew = to_numpy(rew).astype(np.float32)
         term = to_numpy(term).astype(bool)
         trunc = to_numpy(trunc).astype(bool)
@@ -54,13 +79,17 @@ class SB3BatchedVecEnv(VecEnv):
         if dones.any():
             final = info.get("final_observation")
             succ = info.get("success")
-            fo = to_numpy(final).astype(np.float32) if final is not None else None
+            fo = _obs_to_np(final) if final is not None else None
+            cause_keys = [k for k in info if k.startswith("cause_")]
             for i in np.nonzero(dones)[0]:
-                infos[i]["terminal_observation"] = fo[i] if fo is not None else obs[i]
+                src = fo if fo is not None else obs
+                infos[i]["terminal_observation"] = _index_obs(src, i)
                 if trunc[i] and not term[i]:
                     infos[i]["TimeLimit.truncated"] = True
                 if succ is not None:
                     infos[i]["is_success"] = bool(succ[i])
+                for k in cause_keys:
+                    infos[i][k] = bool(info[k][i])
         return obs, rew, dones, infos
 
     def seed(self, seed=None):

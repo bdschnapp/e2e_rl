@@ -1,0 +1,237 @@
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 271, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 216, in main
+    curve, best, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 53, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/__init__.py", line 8, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/array_ops.py", line 56, in <module>
+    from pandas.core.computation import expressions
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py", line 21, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 271, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 216, in main
+    curve, best, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 67, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py", line 61, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/nanops.py", line 52, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 2, in <module>
+    from .reduce import (
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 271, in <module>
+    main()
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 216, in main
+    curve, best, final, meta = train_one(algo, direction, obs, reward, seed, args)
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/run_stage1_sweep.py", line 49, in train_one
+    from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 8, in <module>
+    from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 10, in <module>
+    from stable_baselines3.common.base_class import BaseAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 19, in <module>
+    from stable_baselines3.common.env_util import is_wrapped
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/env_util.py", line 6, in <module>
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/atari_wrappers.py", line 10, in <module>
+    import cv2
+AttributeError: _ARRAY_API not found
+# Stage-1 sweep: 96 runs (0 done, 96 to run) -> results_stage1_V1  (preset=shunt steps=500000 n_envs=32)
+  [1/96] td3__forward__state__dense__s0  BEST compl=1.00 cte=0.345 hitch=0.127 @500000 | final=1.00 (166s)
+  [2/96] td3__forward__state__dense__s1  BEST compl=1.00 cte=0.275 hitch=0.107 @500000 | final=1.00 (167s)
+  [3/96] td3__forward__state__dense__s2  BEST compl=1.00 cte=0.827 hitch=0.172 @500000 | final=1.00 (170s)
+  [4/96] td3__forward__state__tractor_focus__s0  BEST compl=1.00 cte=0.815 hitch=0.348 @500000 | final=1.00 (165s)
+  [5/96] td3__forward__state__tractor_focus__s1  BEST compl=1.00 cte=0.383 hitch=0.141 @500000 | final=1.00 (167s)
+  [6/96] td3__forward__state__tractor_focus__s2  BEST compl=1.00 cte=0.660 hitch=0.132 @500000 | final=1.00 (169s)
+  [7/96] td3__forward__state__multiplicative__s0  BEST compl=1.00 cte=0.633 hitch=0.154 @500000 | final=1.00 (170s)
+  [8/96] td3__forward__state__multiplicative__s1  BEST compl=1.00 cte=0.295 hitch=0.119 @400000 | final=1.00 (165s)
+  [9/96] td3__forward__state__multiplicative__s2  BEST compl=1.00 cte=0.427 hitch=0.156 @500000 | final=1.00 (162s)
+  [10/96] td3__forward__state__guided__s0  BEST compl=1.00 cte=0.321 hitch=0.146 @300000 | final=1.00 (164s)
+  [11/96] td3__forward__state__guided__s1  BEST compl=1.00 cte=0.524 hitch=0.157 @500000 | final=1.00 (166s)
+  [12/96] td3__forward__state__guided__s2  BEST compl=1.00 cte=0.254 hitch=0.099 @500000 | final=1.00 (165s)
+  [13/96] dqn__forward__state__dense__s0  BEST compl=1.00 cte=0.211 hitch=0.098 @200000 | final=1.00 (541s)
+  [14/96] dqn__forward__state__dense__s1  BEST compl=1.00 cte=0.323 hitch=0.094 @100000 | final=1.00 (413s)
+  [15/96] dqn__forward__state__dense__s2  BEST compl=1.00 cte=0.213 hitch=0.082 @500000 | final=1.00 (420s)
+  [16/96] dqn__forward__state__tractor_focus__s0  BEST compl=1.00 cte=0.256 hitch=0.095 @300000 | final=0.99 (558s)
+  [17/96] dqn__forward__state__tractor_focus__s1  BEST compl=1.00 cte=0.245 hitch=0.091 @200000 | final=0.00 (474s)
+  [18/96] dqn__forward__state__tractor_focus__s2  BEST compl=1.00 cte=0.245 hitch=0.104 @300000 | final=1.00 (424s)
+  [19/96] dqn__forward__state__multiplicative__s0  BEST compl=0.66 cte=0.675 hitch=0.243 @200000 | final=0.15 (442s)
+  [20/96] dqn__forward__state__multiplicative__s1  BEST compl=1.00 cte=0.628 hitch=0.150 @400000 | final=0.00 (583s)
+  [21/96] dqn__forward__state__multiplicative__s2  BEST compl=0.79 cte=0.479 hitch=0.155 @200000 | final=0.00 (561s)
+  [22/96] dqn__forward__state__guided__s0  BEST compl=0.01 cte=0.609 hitch=0.311 @500000 | final=0.03 (572s)
+  [23/96] dqn__forward__state__guided__s1  BEST compl=0.70 cte=2.090 hitch=0.318 @500000 | final=0.84 (571s)
+  [24/96] dqn__forward__state__guided__s2  BEST compl=1.00 cte=0.149 hitch=0.090 @100000 | final=0.00 (552s)
+  [25/96] ppo__forward__state__dense__s0  BEST compl=1.00 cte=0.188 hitch=0.096 @1801728 | final=1.00 (150s)
+  [26/96] ppo__forward__state__dense__s1  BEST compl=1.00 cte=0.173 hitch=0.089 @2001920 | final=1.00 (150s)
+  [27/96] ppo__forward__state__dense__s2  BEST compl=1.00 cte=0.193 hitch=0.093 @2001920 | final=1.00 (149s)
+  [28/96] ppo__forward__state__tractor_focus__s0  BEST compl=1.00 cte=0.209 hitch=0.106 @1901824 | final=1.00 (145s)
+  [29/96] ppo__forward__state__tractor_focus__s1  BEST compl=1.00 cte=0.197 hitch=0.105 @1301248 | final=1.00 (148s)
+  [30/96] ppo__forward__state__tractor_focus__s2  BEST compl=1.00 cte=0.207 hitch=0.099 @2001920 | final=1.00 (133s)
+  [31/96] ppo__forward__state__multiplicative__s0  BEST compl=1.00 cte=0.183 hitch=0.092 @1501440 | final=1.00 (132s)
+  [32/96] ppo__forward__state__multiplicative__s1  BEST compl=1.00 cte=0.153 hitch=0.087 @1801728 | final=1.00 (133s)
+  [33/96] ppo__forward__state__multiplicative__s2  BEST compl=1.00 cte=0.179 hitch=0.097 @2001920 | final=1.00 (133s)
+  [34/96] ppo__forward__state__guided__s0  BEST compl=1.00 cte=0.181 hitch=0.109 @1901824 | final=1.00 (159s)
+  [35/96] ppo__forward__state__guided__s1  BEST compl=1.00 cte=0.203 hitch=0.107 @2001920 | final=1.00 (153s)
+  [36/96] ppo__forward__state__guided__s2  BEST compl=1.00 cte=0.212 hitch=0.118 @700672 | final=1.00 (151s)
+  [37/96] ppo_disc__forward__state__dense__s0  BEST compl=1.00 cte=0.474 hitch=0.093 @2001920 | final=1.00 (154s)
+  [38/96] ppo_disc__forward__state__dense__s1  BEST compl=0.42 cte=0.457 hitch=0.289 @600576 | final=0.01 (159s)
+  [39/96] ppo_disc__forward__state__dense__s2  BEST compl=1.00 cte=0.953 hitch=0.122 @2001920 | final=1.00 (154s)
+  [40/96] ppo_disc__forward__state__tractor_focus__s0  BEST compl=1.00 cte=0.330 hitch=0.122 @2001920 | final=1.00 (143s)
+  [41/96] ppo_disc__forward__state__tractor_focus__s1  BEST compl=1.00 cte=0.275 hitch=0.105 @2001920 | final=1.00 (154s)
+  [42/96] ppo_disc__forward__state__tractor_focus__s2  BEST compl=0.67 cte=0.536 hitch=0.240 @1701632 | final=1.00 (154s)
+  [43/96] ppo_disc__forward__state__multiplicative__s0  BEST compl=1.00 cte=0.232 hitch=0.114 @1701632 | final=1.00 (220s)
+  [44/96] ppo_disc__forward__state__multiplicative__s1  BEST compl=1.00 cte=0.226 hitch=0.096 @1801728 | final=1.00 (216s)
+  [45/96] ppo_disc__forward__state__multiplicative__s2  BEST compl=1.00 cte=0.202 hitch=0.106 @2001920 | final=1.00 (138s)
+  [46/96] ppo_disc__forward__state__guided__s0  BEST compl=0.44 cte=0.527 hitch=0.210 @600576 | final=0.01 (140s)
+  [47/96] ppo_disc__forward__state__guided__s1  BEST compl=0.44 cte=0.520 hitch=0.321 @900864 | final=0.01 (140s)
+  [48/96] ppo_disc__forward__state__guided__s2  BEST compl=0.39 cte=0.519 hitch=0.335 @600576 | final=0.01 (141s)
+  [49/96] td3__reverse__state__dense__s0  BEST compl=0.83 cte=1.312 hitch=0.269 @1000000 | final=0.70 (432s)
+  [50/96] td3__reverse__state__dense__s1  BEST compl=0.75 cte=1.041 hitch=0.374 @1300000 | final=0.74 (434s)
+  [51/96] td3__reverse__state__dense__s2  BEST compl=0.85 cte=0.972 hitch=0.289 @900000 | final=0.18 (431s)
+  [52/96] td3__reverse__state__no_hitch__s0  BEST compl=0.69 cte=1.195 hitch=0.332 @1100000 | final=0.62 (436s)
+  [53/96] td3__reverse__state__no_hitch__s1  BEST compl=0.95 cte=0.837 hitch=0.170 @1200000 | final=0.74 (430s)
+  [54/96] td3__reverse__state__no_hitch__s2  BEST compl=0.85 cte=0.876 hitch=0.243 @1100000 | final=0.49 (431s)
+  [55/96] td3__reverse__state__multiplicative__s0  BEST compl=0.96 cte=1.120 hitch=0.290 @1100000 | final=0.87 (430s)
+  [56/96] td3__reverse__state__multiplicative__s1  BEST compl=0.97 cte=0.686 hitch=0.174 @1300000 | final=0.96 (431s)
+  [57/96] td3__reverse__state__multiplicative__s2  BEST compl=0.98 cte=0.897 hitch=0.164 @1300000 | final=0.97 (431s)
+  [58/96] td3__reverse__state__guided__s0  BEST compl=0.92 cte=0.952 hitch=0.183 @1100000 | final=0.82 (435s)
+  [59/96] td3__reverse__state__guided__s1  BEST compl=0.89 cte=1.396 hitch=0.138 @800000 | final=0.89 (436s)
+  [60/96] td3__reverse__state__guided__s2  BEST compl=0.82 cte=1.212 hitch=0.282 @1200000 | final=0.73 (436s)
+  [61/96] dqn__reverse__state__dense__s0  BEST compl=0.00 cte=2.373 hitch=0.247 @800000 | final=0.00 (1144s)
+  [62/96] dqn__reverse__state__dense__s1  BEST compl=0.00 cte=0.846 hitch=0.959 @600000 | final=0.00 (1148s)
+  [63/96] dqn__reverse__state__dense__s2  BEST compl=0.44 cte=1.390 hitch=0.207 @800000 | final=0.00 (1149s)
+  [64/96] dqn__reverse__state__no_hitch__s0  BEST compl=0.06 cte=2.382 hitch=0.422 @300000 | final=0.00 (1150s)
+  [65/96] dqn__reverse__state__no_hitch__s1  BEST compl=0.00 cte=0.748 hitch=0.954 @100000 | final=0.00 (1149s)
+  [66/96] dqn__reverse__state__no_hitch__s2  BEST compl=0.00 cte=0.701 hitch=0.962 @400000 | final=0.00 (1146s)
+  [67/96] dqn__reverse__state__multiplicative__s0  BEST compl=0.00 cte=1.750 hitch=0.685 @1100000 | final=0.00 (1155s)
+  [68/96] dqn__reverse__state__multiplicative__s1  BEST compl=0.00 cte=0.694 hitch=0.951 @900000 | final=0.00 (1156s)
+  [69/96] dqn__reverse__state__multiplicative__s2  BEST compl=0.00 cte=0.909 hitch=0.956 @400000 | final=0.00 (1147s)
+  [70/96] dqn__reverse__state__guided__s0  BEST compl=0.98 cte=0.879 hitch=0.318 @700000 | final=0.00 (1130s)
+  [71/96] dqn__reverse__state__guided__s1  BEST compl=0.00 cte=1.759 hitch=0.338 @900000 | final=0.00 (1160s)
+  [72/96] dqn__reverse__state__guided__s2  BEST compl=0.41 cte=1.407 hitch=0.221 @1300000 | final=0.46 (1162s)
+  [73/96] ppo__reverse__state__dense__s0  BEST compl=0.00 cte=1.809 hitch=0.626 @1701632 | final=0.00 (142s)
+  [74/96] ppo__reverse__state__dense__s1  BEST compl=0.00 cte=1.721 hitch=0.829 @1401344 | final=0.00 (142s)
+  [75/96] ppo__reverse__state__dense__s2  BEST compl=0.43 cte=1.391 hitch=0.349 @2001920 | final=0.45 (141s)
+  [76/96] ppo__reverse__state__no_hitch__s0  BEST compl=0.00 cte=1.837 hitch=0.768 @1401344 | final=0.00 (143s)
+  [77/96] ppo__reverse__state__no_hitch__s1  BEST compl=0.00 cte=0.966 hitch=1.016 @100096 | final=0.00 (143s)
+  [78/96] ppo__reverse__state__no_hitch__s2  BEST compl=0.40 cte=1.524 hitch=0.472 @2001920 | final=0.46 (141s)
+  [79/96] ppo__reverse__state__multiplicative__s0  BEST compl=0.44 cte=1.549 hitch=0.893 @1901824 | final=0.46 (143s)
+  [80/96] ppo__reverse__state__multiplicative__s1  BEST compl=0.43 cte=1.452 hitch=0.554 @600576 | final=0.00 (143s)
+  [81/96] ppo__reverse__state__multiplicative__s2  BEST compl=0.43 cte=1.321 hitch=0.600 @1501440 | final=0.00 (143s)
+  [82/96] ppo__reverse__state__guided__s0  BEST compl=0.98 cte=1.035 hitch=0.141 @2001920 | final=0.95 (141s)
+  [83/96] ppo__reverse__state__guided__s1  BEST compl=0.53 cte=1.634 hitch=0.286 @2001920 | final=0.54 (145s)
+  [84/96] ppo__reverse__state__guided__s2  BEST compl=0.94 cte=1.365 hitch=0.167 @2001920 | final=0.91 (143s)
+  [85/96] ppo_disc__reverse__state__dense__s0  BEST compl=0.43 cte=1.426 hitch=0.357 @1201152 | final=0.00 (145s)
+  [86/96] ppo_disc__reverse__state__dense__s1  BEST compl=0.40 cte=1.150 hitch=0.534 @1401344 | final=0.00 (144s)
+  [87/96] ppo_disc__reverse__state__dense__s2  BEST compl=0.44 cte=0.527 hitch=0.554 @300288 | final=0.00 (144s)
+  [88/96] ppo_disc__reverse__state__no_hitch__s0  BEST compl=0.00 cte=0.726 hitch=0.916 @400384 | final=0.00 (145s)
+  [89/96] ppo_disc__reverse__state__no_hitch__s1  BEST compl=0.43 cte=1.640 hitch=0.520 @1901824 | final=0.49 (144s)
+  [90/96] ppo_disc__reverse__state__no_hitch__s2  BEST compl=0.44 cte=1.213 hitch=0.397 @1000960 | final=0.00 (143s)
+  [91/96] ppo_disc__reverse__state__multiplicative__s0  BEST compl=0.00 cte=0.826 hitch=0.938 @600576 | final=0.00 (145s)
+  [92/96] ppo_disc__reverse__state__multiplicative__s1  BEST compl=0.00 cte=0.967 hitch=0.903 @100096 | final=0.00 (146s)
+  [93/96] ppo_disc__reverse__state__multiplicative__s2  BEST compl=0.44 cte=0.886 hitch=0.339 @500480 | final=0.00 (145s)
+  [94/96] ppo_disc__reverse__state__guided__s0  BEST compl=0.62 cte=1.814 hitch=0.137 @2001920 | final=0.66 (146s)
+  [95/96] ppo_disc__reverse__state__guided__s1  BEST compl=0.48 cte=1.775 hitch=0.154 @2001920 | final=0.50 (145s)
+  [96/96] ppo_disc__reverse__state__guided__s2  BEST compl=0.52 cte=1.282 hitch=0.052 @1401344 | final=0.52 (143s)
+# wrote results_stage1_V1/curves.csv, results_stage1_V1/summary.csv, results_stage1_V1/manifest.jsonl

@@ -66,7 +66,9 @@ def running_reward(cfg, *, e_y, e_psi, e_y_t=0.0, e_psi_t=0.0, hitch=0.0, xd, pr
                 mult = mult * xp.exp(-1.5 * xp.abs(hitch))
             if cfg.reward.multiplicative_floor:
                 mult = mult + 0.5 * xp.clip(xd, 0.0, 1.0)
-            guide = progress - 5.0 * steer_diff ** 2
+            # Stage-1 clone: PURE PP imitation (no task/progress term). alpha=1 => clone PP;
+            # alpha decay blends in the multiplicative task reward to fine-tune PAST PP.
+            guide = -5.0 * steer_diff ** 2
             return alpha * guide + (1.0 - alpha) * mult - proximity
         raise ValueError(f"forward reward mode {mode!r} not supported")
 
@@ -98,6 +100,8 @@ def running_reward(cfg, *, e_y, e_psi, e_y_t=0.0, e_psi_t=0.0, hitch=0.0, xd, pr
             mult = mult * xp.exp(-2.0 * xp.abs(hitch))
         if cfg.reward.multiplicative_floor:
             mult = mult + 0.5 * xp.clip(-xd, 0.0, 1.0)
-        guide = reverse_reward - 5.0 * steer_diff ** 2 - jackknife_pen
+        # Stage-1 clone: PURE PP imitation (no progress/jackknife task terms). alpha=1 =>
+        # clone PP; alpha decay blends in the multiplicative task reward to fine-tune PAST PP.
+        guide = -5.0 * steer_diff ** 2
         return alpha * guide + (1.0 - alpha) * mult - proximity
     raise ValueError(f"reverse reward mode {mode!r} not supported")

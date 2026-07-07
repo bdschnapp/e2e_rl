@@ -32,6 +32,7 @@ from . import geometry as geo
 from . import reward as rw
 from . import corridor as cor
 from .lidar import raycast
+from .bev import render_bev
 
 
 class BatchedLaneFollowingEnv:
@@ -43,7 +44,17 @@ class BatchedLaneFollowingEnv:
 
         self.single_action_space = action_modes.action_space(cfg)
         low, high = observation_bounds(cfg)
-        self.single_observation_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        vec_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        # BEV (Stage-2): observation becomes Dict{vector, image}. Off by default
+        # (bev_size=0) => plain Box vector obs, identical to before.
+        self._bev_on = cfg.obs.bev_size > 0
+        if self._bev_on:
+            S = int(cfg.obs.bev_size)
+            img_space = gym.spaces.Box(0.0, 1.0, (1, S, S), dtype=np.float32)
+            self.single_observation_space = gym.spaces.Dict(
+                {"vector": vec_space, "image": img_space})
+        else:
+            self.single_observation_space = vec_space
         self.action_dim = action_modes.action_dim(cfg)
         # evenly-spaced steer-rate bins for the DISCRETE action mode
         self._max_rate = float(np.deg2rad(cfg.action.steering_action_deg))
@@ -52,7 +63,8 @@ class BatchedLaneFollowingEnv:
         # ~100k total env-steps. Reference = the tuned pure-pursuit gains.
         self._guided = (cfg.reward.mode == "guided")
         self._guide_steps = 0
-        self._guide_transition = 100_000
+        # <=0 => no alpha decay (alpha pinned at 1.0: pure PP imitation the whole run)
+        self._guide_transition = int(getattr(cfg.reward, "guide_transition_steps", 100_000))
         from .pure_pursuit import FWD_GAINS, REV_GAINS
         self._pp_gains = REV_GAINS if cfg.is_reverse else FWD_GAINS
 
@@ -109,7 +121,13 @@ class BatchedLaneFollowingEnv:
         return float(self._rng.uniform(lo, hi))
 
     def _build_pool(self):
-        """Generate the fixed path pool once on the host; move ys to the backend."""
+        """Generate the fixed path pool once on the host; move ys to the backend.
+        If cfg.path.pool_file is set, load a pre-validated pool from disk instead
+        (keeps only PP-completable paths; see scripts/build_safe_pool.py)."""
+        pf = getattr(self.cfg.path, "pool_file", None)
+        if pf:
+            self._load_pool(pf)
+            return
         pool = self.path_pool_size
         rows = []
         lo = np.zeros(pool); hi = np.zeros(pool)
@@ -130,6 +148,28 @@ class BatchedLaneFollowingEnv:
         self._pool_ys = xp.asarray(self._pool_ys_np)
         self._pool_lo, self._pool_hi = lo, hi
 
+    def _load_pool(self, path):
+        """Load a pre-validated path pool (.npz: xs, ys, lo, hi) from disk. Asserts
+        the saved x-grid matches this cfg's x-grid so speed/curvature stay valid."""
+        data = np.load(path)
+        xs = np.asarray(data["xs"], dtype=np.float64)
+        ys = np.asarray(data["ys"], dtype=np.float64)
+        if self._xs_np is None:
+            # derive the cfg's own x-grid to validate against (matches generate_path)
+            x0 = self.cfg.path.x_start_m
+            x_end = self.cfg.world.width_m - self.cfg.path.x_end_margin_m
+            xs_cfg = np.arange(x0, x_end, self.cfg.path.spacing_m)
+            if xs.shape != xs_cfg.shape or not np.allclose(xs, xs_cfg):
+                raise ValueError(f"pool_file {path} x-grid {xs.shape} does not match "
+                                 f"cfg x-grid {xs_cfg.shape} (world/path spacing changed)")
+            self._xs_np = xs
+            self.xs = xp.asarray(self._xs_np)
+        self.path_pool_size = int(ys.shape[0])
+        self._pool_ys_np = ys
+        self._pool_ys = xp.asarray(ys)
+        self._pool_lo = np.asarray(data["lo"], dtype=np.float64)
+        self._pool_hi = np.asarray(data["hi"], dtype=np.float64)
+
     def _reset_idxs(self, idxs):
         """Sample pool paths + spawn for the given env indices (vectorised gather)."""
         if len(idxs) == 0:
@@ -137,8 +177,13 @@ class BatchedLaneFollowingEnv:
         if self._pool_ys is None:
             return self._reset_idxs_legacy(idxs)
         idxs = np.asarray(idxs, dtype=np.int64)
-        # assign fresh pool paths to the done envs
-        self._env_pool_idx[idxs] = self._rng.integers(0, self.path_pool_size, size=len(idxs))
+        # assign pool paths to the done envs. Default: random draw. Coverage mode
+        # (_pin_pool_identity, set only by the safe-pool validator): env i -> path i,
+        # so num_envs == pool_size sweeps every path exactly once for validation.
+        if getattr(self, "_pin_pool_identity", False):
+            self._env_pool_idx[idxs] = idxs % self.path_pool_size
+        else:
+            self._env_pool_idx[idxs] = self._rng.integers(0, self.path_pool_size, size=len(idxs))
         self.ys = self._pool_ys[xp.asarray(self._env_pool_idx)]     # (N,P) GPU gather
 
         P = self._xs_np.shape[0]
@@ -251,9 +296,31 @@ class BatchedLaneFollowingEnv:
         obs = xp.stack(cols, axis=1)
         if self.cfg.obs.lidar_beams > 0:
             lx, ly, lyaw = self._lidar_pose()
-            d = raycast(self.xs, self.ys, self.cfg, lx, ly, lyaw)
+            d = self._lidar(lx, ly, lyaw)
             obs = xp.concatenate([obs, d], axis=1)
-        return obs.astype(xp.float32), errors
+        vec = obs.astype(xp.float32)
+        if self._bev_on:
+            return {"vector": vec, "image": self._bev()}, errors
+        return vec, errors
+
+    def _lidar(self, lx, ly, lyaw):
+        """(N,B) normalised lidar ranges. Hook: subclasses fold extra hits in
+        (e.g. the obstacle env min-combines corridor + obstacle ranges)."""
+        return raycast(self.xs, self.ys, self.cfg, lx, ly, lyaw)
+
+    def _bev_obstacles(self):
+        """(ox, oy, orad, ovalid) obstacle circles for the BEV, or all-None. Hook:
+        the obstacle env overrides to draw its obstacles into the image; the base
+        lane-following env has none."""
+        return None, None, None, None
+
+    def _bev(self):
+        """(N,1,S,S) float32 BEV occupancy image, anchored+oriented on the same
+        (reverse-aware) pose as the lidar so the image faces the direction of travel."""
+        lx, ly, lyaw = self._lidar_pose()
+        ox, oy, orad, ovalid = self._bev_obstacles()
+        img = render_bev(self.xs, self.ys, self.cfg, lx, ly, lyaw, ox, oy, orad, ovalid)
+        return img[:, None, :, :]
 
     # ------------------------------------------------------------------ term
     def _terminated_masks(self):
@@ -267,6 +334,23 @@ class BatchedLaneFollowingEnv:
         succ = (v.x > env_len) | (v.tx > env_len)
         terminated = oob | jack | coll | succ
         return terminated, succ
+
+    def _compute_reward(self, errors, prox, terminated, succ, stop, gkw):
+        """(reward (N,), terminated (N,)) for the step. Hook: the obstacle env
+        overrides this to track the hidden local-planner path and apply the
+        difficulty-gated stop reward. Base = lane-following reward + flat stop
+        penalty (identical to the pre-refactor inline behaviour)."""
+        running = rw.running_reward(
+            self.cfg, e_y=errors["e_y"], e_psi=errors["e_psi"],
+            e_y_t=errors.get("e_y_t", 0.0), e_psi_t=errors.get("e_psi_t", 0.0),
+            hitch=errors.get("hitch", 0.0), xd=self.vehicle.xd, proximity=prox, **gkw)
+        term_r = rw.terminal_reward(self.cfg, succ)
+        reward = xp.where(terminated, term_r, running)
+        # stop-signal fires terminal stop penalty and terminates
+        stop_pen = -abs(self.cfg.action.stop_penalty)
+        terminated = terminated | stop
+        reward = xp.where(stop, stop_pen, reward)
+        return reward, terminated
 
     # ------------------------------------------------------------------ gym API
     def reset(self, seed=None):
@@ -305,6 +389,13 @@ class BatchedLaneFollowingEnv:
                 stop = a[:, 1] > self.cfg.action.stop_threshold
                 velocity_cmd = xp.where(stop, 0.0, self.episode_speed)
 
+        # EVAL protocol: disable the stop action (train with it for the obstacle task,
+        # but eval without it so lane-following completion is a FAIR comparison to the
+        # classical controllers, which physically cannot stop). Set on eval envs only.
+        if getattr(self, "_eval_no_stop", False):
+            stop = xp.zeros(self.num_envs, dtype=bool)
+            velocity_cmd = self.episode_speed
+
         self.vehicle.step(steer_rate, velocity_cmd)
         if self.tractor_only:
             self.vehicle.align_trailer()
@@ -328,18 +419,12 @@ class BatchedLaneFollowingEnv:
                               + g["k_y"] * errors["e_y"] + g["k_theta"] * errors["e_psi"])
             pp_steer = xp.clip((delta_des - s) / self.vehicle.dt, -self._max_rate, self._max_rate)
             gkw["steer_diff"] = (steer_rate - pp_steer) / (2.0 * self._max_rate)
-            gkw["alpha"] = max(0.0, 1.0 - self._guide_steps / self._guide_transition)
+            if self._guide_transition <= 0:
+                gkw["alpha"] = 1.0   # no decay: pure PP imitation the whole run
+            else:
+                gkw["alpha"] = max(0.0, 1.0 - self._guide_steps / self._guide_transition)
             self._guide_steps += self.num_envs
-        running = rw.running_reward(
-            self.cfg, e_y=errors["e_y"], e_psi=errors["e_psi"],
-            e_y_t=errors.get("e_y_t", 0.0), e_psi_t=errors.get("e_psi_t", 0.0),
-            hitch=errors.get("hitch", 0.0), xd=self.vehicle.xd, proximity=prox, **gkw)
-        term_r = rw.terminal_reward(self.cfg, succ)
-        reward = xp.where(terminated, term_r, running)
-        # stop-signal fires terminal stop penalty and terminates
-        stop_pen = -abs(self.cfg.action.stop_penalty)
-        terminated = terminated | stop
-        reward = xp.where(stop, stop_pen, reward)
+        reward, terminated = self._compute_reward(errors, prox, terminated, succ, stop, gkw)
 
         done = terminated | truncated
         final_obs = obs
@@ -349,6 +434,21 @@ class BatchedLaneFollowingEnv:
         # reading it afterwards is the completion-metric bug we avoid here).
         info = {"success": to_numpy(succ).astype(bool)}
         if len(idxs):
+            if getattr(self, "_diag_causes", False):
+                # termination-cause breakdown on the TERMINAL state (pre auto-reset).
+                # Gated (default off) so training pays no GPU->CPU transfer cost.
+                _v = self.vehicle
+                _h = xp.abs((_v.p - _v.tyaw + np.pi) % (2 * np.pi) - np.pi)
+                _W = self.cfg.world.width_m; _H = self.cfg.world.height_m
+                info["cause_stop"] = to_numpy(stop).astype(bool)
+                info["cause_jackknife"] = to_numpy(_h > (np.pi / 2)).astype(bool)
+                info["cause_oob"] = to_numpy(
+                    ~((_v.x >= 0) & (_v.x <= _W) & (_v.y >= 0) & (_v.y <= _H))).astype(bool)
+                info["cause_success"] = to_numpy(succ).astype(bool)
+                info["cause_timeout"] = to_numpy(truncated & ~terminated).astype(bool)
+                # terminal |hitch| (rad) — crash-proximity proxy: near pi/2 => the stop
+                # (or crash) happened at a near-jackknife state (a CORRECT graceful stop)
+                info["diag_hitch"] = to_numpy(_h)
             info["final_observation"] = final_obs
             info["_done_idx"] = idxs
             self._reset_idxs(idxs.tolist())

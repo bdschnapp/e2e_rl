@@ -1,0 +1,565 @@
+===== FORWARD RL POLICY =====
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 53, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/__init__.py", line 8, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/array_ops.py", line 56, in <module>
+    from pandas.core.computation import expressions
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py", line 21, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 67, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py", line 61, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/nanops.py", line 52, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 2, in <module>
+    from .reduce import (
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 8, in <module>
+    from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 10, in <module>
+    from stable_baselines3.common.base_class import BaseAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 19, in <module>
+    from stable_baselines3.common.env_util import is_wrapped
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/env_util.py", line 6, in <module>
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/atari_wrappers.py", line 10, in <module>
+    import cv2
+AttributeError: _ARRAY_API not found
+
+Obstacle stop-gate eval [forward] — stageB_td3_forward_s0.zip  (4000 episodes)
+
+difficulty       n        complete%            stop%          crash%   timeout%  min_clr(m)
+-------------------------------------------------------------------------------------------
+0.00-0.20       13       82.7+/-16.0      17.3+/-16.0     11.4+/-11.4       0.0        2.04
+0.20-0.40     1083       88.0+/- 1.9       7.6+/- 1.6      0.9+/- 0.5       3.7        1.50
+0.40-0.60      968       26.5+/- 2.8      67.7+/- 2.9      5.2+/- 1.4       0.7        0.44
+0.60-0.80      138        3.5+/- 2.7      96.5+/- 2.7      1.4+/- 1.4       0.0        0.22
+0.80-1.00     1798        0.9+/- 0.4      98.8+/- 0.5      0.4+/- 0.3       0.0        0.15
+
+hard (>0.6): stop 98.8%  crash 0.3%  complete 0.9%
+easy (<0.3): complete 89.4%  stop 6.9%  crash 0.5%
+===== REVERSE RL POLICY =====
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 53, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/__init__.py", line 8, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/array_ops.py", line 56, in <module>
+    from pandas.core.computation import expressions
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py", line 21, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 67, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py", line 61, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/nanops.py", line 52, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 2, in <module>
+    from .reduce import (
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 8, in <module>
+    from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 10, in <module>
+    from stable_baselines3.common.base_class import BaseAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 19, in <module>
+    from stable_baselines3.common.env_util import is_wrapped
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/env_util.py", line 6, in <module>
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/atari_wrappers.py", line 10, in <module>
+    import cv2
+AttributeError: _ARRAY_API not found
+
+Obstacle stop-gate eval [reverse] — stageB_td3_reverse_s2.zip  (4005 episodes)
+
+difficulty       n        complete%            stop%          crash%   timeout%  min_clr(m)
+-------------------------------------------------------------------------------------------
+0.00-0.20       17       18.8+/-15.5      81.2+/-15.5      9.2+/- 9.2       0.0        0.99
+0.20-0.40     1072        4.8+/- 1.3      89.7+/- 1.8      5.7+/- 1.4       0.0        0.40
+0.40-0.60      992        0.4+/- 0.3      80.0+/- 2.5     19.8+/- 2.5       0.0        0.01
+0.60-0.80      147        1.3+/- 1.3      82.8+/- 6.0     17.2+/- 6.0       0.0        0.07
+0.80-1.00     1777        0.1+/- 0.1      85.7+/- 1.6     14.3+/- 1.6       0.0       -1.27
+
+hard (>0.6): stop 85.6%  crash 14.4%  complete 0.0%
+easy (<0.3): complete 5.4%  stop 89.9%  crash 4.7%
+===== FORWARD BASELINE (traditional stack) =====
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 53, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/__init__.py", line 8, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/array_ops.py", line 56, in <module>
+    from pandas.core.computation import expressions
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py", line 21, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 67, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py", line 61, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/nanops.py", line 52, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 2, in <module>
+    from .reduce import (
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 8, in <module>
+    from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 10, in <module>
+    from stable_baselines3.common.base_class import BaseAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 19, in <module>
+    from stable_baselines3.common.env_util import is_wrapped
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/env_util.py", line 6, in <module>
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/atari_wrappers.py", line 10, in <module>
+    import cv2
+AttributeError: _ARRAY_API not found
+
+Obstacle stop-gate eval [forward] — traditional stack: local-planner + PP (stop>0.95)  (4000 episodes)
+
+difficulty       n        complete%            stop%          crash%   timeout%  min_clr(m)
+-------------------------------------------------------------------------------------------
+0.00-0.20       18       91.2+/- 8.8       8.8+/- 8.8      8.8+/- 8.8       0.0        1.98
+0.20-0.40     1074       95.3+/- 1.3       0.2+/- 0.2      0.4+/- 0.3       4.4        1.50
+0.40-0.60      935       88.4+/- 2.0       0.2+/- 0.2      8.2+/- 1.7       3.4        0.63
+0.60-0.80      142       85.0+/- 5.7       1.3+/- 1.3      9.5+/- 4.6       5.6        0.54
+0.80-1.00     1831       23.8+/- 1.9      50.8+/- 2.3     24.6+/- 2.0       0.9        0.17
+
+hard (>0.6): stop 47.2%  crash 23.4%  complete 28.2%
+easy (<0.3): complete 95.7%  stop 0.0%  crash 0.2%
+===== REVERSE BASELINE (traditional stack) =====
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 53, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/__init__.py", line 8, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/ops/array_ops.py", line 56, in <module>
+    from pandas.core.computation import expressions
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py", line 21, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 7, in <module>
+    from stable_baselines3.common.buffers import RolloutBuffer
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/buffers.py", line 17, in <module>
+    from stable_baselines3.common.utils import get_device
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 26, in <module>
+    from stable_baselines3.common.logger import Logger, configure
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/logger.py", line 14, in <module>
+    import pandas
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/__init__.py", line 49, in <module>
+    from pandas.core.api import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/api.py", line 28, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/arrow/array.py", line 67, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py", line 61, in <module>
+    from pandas.core import (
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/core/nanops.py", line 52, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/ben/.local/lib/python3.10/site-packages/pandas/compat/_optional.py", line 135, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 2, in <module>
+    from .reduce import (
+AttributeError: _ARRAY_API not found
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/eval_obstacle.py", line 28, in <module>
+    from tractor_trailer_rl.batched.sb3_adapter import make_batched_env
+  File "/home/ben/Ben/Thesis/tractor_trailer_rl_cupy/scripts/../src/tractor_trailer_rl/batched/sb3_adapter.py", line 25, in <module>
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv  # noqa: E402
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/__init__.py", line 3, in <module>
+    from stable_baselines3.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/__init__.py", line 1, in <module>
+    from stable_baselines3.a2c.a2c import A2C
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/a2c/a2c.py", line 8, in <module>
+    from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 10, in <module>
+    from stable_baselines3.common.base_class import BaseAlgorithm
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 19, in <module>
+    from stable_baselines3.common.env_util import is_wrapped
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/env_util.py", line 6, in <module>
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
+  File "/home/ben/.local/lib/python3.10/site-packages/stable_baselines3/common/atari_wrappers.py", line 10, in <module>
+    import cv2
+AttributeError: _ARRAY_API not found
+
+Obstacle stop-gate eval [reverse] — traditional stack: local-planner + PP (stop>0.95)  (4001 episodes)
+
+difficulty       n        complete%            stop%          crash%   timeout%  min_clr(m)
+-------------------------------------------------------------------------------------------
+0.00-0.20       19       82.8+/-14.2       8.4+/- 8.4     17.2+/-14.2       0.0        5.06
+0.20-0.40     1097       79.1+/- 2.4       0.2+/- 0.2     19.5+/- 2.3       1.4        2.43
+0.40-0.60      945       49.5+/- 3.2       0.2+/- 0.2     50.1+/- 3.2       0.4        1.38
+0.60-0.80      131       53.3+/- 8.4       1.4+/- 1.4     45.9+/- 8.4       0.8        1.74
+0.80-1.00     1809       17.8+/- 1.8      52.6+/- 2.3     29.5+/- 2.1       0.2        1.09
+
+hard (>0.6): stop 49.1%  crash 30.5%  complete 20.2%
+easy (<0.3): complete 81.2%  stop 0.0%  crash 17.5%
+===== ALL EVALS DONE =====

@@ -15,6 +15,8 @@ from run_ablations_gpu import cell_to_cfg
 from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
 from tractor_trailer_rl.batched.pure_pursuit import BatchedPurePursuit
 from tractor_trailer_rl.batched import pid as pidmod
+from tractor_trailer_rl.batched.lqr import BatchedLQR
+from tractor_trailer_rl.batched.mpc_tractor import KinematicTractorMPC
 
 JACK = 1.4
 
@@ -57,16 +59,28 @@ def tune_pid(direction, cfg, env, n_iter=120, seed=0):
 
 
 if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--pool_file", default=None,
+                    help="evaluate on this PP-validated safe pool (same feasible paths as the "
+                         "RL eval) for an apples-to-apples RL-vs-classical comparison")
+    ap.add_argument("--n_envs", type=int, default=256)
+    ap.add_argument("--steps", type=int, default=1500)
+    cargs = ap.parse_args()
+    # Classical baseline benchmark: the four controllers spanning the control spectrum
+    # (geometric -> classical feedback -> optimal linear -> optimal constrained+preview),
+    # evaluated in the same batched env as the RL policies for a fair comparison.
     for direction in ["forward", "reverse"]:
         cfg = cell_to_cfg(f"{direction}:state:multiplicative", preset="shunt",
-                          fixed_speed=True, mild_paths=True)
-        env = SB3BatchedVecEnv(cfg, 128, path_pool_size=128)
+                          fixed_speed=True, mild_paths=True, pool_file=cargs.pool_file)
+        env = SB3BatchedVecEnv(cfg, cargs.n_envs, path_pool_size=128)
         rev = direction == "reverse"
-        pp = eval_controller(BatchedPurePursuit(cfg, reverse=rev), env)
-        pid0 = eval_controller(pidmod.BatchedPID(cfg, reverse=rev), env)  # e2e_rl gains
-        print(f"[{direction}] PP(tuned): compl={pp['completion']:.3f} cte={pp['trailer_cte']:.3f} | "
-              f"PID(e2e_rl gains): compl={pid0['completion']:.3f} cte={pid0['trailer_cte']:.3f}")
-        best = tune_pid(direction, cfg, env)
-        print(f"[{direction}] PID(tuned shunt): compl={best[2]['completion']:.3f} "
-              f"cte={best[2]['trailer_cte']:.3f} hitch={best[2]['max_hitch']:.3f}  "
-              f"gains={ {k: round(v,3) for k,v in best[1].items()} }")
+        ctrls = {"PurePursuit": BatchedPurePursuit(cfg, reverse=rev),
+                 "PID": pidmod.BatchedPID(cfg, reverse=rev),
+                 "LQR": BatchedLQR(cfg, rev),
+                 "MPC": KinematicTractorMPC(cfg, rev)}
+        print(f"[{direction}]")
+        for name, ctrl in ctrls.items():
+            m = eval_controller(ctrl, env, cargs.steps)
+            print(f"    {name:12s} compl={m['completion']:.3f} cte={m['trailer_cte']:.3f} "
+                  f"hitch={m['max_hitch']:.3f}")

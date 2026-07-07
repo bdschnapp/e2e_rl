@@ -31,8 +31,11 @@ def raycast(xs, ys, cfg, pose_x, pose_y, pose_yaw, window: int = 1,
     B = cfg.obs.lidar_beams
     fov = np.float32(np.deg2rad(cfg.obs.lidar_fov_deg))
     maxr = np.float32(cfg.obs.lidar_range_m)
+    # Honour the configured march step (e2e_rl's get_obstacle_distances uses
+    # step_m=0.05). Previously this floored to 0.15 for throughput, which silently
+    # coarsened the range reading and diverged from the e2e_rl lidar definition.
     step = np.float32(march_step_m if march_step_m is not None
-                      else max(cfg.obs.lidar_step_m, 0.15))
+                      else cfg.obs.lidar_step_m)
     M = int(maxr / step)
     corridor = np.float32(cfg.world.corridor_half_m)
     W, H = np.float32(cfg.world.width_m), np.float32(cfg.world.height_m)

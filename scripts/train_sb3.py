@@ -38,8 +38,10 @@ def evaluate(model, env, steps=1500):
     N = env.num_envs
     ep_ret = np.zeros(N); ep_cte = np.zeros(N); ep_len = np.zeros(N); ep_maxh = np.zeros(N)
     rets, comps, ctes, hitches, jacks = [], [], [], [], []
+    _vec = lambda ob: ob["vector"] if isinstance(ob, dict) else ob  # BEV: metrics live in the vector part
     for _ in range(steps):
-        hitch = np.abs(o[:, 1]); cte = np.abs(o[:, 4])   # pre-step (current) state
+        v = _vec(o)
+        hitch = np.abs(v[:, 1]); cte = np.abs(v[:, 4])   # pre-step (current) state
         ep_maxh = np.maximum(ep_maxh, hitch); ep_cte += cte; ep_len += 1
         a, _ = model.predict(o, deterministic=True)
         o, r, dones, infos = env.step(a)
@@ -97,26 +99,97 @@ class EvalCurveCallback:
 DISCRETE_ALGOS = {"dqn"}  # ppo can be discrete too via --discrete
 
 
+def _td3_action_noise(env):
+    """Per-dimension Gaussian exploration noise from the env's action config, so
+    TD3 actually explores (SB3's default is None) with LOW noise on the stop channel
+    (stop_noise_sigma) — an unintended-stop guard the config previously couldn't set."""
+    from stable_baselines3.common.noise import NormalActionNoise
+    shape = getattr(env.action_space, "shape", None)
+    if not shape:                       # Discrete (DQN) has no action noise
+        return None
+    n = shape[0]
+    cfg = getattr(getattr(env, "env", None), "cfg", None)
+    steer_sig = cfg.action.steer_noise_sigma if cfg else 0.05
+    stop_sig = cfg.action.stop_noise_sigma if cfg else 0.05
+    sig = np.full(n, steer_sig, dtype=np.float32)
+    if n > 1:
+        sig[1:] = stop_sig
+    return NormalActionNoise(mean=np.zeros(n, dtype=np.float32), sigma=sig)
+
+
+def _bev_extractor_class():
+    """SB3 features extractor for the BEV Dict obs {vector, image}: a small CNN over
+    the 32x32 image (NatureCNN's 8x8/s4 stack collapses below ~36px, so we use a
+    3x3/stride-2 tower) concatenated with the low-dim state vector. Returned lazily
+    so torch is only imported when a BEV cell is actually trained."""
+    import torch as th
+    import torch.nn as nn
+    from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+
+    class BevCombinedExtractor(BaseFeaturesExtractor):
+        def __init__(self, observation_space, cnn_features=128):
+            img_space = observation_space.spaces["image"]
+            vec_dim = int(observation_space.spaces["vector"].shape[0])
+            super().__init__(observation_space, features_dim=cnn_features + vec_dim)
+            c = int(img_space.shape[0])
+            self.cnn = nn.Sequential(
+                nn.Conv2d(c, 16, 3, stride=2, padding=1), nn.ReLU(),   # 32 -> 16
+                nn.Conv2d(16, 32, 3, stride=2, padding=1), nn.ReLU(),  # 16 -> 8
+                nn.Conv2d(32, 32, 3, stride=2, padding=1), nn.ReLU(),  # 8 -> 4
+                nn.Flatten(),
+            )
+            with th.no_grad():
+                n_flat = self.cnn(th.zeros(1, *img_space.shape)).shape[1]
+            self.linear = nn.Sequential(nn.Linear(n_flat, cnn_features), nn.ReLU())
+
+        def forward(self, obs):
+            feat = self.linear(self.cnn(obs["image"]))
+            return th.cat([feat, obs["vector"]], dim=1)
+
+    return BevCombinedExtractor
+
+
+def _obs_policy(env):
+    """(policy_name, extra_policy_kwargs) — MultiInputPolicy + BEV CNN extractor for
+    a Dict obs space, else plain MlpPolicy. Keeps the state/lidar path unchanged."""
+    import gymnasium as gym
+    if isinstance(env.observation_space, gym.spaces.Dict):
+        return "MultiInputPolicy", {"features_extractor_class": _bev_extractor_class()}
+    return "MlpPolicy", {}
+
+
 def build_model(algo, env, lr, batch_size, seed):
+    """Stable, validated hyperparameters (frozen 'nuisance' config).
+
+    Off-policy (TD3/SAC/DQN) use SB3 DEFAULTS + a modest lr + action noise — the
+    regime proven in the sibling tractor_trailer_rl repo. The earlier throughput-tuned
+    overrides (lr 2e-3, batch 4096, 32 grad-steps/step) were BRITTLE: they diverged
+    once the reward magnitude grew or the stop action was added. SB3 defaults (batch
+    256, buffer 1M, train_freq=(1,episode), gradient_steps=-1, net [400,300]) are the
+    stable, reproducible choice for the ablation; the env's throughput contribution
+    stands separately on the benchmark + custom GPU-TD3 demo."""
     from stable_baselines3 import TD3, SAC, PPO, DQN
-    common = dict(policy="MlpPolicy", env=env, seed=seed, device="cuda", verbose=0,
-                  policy_kwargs=dict(net_arch=[256, 256]))
+    policy, pk_obs = _obs_policy(env)   # MultiInputPolicy + BEV CNN when obs is a Dict
+    common = dict(policy=policy, env=env, seed=seed, device="cuda", verbose=0)
     if algo == "td3":
-        return TD3(learning_rate=lr, batch_size=batch_size, buffer_size=300_000,
-                   learning_starts=20_000, train_freq=(1, "step"), gradient_steps=32,
-                   tau=0.005, gamma=0.99, **common)
+        return TD3(learning_rate=lr, learning_starts=10_000,
+                   action_noise=_td3_action_noise(env),
+                   policy_kwargs=pk_obs or None, **common)
     if algo == "sac":
-        return SAC(learning_rate=lr, batch_size=batch_size, buffer_size=300_000,
-                   learning_starts=20_000, train_freq=(1, "step"), gradient_steps=32,
-                   tau=0.005, gamma=0.99, **common)
-    if algo == "ppo":  # continuous or discrete depending on the env action space
+        return SAC(learning_rate=lr, learning_starts=10_000,
+                   policy_kwargs=pk_obs or None, **common)
+    if algo == "ppo":  # on-policy: many parallel envs are good; keep the working config
         return PPO(learning_rate=lr, n_steps=32, batch_size=batch_size, n_epochs=5,
-                   gamma=0.99, gae_lambda=0.95, clip_range=0.2, **common)
-    if algo == "dqn":  # off-policy discrete (value-based)
+                   gamma=0.99, gae_lambda=0.95, clip_range=0.2,
+                   policy_kwargs=dict(net_arch=[256, 256], **pk_obs), **common)
+    if algo == "dqn":  # off-policy discrete: value-based, no continuous-actor cliff, so
+        # the larger batch it benefits from is safe (SB3 default batch=32 is too small
+        # here — DQN peaked then declined). Restore the bigger-batch regime that worked.
         return DQN(learning_rate=lr, batch_size=batch_size, buffer_size=300_000,
-                   learning_starts=20_000, train_freq=(1, "step"), gradient_steps=32,
+                   learning_starts=10_000, train_freq=(1, "step"), gradient_steps=16,
                    target_update_interval=2_000, exploration_fraction=0.2,
-                   exploration_final_eps=0.05, gamma=0.99, **common)
+                   exploration_final_eps=0.05, gamma=0.99,
+                   policy_kwargs=dict(net_arch=[256, 256], **pk_obs), **common)
     raise ValueError(algo)
 
 
@@ -143,11 +216,16 @@ def main():
 
     cfg = cell_to_cfg(args.cell, preset=args.preset, fixed_speed=args.fixed_speed,
                       mild_paths=args.mild_paths)
+    # 2-D stop-capable action for every algo (symmetric 2x2 + carries to the
+    # obstacle env): discrete => Discrete(n*2)=steer x {go,stop}; continuous =>
+    # STOP_SIGNAL [steer, stop]. Dormant in pure lane-following.
+    from dataclasses import replace
+    from tractor_trailer_rl.config import ActionMode
     if args.discrete or args.algo in DISCRETE_ALGOS:
-        from dataclasses import replace
-        from tractor_trailer_rl.config import ActionMode
         cfg = replace(cfg, action=replace(cfg.action, mode=ActionMode.DISCRETE))
-    lr = args.lr if args.lr is not None else (1e-3 if args.algo == "ppo" else 2e-3)
+    else:
+        cfg = replace(cfg, action=replace(cfg.action, mode=ActionMode.STOP_SIGNAL))
+    lr = args.lr if args.lr is not None else 1e-3  # proven-stable for all algos
     from tractor_trailer_rl.batched.sb3_adapter import SB3BatchedVecEnv
     env = SB3BatchedVecEnv(cfg, args.n_envs, path_pool_size=1024)
     model = build_model(args.algo, env, lr, args.batch_size, args.seed)
