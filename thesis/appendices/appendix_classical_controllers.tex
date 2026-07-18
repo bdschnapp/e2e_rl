@@ -9,16 +9,16 @@ control spectrum, from a purely geometric law through to constrained optimal con
 preview:
 
 \begin{itemize}
-    \item \textbf{Pure Pursuit} --- a geometric proportional law;
-    \item \textbf{PID} --- classical error feedback with an integral term;
-    \item \textbf{LQR} --- optimal static linear feedback on the error dynamics;
-    \item \textbf{Kinematic LTV MPC} --- optimal constrained control with preview.
+    \item \textbf{Pure Pursuit}, a geometric proportional law;
+    \item \textbf{PID}, classical error feedback with an integral term;
+    \item \textbf{LQR}, optimal static linear feedback on the error dynamics;
+    \item \textbf{Kinematic LTV MPC}, optimal constrained control with preview.
 \end{itemize}
 
 All four are implemented in the batched simulator
 (\texttt{tractor\_trailer\_rl\_cupy}) so that they run inside the same vectorized
 environment as the learned policies. Crucially, every controller emits the same action
-as the RL agent --- a bounded \emph{steering rate} --- so the comparison between
+as the RL agent, a bounded steering rate, so the comparison between
 classical and learned control is made on identical terms.
 
 \section{Common framework}
@@ -54,10 +54,10 @@ through exactly the same interface.
 \label{sec:app_cc_fwdrev}
 
 Each controller has a forward and a reverse variant, reflecting a structural asymmetry of
-the articulated vehicle. Driving \emph{forward}, the tractor leads and the trailer follows
+the articulated vehicle. Driving forward, the tractor leads and the trailer follows
 passively, so it suffices to regulate the tractor errors $(e_y, e_\psi)$ towards zero.
-Driving \emph{in reverse}, the trailer leads and the coupling inverts: the hitch angle
-$\gamma$ becomes \emph{open-loop unstable} (small articulation errors grow and the vehicle
+Driving in reverse, the trailer leads and the coupling inverts. The hitch angle
+$\gamma$ becomes open-loop unstable (small articulation errors grow and the vehicle
 jackknifes), so the reverse controllers regulate the trailer errors
 $(e_{y,t}, e_{\psi,t})$ and must additionally include an explicit hitch-stabilizing action.
 This asymmetry is why the reverse variants below are not simply the forward laws with a
@@ -67,7 +67,7 @@ sign change, and why their gains had to be tuned separately
 \subsection{Vehicle parameters}
 
 The benchmark uses the full-size shunt-truck configuration. The parameters that enter the
-controllers are summarized in \cref{tab:app_cc_params}; here $L_1$ is the tractor
+controllers are summarized in \cref{tab:app_cc_params}. Here $L_1$ is the tractor
 wheelbase, $L_2$ the effective trailer length (hitch to trailer axle), and $V$ the fixed
 longitudinal speed held constant throughout the fixed-speed path-tracking experiments. The
 large length ratio $L_2/L_1 \approx 4.2$ is what makes the reverse hitch dynamics
@@ -94,7 +94,7 @@ $\dot{\delta}_{\max}$ & Steering-rate limit & $25^{\circ}$/s \\
 In the reverse variants the speed enters with a sign, $V < 0$. Because the environment's
 tractor yaw response to steering does not itself flip sign in reverse, the along-path
 kinematics use the magnitude $\lvert V \rvert$ while the yaw dynamics retain the signed
-$V$; this distinction is carried consistently through the LQR and MPC models below.
+$V$. This distinction is carried consistently through the LQR and MPC models below.
 
 \section{Pure Pursuit}
 \label{sec:app_cc_pp}
@@ -117,7 +117,7 @@ $k_{\mathrm{hitch}}\,\gamma$ to counter the open-loop-unstable articulation,
 Both laws are stateless functions of the observation, so the controller is fully
 vectorized across the parallel environments. Besides serving as a benchmark, the tuned
 pure-pursuit controller doubles as the reference (``teacher'') signal for the guided
-reward and as a feasibility oracle: a path that a well-tuned pure-pursuit controller can
+reward and as a feasibility oracle. A path that a well-tuned pure-pursuit controller can
 complete is deemed geometrically feasible.
 
 \section{PID}
@@ -151,7 +151,7 @@ step.
 \section{LQR}
 \label{sec:app_cc_lqr}
 
-The LQR baseline is the canonical optimal-linear controller: static feedback $u = -Kx$ on
+The LQR baseline is the canonical optimal-linear controller, static feedback $u = -Kx$ on
 a linear model of the tracking-error dynamics, plus a curvature feed-forward
 \cite{rajamani2011vehicle}. The error state is
 \begin{equation}
@@ -159,7 +159,7 @@ a linear model of the tracking-error dynamics, plus a curvature feed-forward
     \label{eq:app_cc_lqr_state}
 \end{equation}
 the lateral and heading error of the leading unit (tractor forward, trailer reverse)
-together with the hitch angle; the input is the steering angle $u = \delta$. The
+together with the hitch angle. The input is the steering angle $u = \delta$. The
 continuous error dynamics $\dot{x} = A_c x + B_c u$ are direction-specific. Forward,
 \begin{equation}
     A_c = \begin{bmatrix}
@@ -225,8 +225,8 @@ $\delta$ as the input, giving the same $(A_c, B_c)$ as the forward LQR model
 \eqref{eq:app_cc_lqr_fwd}. Reverse, servoing the trailer pose with the unstable hitch
 dynamics inside the optimization causes the long shunt trailer to oscillate and
 jackknife. The reverse controller therefore uses a flatness / virtual-input
-reformulation (following the Autoware trailer LTV-MPC): the QP plans the \emph{trailer} as
-a stable bicycle driven by a \emph{virtual} trailer steer $\delta_T$, and the hitch enters
+reformulation (following the Autoware trailer LTV-MPC): the QP plans the trailer as
+a stable bicycle driven by a virtual trailer steer $\delta_T$, and the hitch enters
 only through an inner loop that has been closed to the stable first-order dynamics
 $\dot{\gamma} = K(\delta_T - \gamma)$,
 \begin{equation}
@@ -293,7 +293,7 @@ to obtain $\delta_f$ (reverse).
 \end{algorithmic}
 \end{algorithm}
 
-Only the first input of the optimal sequence is applied (receding horizon); the solved
+Only the first input of the optimal sequence is applied (receding horizon). The solved
 input is retained as the warm start for the next step and, like the PID integrator, is
 reset at episode boundaries. If the solver fails to converge, the controller falls back to
 the previous command.
@@ -317,14 +317,14 @@ parallel environments, and the candidate is scored by the lexicographic key
 \end{equation}
 so that reliably completing the path is maximized first and, among gains that complete,
 the one with the tightest tracking is preferred. The best candidate is retained. This
-search is run \emph{separately for each controller and each direction}, because the
+search is run separately for each controller and each direction, because the
 forward and reverse plants differ so strongly.
 
 The reverse variants in particular could not simply inherit the gains tuned on the small
-laboratory vehicle: on the shunt truck those gains destabilize the vehicle, and several
+laboratory vehicle. On the shunt truck those gains destabilize the vehicle, and several
 gains (notably the hitch-stabilizing terms) change sign. This is a direct consequence of
 the open-loop-unstable reverse hitch dynamics and the large trailer-to-tractor length
-ratio $L_2/L_1 \approx 4.2$ discussed in \cref{sec:app_cc_fwdrev}; the reverse controllers
+ratio $L_2/L_1 \approx 4.2$ discussed in \cref{sec:app_cc_fwdrev}. The reverse controllers
 were therefore re-tuned from scratch for the target geometry.
 
 \section{Evaluation harness}
@@ -336,11 +336,11 @@ the learned policy are measured on identical paths under identical dynamics. The
 runs both driving directions and, for each controller, records three per-episode metrics:
 
 \begin{itemize}
-    \item \textbf{Completion} --- the fraction of episodes that reach the goal
+    \item \textbf{Completion}, the fraction of episodes that reach the goal
     (the mean success flag);
-    \item \textbf{Trailer cross-track error} --- the mean absolute lateral error of the
+    \item \textbf{Trailer cross-track error}, the mean absolute lateral error of the
     trailer over the episode, a measure of tracking accuracy;
-    \item \textbf{Peak hitch angle} --- the largest articulation angle reached, a measure
+    \item \textbf{Peak hitch angle}, the largest articulation angle reached, a measure
     of how close the vehicle came to jackknifing (the jackknife threshold is
     $1.4$\,rad).
 \end{itemize}

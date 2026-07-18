@@ -5,6 +5,9 @@
 \usepackage{setspace}
 \onehalfspacing
 
+% Absorb minor justification overfulls (last-resort stretch) without altering normal spacing.
+\setlength{\emergencystretch}{3em}
+
 % Math
 \usepackage{amsmath,amssymb,amsfonts}
 
@@ -91,7 +94,7 @@
 \makeatother
 
 \title{Autonomous Articulated Vehicle Control via Deep Reinforcement Learning and High-Dimensional Perception}
-\author{Benjamin Schnapp}
+\author{Benjamin David Schnapp}
 \date{\today}
 
 % =====================================================
@@ -107,6 +110,48 @@
 
 \pagenumbering{roman}
 \maketitle
+
+% =====================================================
+% UW GSPA required front matter
+% Order per uwaterloo.ca thesis-formatting: Title, Author's Declaration,
+% [Statement of Contributions if applicable], Abstract, Acknowledgements,
+% then Table of Contents / List of Figures / List of Tables.
+% =====================================================
+
+\chapter*{Author's Declaration}
+\addcontentsline{toc}{chapter}{Author's Declaration}
+I hereby declare that I am the sole author of this thesis. This is a true copy of the
+thesis, including any required final revisions, as accepted by my examiners.
+
+\bigskip
+\noindent I understand that my thesis may be made electronically available to the public.
+
+% ----- Statement of Contributions (DEFERRED: confirm with advisor whether required) -----
+% UW requires this page IF the thesis contains co-authored or previously published material.
+% Likely applicable here. Collaborations to declare once confirmed:
+%   - Infrastructure sensor-node code was authored entirely by another person; the author
+%     contributed only the ROS1 -> ROS2 interface node.
+%   - The ME780 course report this work builds on was co-authored (ref: Tymkow, cite tymkow2024).
+%   - "Electrans project" Agilex sim-to-real Autoware work: the RL pipeline was entirely the
+%     author's own; the parallel traditional (planner/controller) pipeline was developed in
+%     heavy collaboration with two other people.
+% When confirmed, uncomment and complete:
+%\chapter*{Statement of Contributions}
+%\addcontentsline{toc}{chapter}{Statement of Contributions}
+%[TODO: Statement of Contributions -- see collaboration notes above.]
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+[TODO: Abstract. One or two paragraphs: the problem (learned control of an articulated
+tractor-trailer, including the unstable reverse manoeuvre), the approach (TD3 with matched
+observation and reward ablations, and an image-to-geometry perception route), the main
+results, and the sim-to-real deployment on the Agilex Hunter SE. To be drafted.]
+
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+[TODO: Acknowledgements. Supervisor, committee readers, MVSL / Electrans collaborators,
+funding sources, family.]
+
 \tableofcontents
 \listoffigures
 \listoftables

@@ -52,7 +52,7 @@ The learned control path comprises the following principal nodes:
 
     \item[\texttt{initialpose\_shim}] Bridges the RViz \texttt{/initialpose} message to the Autoware pose-initializer service, allowing the operator to seed localization interactively.
 
-    \item[\texttt{controller\_canbridge}] Translates \texttt{autoware\_control\_msgs/Control} commands into Hunter SE CAN frames and parses vehicle feedback (velocity, steering angle) back into ROS2 topics.
+    \item[\texttt{controller\_canbridge}] Translates \texttt{autoware\_\allowbreak control\_\allowbreak msgs/\allowbreak Control} commands into Hunter SE CAN frames and parses vehicle feedback (velocity, steering angle) back into ROS2 topics.
 \end{description}
 
 The forward and reverse policies are loaded from separate checkpoints and selected according to the \texttt{drive\_direction} flag, so that the same bridge handles both manoeuvring regimes without retraining or reconfiguration.
@@ -94,7 +94,7 @@ This onboard, geometry-plus-filter estimator is the actual mechanism behind the 
 
 \subsection{Trailer State Estimation}
 
-Because the trailer carries no independent localization, its full pose is reconstructed from the tractor's localized kinematic state and the estimated articulation angle. Given the tractor's rear-axle position and heading $(\mathbf{p}_\text{truck},\, \psi_\text{truck})$ from \texttt{/localization/kinematic\_state}, the hitch-point position is
+Because the trailer carries no independent localization, its full pose is reconstructed from the tractor's localized kinematic state and the estimated articulation angle. Given the tractor's rear-axle position and heading $(\mathbf{p}_\text{truck},\, \psi_\text{truck})$ from \texttt{/localization/\allowbreak kinematic\_state}, the hitch-point position is
 \begin{equation}
     \mathbf{p}_\text{hitch} = \mathbf{p}_\text{truck} + d_h \begin{bmatrix} \cos\psi_\text{truck} \\ \sin\psi_\text{truck} \end{bmatrix},
 \end{equation}
@@ -109,7 +109,7 @@ where $L_t \approx 2.8$\,m is the trailer wheelbase. This reconstruction mirrors
 
 The simulation trains the policies against an idealized actuator that responds instantaneously to commands, whereas the physical steering and drive systems exhibit a first-order lag of the order of $50$--$150$\,ms. A policy trained for instantaneous response will, when confronted with a delayed actuator, repeatedly over-correct and excite a lag-induced oscillation. To reconcile the two, a Smith-predictor-style compensator is implemented that lets the delay-free-trained policy act on a delay-compensated state estimate.
 
-The compensator maintains two ``shadow'' instances of the same kinematic \texttt{StateSpaceTractorTrailer} model used in simulation: a delay-free shadow with zero actuation time constant, and a delayed shadow whose time constant matches the measured hardware lag. On each control tick both shadows are advanced with the command currently propagating through the actuator pipeline. The discrepancy between the measured vehicle state and the delayed shadow forms a residual,
+The compensator maintains two ``shadow'' instances of the same kinematic \texttt{StateSpace\allowbreak TractorTrailer} model used in simulation: a delay-free shadow with zero actuation time constant, and a delayed shadow whose time constant matches the measured hardware lag. On each control tick both shadows are advanced with the command currently propagating through the actuator pipeline. The discrepancy between the measured vehicle state and the delayed shadow forms a residual,
 \begin{equation}
     \mathbf{r}_k = \mathbf{x}^\text{meas}_k - \mathbf{x}^\text{delayed}_k,
     \label{eq:smith_residual}
@@ -208,7 +208,7 @@ The trailer is coupled to the tractor through a revolute hitch joint at the trac
 
 A structural limitation of the onboard sensing arrangement is that the trailer occludes the region directly behind it. The tractor-mounted LiDAR cannot see past the trailer, and instrumenting the trailer itself is undesirable. It would add cabling, power, calibration, and a wireless link to an otherwise passive, interchangeable body, and would have to be repeated for every trailer. This is most acute during reverse manoeuvring, precisely when visibility of the space behind the trailer matters most.
 
-This limitation is addressed with off-vehicle infrastructure sensor nodes: fixed LiDAR units placed at surveyed vantage points around the operating area, each providing a bird's-eye view of obstacles (crucially including the region behind the trailer) without any sensor being mounted on the trailer. Each node is calibrated into a shared global frame so that its detections can be expressed in the same coordinates as the onboard perception output and fused into Autoware's perception and occupancy-grid representation, yielding a persistent, occlusion-resilient view of the obstacles around the articulated vehicle that complements the limited onboard field of view.
+This limitation is addressed with off-vehicle infrastructure sensor nodes, fixed LiDAR units placed at surveyed vantage points around the operating area, each providing a bird's-eye view of obstacles (including the region behind the trailer) without any sensor being mounted on the trailer. Each node is calibrated into a shared global frame so that its detections can be expressed in the same coordinates as the onboard perception output and fused into Autoware's perception and occupancy-grid representation, yielding a persistent, occlusion-resilient view of the obstacles around the articulated vehicle that complements the limited onboard field of view.
 
 This capability is implemented and running in the laboratory as the indoor-perception stack. Each infrastructure node runs Euclidean clustering on its own LiDAR returns to detect candidate objects. An offboard fusion pipeline transforms every node's detections into the shared global frame, merges detections that refer to the same physical object across nodes by their overlapping footprint polygons, and time-aligns the streams against each node's modelled latency before passing the merged detections to an extended-Kalman-filter multi-object tracker. The tracker emits a single stable, deduplicated obstacle list for the whole monitored area.
 
