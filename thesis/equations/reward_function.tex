@@ -1,8 +1,12 @@
 The thesis evaluates several reward variants rather than a single scalar shaping rule. Let
 $e_y$ and $e_\psi$ denote the tractor cross-track and heading errors, $e_{y,t}$ and
 $e_{\psi,t}$ the trailer cross-track and heading errors, $\gamma$ the hitch articulation
-angle, $\dot{x}$ the longitudinal speed, and $\delta$ the commanded steering action. The
-guide controller action is denoted $\delta_{\mathrm{pp}}$, with steering normalization
+angle, $\dot{x}$ the longitudinal speed, and $\delta$ the steering angle. Longitudinal
+speed is not a control degree of freedom: it is held at the fixed operating value from
+\cref{ch:modeling} ($\dot{x}=\pm 5\,\mathrm{m/s}$ forward or reverse), so $\dot{x}$ appears
+in the reward only as a near-constant progress term that a stop forfeits, and the second
+action dimension is a stop signal rather than a commanded speed (\cref{ch:modeling}). The
+pure-pursuit guide steering is denoted $\delta_{\mathrm{pp}}$, with steering deviation
 $\Delta_\delta = (\delta - \delta_{\mathrm{pp}})/(2\delta_{\max})$.
 The lane-following base environment also defines a proximity penalty
 $P_{\mathrm{prox}}$ that is subtracted from non-terminal step rewards. This
@@ -46,16 +50,15 @@ R_{\mathrm{mult}}^{\mathrm{fwd}} &= 4\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}
 &\quad + 0.5\,\mathrm{clip}(\dot{x}, 0, 1) - P_{\mathrm{prox}},
 \\
 R_{\mathrm{guide}}^{\mathrm{fwd}}(k) &= \alpha_k
-\left(r_p^{\mathrm{fwd}} - 5\Delta_\delta^2\right)
-+ (1-\alpha_k)\left(r_p^{\mathrm{fwd}} - P_{\mathrm{tractor}} - P_{\mathrm{trailer}}\right)
-- P_{\mathrm{prox}},
+\left(-5\Delta_\delta^2 - P_{\mathrm{prox}}\right)
++ (1-\alpha_k)\,R_{\mathrm{mult}}^{\mathrm{fwd}}.
 \end{align}
-with curriculum weight
-\begin{equation}
-\alpha_k = \max\!\left(0, 1-\frac{k}{T_{\mathrm{guide}}}\right),
-\end{equation}
-where $k$ is the current training step in the guided transition schedule and
-$T_{\mathrm{guide}}$ is the total number of transition timesteps.
+The guided reward interpolates between a pure-pursuit imitation term $-5\Delta_\delta^2$,
+which rewards matching the pure-pursuit steering, and the multiplicative reward
+$R_{\mathrm{mult}}^{\mathrm{fwd}}$ defined above. The schedule $\alpha_k \in [0,1]$ governs
+the transition from imitation toward the task reward and is described in
+\cref{sec:highdim_training}, where the same mechanism is reused to fine-tune an imitated
+policy. At $\alpha_k = 1$ the guided reward is a pure pure-pursuit clone.
 
 \paragraph{Reverse lane-following rewards.}
 For reverse driving, the terminal reward is
@@ -79,31 +82,48 @@ R_{\mathrm{dense}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_
 \\
 R_{\mathrm{no\mbox{-}hitch}}^{\mathrm{rev}} &= r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_{\mathrm{prox}},
 \\
-R_{\mathrm{mult}}^{\mathrm{rev}} &= 5\,\mathrm{clip}(-\dot{x}, 0, 1)\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right) \nonumber\\
-&\quad \times \exp\!\left(-2|\gamma|\right) - P_{\mathrm{prox}},
+R_{\mathrm{mult}}^{\mathrm{rev}} &= 5\exp\!\left(-|e_y|-0.5|e_\psi|-0.75|e_{y,t}|-0.5|e_{\psi,t}|\right)\exp\!\left(-2|\gamma|\right) \nonumber\\
+&\quad + 0.5\,\mathrm{clip}(-\dot{x}, 0, 1) - P_{\mathrm{prox}},
 \\
 R_{\mathrm{guide}}^{\mathrm{rev}}(k) &= \alpha_k
-\left(r_p^{\mathrm{rev}} - 5\Delta_\delta^2 - P_{\mathrm{jack}}\right)
-+ (1-\alpha_k)\left(r_p^{\mathrm{rev}} - P_{\mathrm{path}} - P_{\mathrm{jack}}\right)
-- P_{\mathrm{prox}}.
+\left(-5\Delta_\delta^2 - P_{\mathrm{prox}}\right)
++ (1-\alpha_k)\,R_{\mathrm{mult}}^{\mathrm{rev}}.
 \end{align}
 
-\paragraph{Obstacle-aware extensions.}
-Obstacle environments inherit the underlying forward or reverse reward, including
-the proximity penalty above, and add a difficulty-dependent speed bonus during
-non-terminal episodes:
+\paragraph{Obstacle difficulty.}
+The obstacle-aware terms below are keyed to a scalar difficulty $d \in [0,1]$, a
+static geometric clearance ratio computed once per episode at the tightest blocked
+cross-section:
 \begin{equation}
-R_{\mathrm{obs,step}} = R_{\mathrm{base}} + d\left(1-\frac{|\dot{x}|}{\dot{x}_{\max}}\right)c_{\mathrm{slow}},
+d = \mathrm{clip}\!\left(1 - \frac{g_{\max} - w_v}{w_L - w_v},\; 0,\; 1\right),
+\label{eq:obstacle_difficulty}
 \end{equation}
-where $d \in [0,1]$ is obstacle difficulty and $c_{\mathrm{slow}} = 0.1$. If an obstacle
-episode terminates through failure before success, the reward is replaced by
+where $g_{\max}$ is the widest contiguous free lateral gap, $w_v$ the vehicle width, and
+$w_L$ the lane width, so $d=0$ is a fully open lane and $d=1$ a gap at or below the vehicle
+width. Its rationale and per-direction calibration are developed in \cref{sec:obstacle_reward}
+and \cref{ch:results}.
+
+\paragraph{Obstacle-aware extensions.}
+Obstacle environments inherit the underlying forward or reverse reward, including the
+proximity penalty above. A failed obstacle episode receives the standard terminal penalty
+(\cref{ch:modeling}). A deliberate stop instead receives a difficulty-gated terminal reward,
 \begin{align}
 s(d) &= \frac{e^{k_d d}-1}{e^{k_d}-1}, \qquad k_d = 3, \\
-R_{\mathrm{fail}}^{\mathrm{obs}} &= p\,R_{\max}\,s(d),
+R_{\mathrm{stop}}^{\mathrm{obs}} &= s(d)\,B_{\mathrm{hard}} - \bigl(1-s(d)\bigr)B_{\mathrm{easy}} + p\,B_{\mathrm{prog}},
 \end{align}
-where $p \in [0,1]$ is progress along the route and $R_{\max}=50$ for forward obstacle
-tasks and $R_{\max}=100$ for reverse obstacle tasks. If the vehicle instead performs a
-deliberate stop in front of an obstacle, the terminal reward becomes
+where $p \in [0,1]$ is the progress made before stopping and $B_{\mathrm{hard}} = B_{\mathrm{easy}} = 60$,
+$B_{\mathrm{prog}} = 20$. The soft difficulty gate $s(d)$ makes stopping pay on an impassable
+layout, where it must beat a crash, and lose to driving through on an easy one.
+
+\paragraph{Branching hidden-path reward.}
+Rather than tracking the single hidden avoidance path of \cref{ch:modeling}, the obstacle
+reward tracks two hidden corridors, one passing each side of the obstacle, and keeps the
+more favourable of the two evaluations:
 \begin{equation}
-R_{\mathrm{stop}}^{\mathrm{obs}} = 1.5\,p\,R_{\max}\,s(d).
+R^{\mathrm{branch}} = \max_{c\,\in\,\{\mathrm{L},\,\mathrm{R}\}}
+R\!\left(e_y^{(c)},\, e_\psi^{(c)},\, e_{y,t}^{(c)},\, e_{\psi,t}^{(c)}\right),
+\label{eq:branching_reward}
 \end{equation}
+where $e_\bullet^{(c)}$ are the tracking errors relative to corridor $c$ and $R(\cdot)$ is
+the underlying forward or reverse reward above. Its rationale is developed in
+\cref{sec:obstacle_reward}.

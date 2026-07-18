@@ -1,0 +1,10 @@
+bev_size,m_per_pixel,mean_R2,delta_steer,gamma_hitch,e_y,e_psi,e_y_t,e_psi_t,k1,k2
+16,2.500,0.944,0.643,0.990,0.997,0.997,0.959,0.984,0.990,0.990
+32,1.250,0.948,0.662,0.993,0.997,0.998,0.969,0.986,0.992,0.992
+48,0.833,0.949,0.657,0.992,0.998,0.998,0.969,0.987,0.995,0.995
+64,0.625,0.948,0.658,0.991,0.997,0.998,0.969,0.987,0.993,0.994
+# IMPORTANT: this is a TRUE resolution sweep -- the physical area is FIXED (bev_range_m=20m -> 40x40 m
+#   window); only the pixel DENSITY varies (m_per_pixel column: 2.5 -> 0.625). Same coverage, finer pixels.
+# forward, SDF+coord, ~77k samples, 20 epochs. Recoverability SATURATES by 16x16 (2.5 m/px): mean R2 ~0.95, flat 16->64.
+# Ceiling set by steering delta (~0.66 at ALL resolutions) = information limit (steering not in the ego-BEV), NOT pixels.
+# Conclusion: 32x32 (1.25 m/px) is more than sufficient; finer resolution does NOT improve estimated-state accuracy.

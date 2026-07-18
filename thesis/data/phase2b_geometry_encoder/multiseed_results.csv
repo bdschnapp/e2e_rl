@@ -1,0 +1,17 @@
+direction,seed,best_completion,best_cte,final_completion,final_cte,note
+forward,0,1.000,0.477,1.000,0.305,
+forward,1,1.000,0.478,1.000,0.524,
+forward,2,1.000,0.685,1.000,1.278,
+reverse,0,0.887,1.404,0.899,1.538,best@1.2M (1.3M budget; superseded by 2M)
+reverse,1,0.961,0.915,0.967,0.849,best@1.3M (1.3M budget; superseded by 2M)
+reverse,2,0.646,1.555,0.659,1.586,best@1.3M (1.3M budget; superseded by 2M)
+reverse,0,0.969,1.445,0.903,1.351,2M budget; best@1.7M (noisy plateau)
+reverse,1,0.982,0.871,0.979,0.873,2M budget; best@2M (~ state parity, plateaued ~0.98)
+reverse,2,0.910,0.875,0.897,0.892,2M budget; best@2M (STILL CLIMBING at 2M: 0.77->0.83->0.85->0.91 over 1.7-2M)
+# forward mean completion = 1.00 (full parity with 2A state).
+# reverse @1.3M budget: mean ~0.83 (high variance) => WAS UNDER-CONVERGED, not buffer-limited.
+# reverse @2M budget: mean best ~0.95 (0.969/0.982/0.910 vs state 0.97) - gap nearly closed; seed2 oscillation
+#   (0.65@1.3M) RESOLVED to 0.91. KEY: the 300k buffer cap is NOT the limiter (more STEPS fixed it), so the
+#   state-only-replay rework is unnecessary. 2M is the FINAL reverse result (3M dropped: 2M already ~parity;
+#   seed2 was still rising at 0.91 but chasing the last ~0.04 on one seed wasn't worth blocking Phase-3).
+# recipe: geom_frozen_rl (frozen geometry encoder as SB3 policy features_extractor); eval pool = PP-feasible shunt_mild_safe.npz (fair re-eval pending). Models: results_geom/geom_{dir}_s{seed}{,_final}.zip; 2M in results_geom_rev2M/

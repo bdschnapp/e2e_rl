@@ -1,0 +1,220 @@
+% Placeholder for chapters/04_learning_framework.tex
+% Drop-in stub: reproduces every \label (chapter, section, subsection,
+% figure, equation, table) from the original chapter, in the same order,
+% so cross-references and numbering elsewhere in the document are
+% unaffected when this chapter is swapped in for external review. The 21
+% stub equations in "Reward Formulation" mirror the count and label
+% positions of \input{equations/reward_function} (labels at positions 18
+% and 21 of that block).
+\chapter{Learning Framework: Observation and Representation Design, Reward Formulation, and Policy Training}
+\label{ch:learning_framework}
+
+\section{Learning Framework Overview}
+\textit{[Section content omitted for review.]}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{Architecture of the learning system: an observation (engineered state, lidar, or BEV image) is encoded into a feature vector and passed to the TD3 actor and critics, which output a steering rate and a stop signal; the reward combines path-tracking and hitch-stability terms.}
+    \label{fig:learning_framework}
+\end{figure}
+
+\textit{[Section content omitted for review.]}
+
+\section{Reinforcement Learning with TD3}
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:td3_target}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\section{Reward Formulation}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:obstacle_difficulty}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:branching_reward}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\subsection{Obstacle-Navigation Reward Design}
+\label{sec:obstacle_reward}
+\textit{[Section content omitted for review.]}
+
+\section{Hyperparameter Optimization}
+\label{sec:hpo}
+\textit{[Section content omitted for review.]}
+
+\section{Perception and Representation Design}
+\label{sec:perception}
+\textit{[Section content omitted for review.]}
+
+\subsection{Lidar Observation}
+\textit{[Section content omitted for review.]}
+
+\subsection{Bird's-Eye-View Observation}
+\textit{[Section content omitted for review.]}
+
+\subsection{Image Encoding and Representation Learning}
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:scaled_cnn_features}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:state_scale_features}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:encoder}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:decoder}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\subsection{Observation Space Summary}
+\textit{[Section content omitted for review.]}
+
+\begin{table}[H]
+\centering
+\caption{Observation space components}
+\label{tab:observation_components}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\section{Training High-Dimensional-Observation Policies}
+\label{sec:highdim_training}
+\textit{[Section content omitted for review.]}
+
+\subsection{An Off-Policy Instability Hypothesis}
+\textit{[Section content omitted for review.]}
+
+\subsection{Route A: Pretraining the Representation}
+\textit{[Section content omitted for review.]}
+
+\subsection{Route B: Imitation Warm-Start}
+\textit{[Section content omitted for review.]}
+
+\subsection{Route C: Geometry Distillation}
+\textit{[Section content omitted for review.]}
+
+\subsection{Safe Adaptation}
+\textit{[Section content omitted for review.]}
+
+\subsection{Curriculum and Training Protocol}
+\textit{[Section content omitted for review.]}
+
+\section{Failure Replay Curriculum}
+\label{sec:failure_replay}
+\textit{[Section content omitted for review.]}
+
+\section{Evaluation Methodology}
+\label{sec:eval_methodology}
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:attempt_ev}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\section{Scalable Simulation: GPU-Parallel Batched Environments}
+\label{sec:batched_sim}
+\textit{[Section content omitted for review.]}
+
+\subsection{Batched Environment Design}
+\textit{[Section content omitted for review.]}
+
+\subsection{Numerical Parity}
+\textit{[Section content omitted for review.]}
+
+\subsection{Throughput and Scaling}
+\textit{[Section content omitted for review.]}
+
+\begin{table}[H]
+\centering
+\caption{Environment-stepping throughput (transitions per second) for the batched GPU environment versus the single-core scalar reference, measured on an RTX 4080 SUPER.}
+\label{tab:sim_throughput}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\textit{[Section content omitted for review.]}
+
+\begin{table}[H]
+\centering
+\caption{Same batched code, NumPy (CPU) versus CuPy (GPU), by batch size $N$ and observation type. Throughput in transitions per second; speedup is CuPy relative to NumPy.}
+\label{tab:numpy_cupy}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\textit{[Section content omitted for review.]}

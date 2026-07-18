@@ -1,0 +1,2 @@
+algo,direction,obs,reward,n_seeds,completion_mean,completion_ci95,trailer_cte_mean,trailer_cte_ci95,max_hitch_mean,max_hitch_ci95,jackknife_mean,jackknife_ci95,ep_return_mean,ep_return_ci95,steps_to_threshold_mean
+td3,reverse,lidar24,multiplicative,3,0.6400805119180242,0.6273572035723759,1.3346066313657516,0.3273598420928438,0.5537929579032658,0.4116756107592014,0.0025940337224383916,0.005084306095979248,71.08868435777491,534.9849655251624,1100000.0

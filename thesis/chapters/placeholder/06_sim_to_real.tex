@@ -1,0 +1,176 @@
+% Placeholder for chapters/06_sim_to_real.tex
+% Drop-in stub: reproduces every \label (chapter, section, subsection,
+% figure, equation) from the original chapter, in the same order, so
+% cross-references and numbering elsewhere in the document are unaffected
+% when this chapter is swapped in for external review.
+\chapter{Sim-to-Real Deployment}
+\label{ch:sim_to_real}
+
+\section{Overview}
+\textit{[Section content omitted for review.]}
+
+\section{Hardware Platform}
+
+\subsection{Tractor Vehicle}
+\textit{[Section content omitted for review.]}
+
+\subsection{Trailer}
+\textit{[Section content omitted for review.]}
+
+\subsection{Sensor Suite}
+\textit{[Section content omitted for review.]}
+
+\section{Software Architecture}
+
+\subsection{Middleware and Framework}
+\textit{[Section content omitted for review.]}
+
+\subsection{Relationship to the Conventional Articulated Pipeline}
+\textit{[Section content omitted for review.]}
+
+\subsection{RL Bridge Node Architecture}
+\textit{[Section content omitted for review.]}
+
+\subsection{Hitch Angle Estimation}
+\label{sec:hitch_estimation}
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:hitch_roi_shift}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:hitch_closeness}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:hitch_fit}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:hitch_raw_angle}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\subsection{Trailer State Estimation}
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\subsection{Actuator-Delay Compensation: Smith Predictor}
+\label{sec:smith_predictor}
+\textit{[Section content omitted for review.]}
+
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:smith_residual}
+\end{equation}
+\begin{equation}
+\text{[equation omitted for review]}
+\label{eq:smith_predict}
+\end{equation}
+
+\textit{[Section content omitted for review.]}
+
+\section{Sim-to-Real Gap Analysis}
+\textit{[Section content omitted for review.]}
+
+\subsection{Actuation Dynamics}
+\label{sec:gap_actuation}
+\textit{[Section content omitted for review.]}
+
+\subsection{Hitch-Angle Sensing}
+\label{sec:gap_hitch}
+\textit{[Section content omitted for review.]}
+
+\subsection{Path Distribution}
+\textit{[Section content omitted for review.]}
+
+\subsection{Jackknife Recovery}
+\textit{[Section content omitted for review.]}
+
+\subsection{Localization Dependency}
+\textit{[Section content omitted for review.]}
+
+\section{High-Fidelity Geographic Simulation}
+\label{sec:geo_sim}
+\textit{[Section content omitted for review.]}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{Reconstruction of the target distribution-centre site in Blender. OpenStreetMap building footprints are extruded to form the 3D building meshes and draped over high-resolution aerial orthoimagery from the ESRI World Imagery basemap, both layers imported through the Blender GIS plugin. The same GIS-driven procedure reconstructs any real distribution centre from its geographic coordinates.}
+    \label{fig:geo_sim_blender}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \reviewplaceholder{Figure content omitted for review.}
+        \caption{The reconstructed site exported to a georeferenced Gazebo world.}
+        \label{fig:geo_sim_gazebo_world}
+    \end{subfigure}
+    \\[0.75em]
+    \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \reviewplaceholder{Figure content omitted for review.}
+        \caption{The \texttt{electrans} tractor-trailer spawned at a loading dock within the world.}
+        \label{fig:geo_sim_gazebo_vehicle}
+    \end{subfigure}
+    \caption{The georeferenced site running in Gazebo. The exported world (a) preserves the real building geometry and aerial ground texture, and the \texttt{electrans} articulated vehicle (b) is spawned into it so that the same policies evaluated in simulation can be exercised against the full Autoware sensing and localization stack.}
+    \label{fig:geo_sim_gazebo}
+\end{figure}
+
+\textit{[Section content omitted for review.]}
+
+\subsection{Articulated Vehicle Model}
+\label{sec:electrans_model}
+\textit{[Section content omitted for review.]}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{The \texttt{electrans} tractor-trailer model. The tractor reuses the Agilex Hunter \texttt{xacro} description (Ackermann front steering, continuous rear wheels, and \texttt{ros2\_control} blocks), rescaled and given a cab-over terminal-tractor body mesh; the box trailer is attached through a revolute hitch joint at the tractor rear axle.}
+    \label{fig:electrans_model}
+\end{figure}
+
+\textit{[Section content omitted for review.]}
+
+\section{Infrastructure Sensor Nodes}
+\label{sec:sensor_nodes}
+\textit{[Section content omitted for review.]}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{Infrastructure sensor-node architecture: fixed off-vehicle LiDAR units give a bird's-eye view of obstacles around the articulated vehicle, covering the region behind the trailer that the onboard sensors cannot observe. Their detections are fused and tracked offboard and delivered to the vehicle over ROS2, so the onboard computer runs only ROS2.}
+    \label{fig:sensor_nodes}
+\end{figure}
+
+\section{Deployment Results}
+\textit{[Section content omitted for review.]}
+
+\section{Summary}
+\textit{[Section content omitted for review.]}

@@ -1,0 +1,24 @@
+% Hand-authored: values from the vision-training development runs.
+% Per-seed CSVs are pending archival except the actor-frozen row (3 seeds).
+
+\begin{table}[H]
+\centering
+\caption{The vision-training ladder on forward lane-following. Each rung changes one thing relative to the rung above, so the first configuration that reaches full completion identifies the cause. Representation changes alone leave the policy at zero, imitation restores it, unconstrained fine-tuning destroys it again, and only freezing the actor holds it, which points to the actor rather than the encoder as the failure. Completions are from the development runs. The actor-frozen configuration was repeated over three seeds (1.00 / 1.00 / 0.92), and per-seed archival of the remaining rungs is pending.}
+\label{tab:causal_ladder}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
+\begin{tabular}{lcp{7.2cm}}
+\toprule
+Configuration & \makecell{Completion} & What it isolates \\
+\midrule
+BEV occupancy, from scratch        & 0.00 & Ordinary RL on the raw image fails outright \\
+\quad + signed-distance encoding   & 0.00 & A denser, task-aligned image is not the fix \\
+\quad + coordinate channels        & 0.00 & Spatial addressing is not the fix \\
+\quad + stability extractor        & 0.00 & Layer normalization and separate actor and critic encoders are not enough \\
+Imitation warm-start               & 1.00 & A cloned state expert produces a working vision policy \\
+\quad + naive fine-tuning          & 0.00 & Letting RL move the whole policy destroys the clone \\
+\quad + RL, encoder frozen         & 0.00 & Freezing perception does not save it, so the encoder is not the culprit \\
+\quad + RL, actor frozen           & 1.00 & Freezing the actor and training only the critic holds parity \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

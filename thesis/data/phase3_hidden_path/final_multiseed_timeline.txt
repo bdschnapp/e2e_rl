@@ -1,0 +1,18 @@
+===== FINAL PHASE-3 STUDY START 2026-07-16 23:25:25 =====
+===== [A] reverse seed 0 START 2026-07-16 23:25:25 =====
+===== [A] reverse seed 0 DONE  2026-07-16 23:51:27 =====
+===== [A] reverse seed 1 START 2026-07-16 23:51:27 =====
+===== [A] reverse seed 1 DONE  2026-07-17 00:17:09 =====
+===== [A] reverse seed 2 START 2026-07-17 00:17:09 =====
+===== [A] reverse seed 2 DONE  2026-07-17 00:42:43 =====
+===== [A] forward seed 0 START 2026-07-17 00:42:43 =====
+===== [A] forward seed 0 DONE  2026-07-17 00:50:58 =====
+===== [A] forward seed 1 START 2026-07-17 00:50:58 =====
+===== [A] forward seed 1 DONE  2026-07-17 00:59:14 =====
+===== [A] forward seed 2 START 2026-07-17 00:59:14 =====
+===== [A] forward seed 2 DONE  2026-07-17 01:07:30 =====
+===== [B] ANALYSIS START 2026-07-17 01:07:30 =====
+===== [B] ANALYSIS DONE  2026-07-17 01:16:27 =====
+===== [C] VISION START 2026-07-17 01:16:27 =====
+===== [C] VISION DONE  2026-07-17 01:20:55 =====
+===== FINAL PHASE-3 STUDY DONE 2026-07-17 01:20:55 =====

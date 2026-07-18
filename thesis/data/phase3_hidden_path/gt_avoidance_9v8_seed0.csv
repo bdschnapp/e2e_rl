@@ -1,0 +1,29 @@
+# GT hidden-avoidance-path model: forward+trailer+obstacles, STATE obs = errors+curvature to the
+# hidden avoidance path (local_ys). Curriculum 200k obs-OFF -> 500k obs-ON, train 3-5 m/s, eval fixed 5,
+# FULL layouts (incl blocked), STOP_SIGNAL. Single seed 0. 9-dim adds windowed difficulty; 8-dim does not.
+# HEADLINE: 8-dim (avoidance-path obs, NO explicit difficulty) learns correct behaviour -- completes easy
+#   layouts ~0.84, STOPS on hard ~0.71, SAFE=0.784. Difficulty is IMPLICIT in the lookahead curvature.
+#   9-dim (WITH explicit windowed difficulty) COLLAPSED to degenerate stop-everywhere (stop=0.996,
+#   success=0, incl easy) -> explicit difficulty did NOT rescue; it hurt (this seed). CAVEAT: n=1, and this
+#   task is collapse-prone (cf flicker) so cannot yet attribute; need seeds. Positive existence proof: the
+#   avoidance-path observation alone yields obstacle-aware control + appropriate stopping (no slots, no diff dim).
+model,difficulty_obs,overall_success,overall_stop,overall_crash,safe_rate,easy_success,hard_stop,hard_crash
+hp_forward_avoidance_d_s0,True,0.000,0.996,0.004,0.568,0.000,0.999,0.001
+hp_forward_avoidance_nod_s0,False,0.359,0.581,0.060,0.784,0.838,0.707,0.126
+# --- WINDOWED stop reward (fix for the global-difficulty collapse) ---
+# 9-dim + windowed reward: collapse FIXED (stop rises with difficulty 0.33->0.90, was pinned ~1.0). SAFE=0.739.
+#   But over-conservative on easy/moderate (stops 33-43% on easy -> easy completion only 0.56). Safer on hardest
+#   (crash 0.069 vs 8-dim 0.115). 8-dim + windowed reward STILL best overall: SAFE=0.819, easy completion 0.85.
+#   => windowed reward confirms the mismatch was the collapse cause (Ben's diagnosis). But explicit difficulty obs
+#   trades easy throughput for hard-layout safety; does not beat the simpler 8-dim on SAFE. n=1 seed.
+model,difficulty_obs,stop_reward,overall_success,overall_stop,overall_crash,safe_rate,easy_success,hard_stop,hard_crash
+hp_forward_avoidance_d_win_s0,True,windowed,0.235,0.704,0.061,0.739,0.562,0.905,0.069
+hp_forward_avoidance_nod_win_s0,False,windowed,0.417,0.528,0.055,0.819,0.855,0.681,0.115
+# --- REWARD CALIBRATION TUNING (9-dim windowed) ---
+# A) sharpen stop_difficulty_k 3->6, stop_easy_penalty 60->100: BEST MODEL. SAFE=0.907, crash=0.019.
+#    Completes easy (0.83) AND stops 100% on hard with ZERO crash on hardest. Difficulty obs now earns its keep.
+# B) lower stop_hard_reward 60->30 (Ben's magnitude idea): WORSE (SAFE 0.796, final collapsed to 0) - lowering
+#    the reward magnitude destabilises. The winning lever is calibration SHARPNESS, not reward magnitude.
+model,difficulty_obs,variant,safe_rate,crash,easy_success,hard_stop,hard_crash
+hp_forward_avoidance_d_win_sharp_s0,True,sharpen_k6_easy100,0.907,0.019,0.831,1.000,0.000
+hp_forward_avoidance_d_win_lowhard_s0,True,lowhard30,0.796,0.025,0.679,0.969,0.030

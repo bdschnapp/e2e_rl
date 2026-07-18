@@ -1,0 +1,9 @@
+# END-TO-END: best GT policy (variant A) driven on IMAGE-PREDICTED avoidance-path state (frozen encoder
+# in the loop; proprio delta,gamma from sensors). Forward, full layouts, eval fixed 5 m/s. n=7900 epis.
+# HEADLINE: vision policy holds the GT performance -- SAFE 0.903 vs GT 0.907; drives easy, stops ~100% on
+# hard with ~0 crash there. Only degradation: crash 0.019->0.041, ALL in the [0.4,0.6) tight-but-passable
+# band (0.143 vs GT 0.063), traceable to the soft curvature recoverability (R2 0.56-0.70). Validates the
+# thesis claim: the BEV image supplies both the plan (avoidance path + difficulty) and the control state.
+source,safe,crash,easy_success,mid_crash_0.4_0.6,hard_stop,hard_crash
+GT_state_variantA,0.907,0.019,0.831,0.063,1.000,0.000
+vision_predicted_state,0.903,0.041,0.876,0.143,0.999,0.001

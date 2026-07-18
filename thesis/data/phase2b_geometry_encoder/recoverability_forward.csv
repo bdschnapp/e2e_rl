@@ -1,0 +1,9 @@
+component,R2,note
+e_psi,0.998,tractor heading error (exteroceptive)
+e_y,0.997,tractor cross-track (exteroceptive)
+k1,0.997,curvature sample 1 (exteroceptive)
+k2,0.997,curvature sample 2 (exteroceptive)
+gamma_hitch,0.995,hitch angle (partly correlational via visible path history)
+e_psi_t,0.993,trailer heading error (exteroceptive)
+e_y_t,0.974,trailer cross-track (exteroceptive)
+delta_steer,0.659,steering angle (internal actuator; only weakly recoverable)

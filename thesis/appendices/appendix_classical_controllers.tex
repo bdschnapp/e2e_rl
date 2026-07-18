@@ -16,7 +16,7 @@ preview:
 \end{itemize}
 
 All four are implemented in the batched simulator
-(\texttt{tractor\_trailer\_rl\_cupy}) so that they run inside the same vectorised
+(\texttt{tractor\_trailer\_rl\_cupy}) so that they run inside the same vectorized
 environment as the learned policies. Crucially, every controller emits the same action
 as the RL agent --- a bounded \emph{steering rate} --- so the comparison between
 classical and learned control is made on identical terms.
@@ -59,7 +59,7 @@ passively, so it suffices to regulate the tractor errors $(e_y, e_\psi)$ towards
 Driving \emph{in reverse}, the trailer leads and the coupling inverts: the hitch angle
 $\gamma$ becomes \emph{open-loop unstable} (small articulation errors grow and the vehicle
 jackknifes), so the reverse controllers regulate the trailer errors
-$(e_{y,t}, e_{\psi,t})$ and must additionally include an explicit hitch-stabilising action.
+$(e_{y,t}, e_{\psi,t})$ and must additionally include an explicit hitch-stabilizing action.
 This asymmetry is why the reverse variants below are not simply the forward laws with a
 sign change, and why their gains had to be tuned separately
 (\cref{sec:app_cc_tuning}).
@@ -67,11 +67,11 @@ sign change, and why their gains had to be tuned separately
 \subsection{Vehicle parameters}
 
 The benchmark uses the full-size shunt-truck configuration. The parameters that enter the
-controllers are summarised in \cref{tab:app_cc_params}; here $L_1$ is the tractor
+controllers are summarized in \cref{tab:app_cc_params}; here $L_1$ is the tractor
 wheelbase, $L_2$ the effective trailer length (hitch to trailer axle), and $V$ the fixed
 longitudinal speed held constant throughout the fixed-speed path-tracking experiments. The
 large length ratio $L_2/L_1 \approx 4.2$ is what makes the reverse hitch dynamics
-difficult to stabilise.
+difficult to stabilize.
 
 \begin{table}[H]
 \centering
@@ -107,7 +107,7 @@ feedback on the tractor errors,
     + k_y\, e_y + k_\theta\, e_\psi\bigr).
     \label{eq:app_cc_pp_fwd}
 \end{equation}
-Reverse, it regulates the trailer errors and adds an explicit hitch-stabilising term
+Reverse, it regulates the trailer errors and adds an explicit hitch-stabilizing term
 $k_{\mathrm{hitch}}\,\gamma$ to counter the open-loop-unstable articulation,
 \begin{equation}
     \delta_{\mathrm{des}} = k_{\mathrm{hitch}}\,\gamma + k_{\mathrm{ff}}\,\kappa
@@ -115,7 +115,7 @@ $k_{\mathrm{hitch}}\,\gamma$ to counter the open-loop-unstable articulation,
     \label{eq:app_cc_pp_rev}
 \end{equation}
 Both laws are stateless functions of the observation, so the controller is fully
-vectorised across the parallel environments. Besides serving as a benchmark, the tuned
+vectorized across the parallel environments. Besides serving as a benchmark, the tuned
 pure-pursuit controller doubles as the reference (``teacher'') signal for the guided
 reward and as a feasibility oracle: a path that a well-tuned pure-pursuit controller can
 complete is deemed geometrically feasible.
@@ -187,16 +187,16 @@ $\lvert V \rvert$ while the yaw dynamics keep the signed $V$,
     \end{bmatrix}.
     \label{eq:app_cc_lqr_rev}
 \end{equation}
-The pair $(A_c, B_c)$ is discretised by zero-order hold at the step $\Delta t$ to give
+The pair $(A_c, B_c)$ is discretized by zero-order hold at the step $\Delta t$ to give
 $(A_d, B_d)$. With state and input weights $Q = \operatorname{diag}(q_{\mathrm{lat}},
 q_{\mathrm{head}}, q_\gamma)$ and $R$, the infinite-horizon gain follows from the discrete
-algebraic Riccati equation. Its stabilising solution $P$ yields
+algebraic Riccati equation. Its stabilizing solution $P$ yields
 \begin{equation}
     K = \bigl(R + B_d^\top P B_d\bigr)^{-1} B_d^\top P A_d.
     \label{eq:app_cc_lqr_gain}
 \end{equation}
 Because the speed is constant, $K$ is computed once at construction and then applied to
-every environment, so the controller stays fully vectorised. The command adds a
+every environment, so the controller stays fully vectorized. The command adds a
 steady-state feed-forward that holds the vehicle on a constant-curvature arc: a
 feed-forward steer $\delta_{\mathrm{ff}} = L_1 \kappa$ and a hitch reference
 $\gamma_{\mathrm{ref}} = \operatorname{sign}(V)\, L_2\, \kappa$, giving
@@ -223,7 +223,7 @@ as the LQR but plans over an $N$-step horizon.
 Forward, the tractor leads, so the MPC tracks the tractor errors with the steering angle
 $\delta$ as the input, giving the same $(A_c, B_c)$ as the forward LQR model
 \eqref{eq:app_cc_lqr_fwd}. Reverse, servoing the trailer pose with the unstable hitch
-dynamics inside the optimisation causes the long shunt trailer to oscillate and
+dynamics inside the optimization causes the long shunt trailer to oscillate and
 jackknife. The reverse controller therefore uses a flatness / virtual-input
 reformulation (following the Autoware trailer LTV-MPC): the QP plans the \emph{trailer} as
 a stable bicycle driven by a \emph{virtual} trailer steer $\delta_T$, and the hitch enters
@@ -251,12 +251,12 @@ counter-steer,
     \label{eq:app_cc_mpc_inner}
 \end{equation}
 The $1/\lvert V \rvert$ factor is what flips the feedback sign in reverse and produces the
-stabilising counter-steer.
+stabilizing counter-steer.
 
 \subsection{Condensed quadratic program}
 
-The continuous models are discretised by zero-order hold and the state trajectory is
-condensed onto the input sequence, so that the optimisation variable is the vector of
+The continuous models are discretized by zero-order hold and the state trajectory is
+condensed onto the input sequence, so that the optimization variable is the vector of
 $N$ future steering inputs. With the stacked weight $\bar{Q} = I_N \otimes Q$, a control
 penalty $R$, an input-rate penalty $R_d$, and the first-difference operator
 $T = I - I^{(-1)}$ (so that $T$ forms $\Delta u$), the cost Hessian is
@@ -269,13 +269,13 @@ box on the increments, $\lvert \Delta u \rvert \le \dot{\delta}_{\max}\,\Delta t
 steering box $\lvert u \rvert \le \delta_{\max}$. It is solved per environment with OSQP.
 The rate-penalty term $R_d\,T^\top T$ is weighted heavily in reverse so the controller
 does not chase cross-track measurement ripple. The overall per-step procedure is
-summarised in \cref{alg:app_cc_mpc}.
+summarized in \cref{alg:app_cc_mpc}.
 
 \begin{algorithm}[H]
 \caption{Kinematic LTV MPC step (per environment)}
 \label{alg:app_cc_mpc}
 \begin{algorithmic}[1]
-\State \textbf{Precompute (once):} discretise $(A_c, B_c, E_c)$ by ZOH; build the
+\State \textbf{Precompute (once):} discretize $(A_c, B_c, E_c)$ by ZOH; build the
 condensed maps $A_x, B_u, E_w$ and the constant Hessian $H$ from \eqref{eq:app_cc_mpc_cost}.
 \State \textbf{On episode reset:} clear the warm-start input $u_{\text{prev}} \gets 0$.
 \State Read $x_0 = [\,e_{\mathrm{lat}}, e_{\mathrm{head}}, \gamma\,]$ and curvature $\kappa$
@@ -315,14 +315,14 @@ parallel environments, and the candidate is scored by the lexicographic key
     \bigl(\text{completion rate},\ -\,\text{mean cross-track error}\bigr),
     \label{eq:app_cc_tuning_key}
 \end{equation}
-so that reliably completing the path is maximised first and, among gains that complete,
+so that reliably completing the path is maximized first and, among gains that complete,
 the one with the tightest tracking is preferred. The best candidate is retained. This
 search is run \emph{separately for each controller and each direction}, because the
 forward and reverse plants differ so strongly.
 
 The reverse variants in particular could not simply inherit the gains tuned on the small
-laboratory vehicle: on the shunt truck those gains destabilise the vehicle, and several
-gains (notably the hitch-stabilising terms) change sign. This is a direct consequence of
+laboratory vehicle: on the shunt truck those gains destabilize the vehicle, and several
+gains (notably the hitch-stabilizing terms) change sign. This is a direct consequence of
 the open-loop-unstable reverse hitch dynamics and the large trailer-to-tractor length
 ratio $L_2/L_1 \approx 4.2$ discussed in \cref{sec:app_cc_fwdrev}; the reverse controllers
 were therefore re-tuned from scratch for the target geometry.

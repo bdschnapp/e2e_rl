@@ -1,0 +1,12 @@
+# Image->state recoverability: predict the 9-dim avoidance-path state from the obstacle SDF-BEV (32x32+coord).
+# Expert = variant A (best GT model). 307k samples, 25 epochs. Proprio (delta,gamma) NOT predicted (sensors).
+# HEADLINE: windowed difficulty d_win is highly recoverable (R2=0.948) -> difficulty IS image-observable.
+# Avoidance-path errors excellent (0.87-0.99); curvature soft (0.56-0.70, sharper avoidance bends vs 2B centreline).
+dim,test_R2
+e_y,0.947
+e_psi,0.870
+e_y_t,0.977
+e_psi_t,0.985
+k1,0.699
+k2,0.558
+d_win,0.948

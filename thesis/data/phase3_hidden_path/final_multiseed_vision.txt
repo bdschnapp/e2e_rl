@@ -1,0 +1,54 @@
+### REVERSE encoder (dd recoverability) + closed-loop ###
+# geom-pretrain-OBSTACLE backend=cupy coord=True steps=1200 epochs=25 expert=hp_reverse_avoidance_d_win_dyn_final_s0.zip
+# collected 307200 samples (img (3, 32, 32)); predicting 7/9 exteroceptive ['e_y', 'e_psi', 'e_y_t', 'e_psi_t', 'k1', 'k2', 'd_win'] in 30s
+  ep 1/25 train_mse=0.3782 test_R2_mean=0.672
+  ep 5/25 train_mse=0.2488 test_R2_mean=0.734
+  ep 10/25 train_mse=0.2224 test_R2_mean=0.744
+  ep 15/25 train_mse=0.2078 test_R2_mean=0.765
+  ep 20/25 train_mse=0.1968 test_R2_mean=0.761
+  ep 25/25 train_mse=0.1887 test_R2_mean=0.765
+# PER-COMPONENT RECOVERABILITY (test R^2; avoidance-path state from obstacle SDF-BEV):
+    e_y            R2=+0.967
+    e_psi          R2=+0.876
+    e_y_t          R2=+0.977
+    e_psi_t        R2=+0.882
+    k1             R2=+0.425
+    k2             R2=+0.277
+    d_win          R2=+0.954
+# saved obstacle encoder (7 exteroceptive dims) -> geom_encoder_reverse_final.pt
+
+=== VISION closed-loop (predicted state)  n_epis=11447 ===
+  SAFE (success | stop@hard) = 0.749   crash = 0.083
+  difficulty   n     success  stop    crash
+   [0.0,0.2)    49   0.776   0.184   0.041
+   [0.2,0.4)  3353   0.650   0.305   0.045
+   [0.4,0.6)  2824   0.118   0.664   0.218
+   [0.6,0.8)   371   0.199   0.771   0.030
+   [0.8,1.0)  4850   0.017   0.947   0.036
+### FORWARD encoder (dd recoverability) + closed-loop ###
+# geom-pretrain-OBSTACLE backend=cupy coord=True steps=1200 epochs=25 expert=hp_forward_avoidance_d_win_dyn_final_s0.zip
+# collected 307200 samples (img (3, 32, 32)); predicting 7/9 exteroceptive ['e_y', 'e_psi', 'e_y_t', 'e_psi_t', 'k1', 'k2', 'd_win'] in 30s
+  ep 1/25 train_mse=0.2961 test_R2_mean=0.828
+  ep 5/25 train_mse=0.1363 test_R2_mean=0.885
+  ep 10/25 train_mse=0.1212 test_R2_mean=0.890
+  ep 15/25 train_mse=0.1138 test_R2_mean=0.900
+  ep 20/25 train_mse=0.1063 test_R2_mean=0.890
+  ep 25/25 train_mse=0.1028 test_R2_mean=0.897
+# PER-COMPONENT RECOVERABILITY (test R^2; avoidance-path state from obstacle SDF-BEV):
+    e_y            R2=+0.972
+    e_psi          R2=+0.919
+    e_y_t          R2=+0.973
+    e_psi_t        R2=+0.987
+    k1             R2=+0.830
+    k2             R2=+0.711
+    d_win          R2=+0.891
+# saved obstacle encoder (7 exteroceptive dims) -> geom_encoder_forward_final.pt
+
+=== VISION closed-loop (predicted state)  n_epis=9083 ===
+  SAFE (success | stop@hard) = 0.836   crash = 0.088
+  difficulty   n     success  stop    crash
+   [0.0,0.2)    42   0.929   0.024   0.048
+   [0.2,0.4)  2608   0.817   0.038   0.145
+   [0.4,0.6)  2203   0.169   0.648   0.182
+   [0.6,0.8)   309   0.000   0.997   0.003
+   [0.8,1.0)  3921   0.000   0.996   0.004

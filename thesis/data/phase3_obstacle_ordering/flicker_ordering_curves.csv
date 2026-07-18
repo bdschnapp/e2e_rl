@@ -1,0 +1,11 @@
+# Flicker/ordering experiment: forward+trailer+obstacles, state-only (ordered polar obstacle slots, no lidar/vision).
+# Curriculum: 200k steps obstacles-OFF (pure tracking) -> 500k obstacles-ON. Train speed 3-5 m/s, eval FIXED 5 m/s.
+# Single seed (0); same seed all 3 => identical layouts/init, ONLY training-time obstacle ordering differs. Eval always nearest-first.
+# FINDING: all three orderings climb to peak ~0.19-0.27 completion (~250-300k obs-on) then COLLAPSE toward 0.
+#   fixed (NO swaps) collapses too => flicker/ordering is NOT the instability source. "Flicker problem" largely disproven.
+#   Weak n=1 gradient (fixed>random>nearest on peak) is within seed noise; dominant phenomenon is an ordering-INDEPENDENT
+#   collapse (TD3/stop-gate value instability). Conclusion: safe to use deployable nearest-first ordering.
+order,peak_completion,peak_t,final_completion,final_cte
+nearest,0.191,250080,0.002,0.436
+fixed,0.273,300128,0.000,0.429
+random,0.212,250080,0.018,0.346

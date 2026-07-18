@@ -1,0 +1,179 @@
+% Placeholder for chapters/05_results_discussion.tex
+% Drop-in stub: reproduces every \label (chapter, section, figure, table)
+% from the original chapter, in the same order, including the 13 tables
+% normally supplied via \input{tables/*} and one inline table, so that
+% cross-references and numbering elsewhere in the document are unaffected
+% when this chapter is swapped in for external review. No numbered
+% equations appear in the original chapter.
+\chapter{Results and Discussion}
+\label{ch:results}
+
+\section{Path Following Performance}
+\textit{[Section content omitted for review.]}
+
+\begin{table}[H]
+\centering
+\caption{Planned run matrix for the experimental campaign}
+\label{tab:results_plan_matrix}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\section{Observation Space Ablation}
+\label{sec:obs_ablation}
+\textit{[Section content omitted for review.]}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{Learning curves (mean episode return $\pm$ 1 s.d.) for forward lane-following:
+             observation space ablation. Shaded bands show one standard deviation
+             across evaluation episodes at each checkpoint.}
+    \label{fig:forward_obs_ablation}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{Learning curves for reverse lane-following: observation space ablation.}
+    \label{fig:reverse_obs_ablation}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Forward lane-following: observation space ablation (dense reward, no obstacles, 30~eval episodes).}
+\label{tab:obs_ablation_forward}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Reverse lane-following: observation space ablation (dense reward, no obstacles, 30~eval episodes).}
+\label{tab:obs_ablation_reverse}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\section{Lidar Beam-Count Ablation}
+\label{sec:lidar_ablation}
+\textit{[Section content omitted for review.]}
+
+\begin{table}[H]
+\centering
+\caption{Lidar beam-count ablation on forward lane-following (dense reward, no obstacles, 30~eval episodes).}
+\label{tab:lidar_beams_forward}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\section{Reward Formulation Ablation}
+\label{sec:reward_ablation}
+\textit{[Section content omitted for review.]}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{Learning curves for forward lane-following: reward formulation ablation.}
+    \label{fig:forward_reward_ablation}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{Learning curves for reverse lane-following: reward formulation ablation.}
+    \label{fig:reverse_reward_ablation}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Forward lane-following: reward formulation ablation (lidar-24 obs, no obstacles, 30~eval episodes).}
+\label{tab:reward_ablation_forward}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Reverse lane-following: reward formulation ablation (lidar-24 obs, no obstacles, 30~eval episodes).}
+\label{tab:reward_ablation_reverse}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\section{Statistical Rigor and Generalization}
+\textit{[Section content omitted for review.]}
+
+\section{Training Strategy: Failure Replay Curriculum}
+\textit{[Section content omitted for review.]}
+
+\begin{figure}[H]
+    \centering
+    \reviewplaceholder{Figure content omitted for review.}
+    \caption{Learning curves for reverse lane-following: failure replay curriculum vs random
+             reset baseline. Both agents use identical hyperparameters, observation space,
+             and reward formulation.}
+    \label{fig:failure_replay_curve}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Failure replay curriculum ablation on reverse lane-following (lidar-24 obs, multiplicative reward, 30~held-out eval episodes).}
+\label{tab:failure_replay}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\section{Reverse Maneuvering Success}
+\textit{[Section content omitted for review.]}
+
+\section{Perception Robustness}
+\textit{[Section content omitted for review.]}
+
+\section{Obstacle Navigation}
+\label{sec:obstacle_results}
+\textit{[Section content omitted for review.]}
+
+\begin{table}[H]
+\centering
+\caption{Forward obstacle-avoidance: TD3 performance by observation space (dense reward, 5--10 obstacles per episode, 30~eval episodes).}
+\label{tab:obstacle_forward}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Reverse obstacle-avoidance: TD3 performance by observation space (multiplicative reward, 5--10 obstacles per episode, 30~eval episodes).}
+\label{tab:obstacle_reverse}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\section{Benchmark Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Forward lane-following: controller benchmark (no obstacles, 50~eval episodes, held-out seeds).}
+\label{tab:benchmark_forward}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Reverse lane-following: controller benchmark (no obstacles, 50~eval episodes, held-out seeds).}
+\label{tab:benchmark_reverse}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\textit{[Section content omitted for review.]}
+
+\subsection{Information Parity Between Learned and Classical Controllers}
+\label{sec:information_parity}
+\textit{[Section content omitted for review.]}
+
+\begin{table}[H]
+\centering
+\caption{Reference-path information available to each method at a single control step on the no-obstacle tasks. The learned policy's observation is a strict superset of the information used by the pure-pursuit and PID baselines; only MPC receives an explicit preview of the path ahead.}
+\label{tab:information_parity}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}
+
+\textit{[Section content omitted for review.]}
+
+\section{Failure Analysis and Deployment Relevance}
+\textit{[Section content omitted for review.]}
+
+\begin{table}[H]
+\centering
+\caption{Recommended experiment matrix for the thesis}
+\label{tab:experiment_matrix}
+\reviewplaceholder{Table content omitted for review.}
+\end{table}

@@ -53,6 +53,21 @@
     urlcolor=blue
 }
 
+% Used by chapters/placeholder/*.tex to stand in for figures, tables, and
+% chapter body text without disturbing section/figure/table/equation
+% numbering when a placeholder chapter is swapped in for review.
+\newcommand{\reviewplaceholder}[1]{%
+    \fbox{%
+        \begin{varwidth}{0.85\textwidth}
+            \centering
+            \vspace{0.75em}
+            \textbf{[Omitted for review]}\\[0.5em]
+            #1
+            \vspace{0.75em}
+        \end{varwidth}
+    }%
+}
+
 \makeatletter
 \newcommand{\safegraphic}[3][]{%
     \begingroup
@@ -87,19 +102,17 @@
 % - Apply reader suggestions
 % - Target thesis complete by early July
 % - Schedule seminar for late July
-%
-% Environment updates:
-% 1. Terminate and reward when vehicle stops if path infeasible
-% 2. On collision, teleport to start and retry with lower-speed reward
-% 3. Reward percentage completion instead of terminal-only reward
 
 \begin{document}
 
+\pagenumbering{roman}
 \maketitle
 \tableofcontents
 \listoffigures
 \listoftables
+
 \newpage
+\pagenumbering{arabic}
 
 % Chapters
 \include{chapters/01_introduction}
@@ -113,10 +126,8 @@
 % Appendices
 \appendix
 \include{appendices/appendix_classical_controllers}
-\include{appendices/appendix_ros2_stack}
-\include{appendices/appendix_hyperparameters}
-\include{appendices/appendix_additional_plots}
-\include{chapters/appendix_a_reward_derivation}
+\include{appendices/placeholder/appendix_hyperparameters}
+\include{appendices/placeholder/appendix_additional_plots}
 
 % Bibliography
 \bibliographystyle{ieeetr}
