@@ -174,7 +174,7 @@ def td3_reverse_reward_detail(rows):
         "\\centering",
         "\\caption{Reverse lane-following, TD3 reward detail on the engineered state "
         "observation. Beyond completion the multiplicative reward also gives the lowest "
-        "trailer cross-track error and the tightest hitch behaviour, which is why it is "
+        "trailer cross-track error and the tightest hitch behavior, which is why it is "
         "carried forward. Mean over three seeds, 95\\% confidence interval on completion.}",
         "\\label{tab:reward_ablation_reverse}",
         "\\resizebox{\\ifdim\\width>\\linewidth \\linewidth\\else \\width\\fi}{!}{%",
@@ -458,7 +458,7 @@ def build_figures():
     figure_geometry_curve(geom)
 
 
-# === Phase 3: obstacle-aware manoeuvring ====================================
+# === Phase 3: obstacle-aware maneuvering ====================================
 
 def parse_multiseed_analysis(path):
     """Parse final_multiseed_analysis.txt into {model_name: {...}}."""
@@ -518,10 +518,10 @@ def obstacle_reverse_stratified_table(models):
     lines = [
         "\\begin{table}[H]",
         "\\centering",
-        "\\caption{Reverse obstacle manoeuvring, accepted dynamic-difficulty model, outcomes "
+        "\\caption{Reverse obstacle maneuvering, accepted dynamic-difficulty model, outcomes "
         "stratified by the maximum dynamic difficulty reached. Completion falls and stopping "
         "rises with difficulty, and no crash occurs below the gate at roughly 0.5. The "
-        "low-difficulty stops are the accepted articulation limitation, not spurious behaviour. "
+        "low-difficulty stops are the accepted articulation limitation, not spurious behavior. "
         "Rates are provisional pending the fair-pool re-evaluation.}",
         "\\label{tab:obstacle_reverse_stratified}",
         "\\resizebox{\\ifdim\\width>\\linewidth \\linewidth\\else \\width\\fi}{!}{%",
@@ -679,10 +679,10 @@ def figure_reverse_crash_gate(models):
     ax.plot(xs, comp, marker="o", ms=3, lw=1.6, label="complete")
     ax.plot(xs, stop, marker="s", ms=3, lw=1.6, label="stop")
     ax.plot(xs, crash, marker="^", ms=3, lw=1.6, label="crash")
-    ax.axvline(0.5, color="grey", ls="--", lw=1.0)
+    ax.axvline(0.5, color="gray", ls="--", lw=1.0)
     ax.set_xlabel("Maximum dynamic difficulty")
     ax.set_ylabel("Outcome rate (%)")
-    ax.set_title("Reverse obstacle manoeuvring, outcome by dynamic difficulty")
+    ax.set_title("Reverse obstacle maneuvering, outcome by dynamic difficulty")
     ax.set_ylim(-3, 103)
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=8)

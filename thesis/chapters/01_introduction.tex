@@ -3,7 +3,7 @@
 
 \section{Motivation}
 
-The increasing demand for autonomous logistics and the growth of large-scale goods transportation have positioned articulated tractor-trailer vehicles as a critical target for autonomous control research. The transition from rigid-body autonomous navigation to the control of articulated tractor-trailer systems represents a significant escalation in mechanical complexity, perception requirements, and control instability, particularly during the low-speed reverse manoeuvring that dominates confined distribution-yard and loading-dock operations, which are the practical setting this thesis targets.
+The increasing demand for autonomous logistics and the growth of large-scale goods transportation have positioned articulated tractor-trailer vehicles as a critical target for autonomous control research. The transition from rigid-body autonomous navigation to the control of articulated tractor-trailer systems represents a significant escalation in mechanical complexity, perception requirements, and control instability, particularly during the low-speed reverse maneuvering that dominates confined distribution-yard and loading-dock operations, which are the practical setting this thesis targets.
 
 A tractor-trailer vehicle system is distinguished from a single-body vehicle by the articulation degree of freedom at the hitch, whose dynamics fundamentally alter the stability characteristics of the system. In reverse motion, the articulation angle $\gamma$ between the tractor and trailer exhibits open-loop instability. Without precise closed-loop control, any perturbation grows unbounded, culminating in the well-known jackknife condition from which no steering correction can recover the trailer's alignment. Classical approaches such as Nonlinear Model Predictive Control (NMPC) can manage this instability by optimizing over a prediction horizon~\cite{mayne2000constrained}, but their computational demands and reliance on accurate system models limit their applicability in unstructured or sensor-rich environments.
 
@@ -17,12 +17,12 @@ Existing learning-based path-following studies on rigid-body vehicles have shown
 
 \section{Thesis Contributions}
 
-This thesis builds on two pieces of the author's prior graduate coursework, [TODO: how do I gracefully talk about myself?] which established its modelling and learning foundations. The first is a Deep Deterministic Policy Gradient [TODO: Cite?](DDPG) path-following study for a single-body vehicle in a custom OpenAI Gymnasium [TODO: Cite?] simulator, carried out jointly with R.\ Tymkow~\cite{tymkow2024me780}. The second is a single-author linear-quadratic-regulator design for the linearized tractor-trailer model~\cite{schnapp2024ece682}. The present work combines and substantially extends these along three axes: from a single rigid body to an articulated tractor-trailer, from a hand-engineered state vector to high-dimensional perception, and adding the physical hardware deployment that neither prior report attempted.
+This thesis builds on two pieces of the author's prior graduate coursework, [TODO: how do I gracefully talk about myself?] which established its modeling and learning foundations. The first is a Deep Deterministic Policy Gradient [TODO: Cite?](DDPG) path-following study for a single-body vehicle in a custom OpenAI Gymnasium [TODO: Cite?] simulator, carried out jointly with R.\ Tymkow~\cite{tymkow2024me780}. The second is a single-author linear-quadratic-regulator design for the linearized tractor-trailer model~\cite{schnapp2024ece682}. The present work combines and substantially extends these along three axes: from a single rigid body to an articulated tractor-trailer, from a hand-engineered state vector to high-dimensional perception, and adding the physical hardware deployment that neither prior report attempted.
 
 Building on that foundation, this thesis addresses these challenges through the following contributions:
 
 \begin{itemize}
-    \item developing a kinematic and dynamic model of a tractor-trailer system, including hitch instability analysis for reverse manoeuvring;
+    \item developing a kinematic and dynamic model of a tractor-trailer system, including hitch instability analysis for reverse maneuvering;
     \item designing a vision-based RL observation space that encodes a bird's-eye-view (BEV) image, rendered from a custom Pygame simulation environment, into the vehicle's path geometry through a frozen privileged-distillation encoder;
     \item engineering reward functions that balance cross-track error, heading error, hitch articulation stability, and collision avoidance;
     \item implementing and benchmarking Twin Delayed Deep Deterministic Policy Gradient (TD3)~\cite{fujimoto2018td3} agents in lane-following and obstacle-avoidance tasks within a custom Gymnasium-based simulation environment;
@@ -34,7 +34,7 @@ The research aligns with the objectives of the University of Waterloo Mechatroni
 
 \section{Institutional Context}
 
-This work is submitted in partial fulfilment of the requirements for a Master of Applied Science (MASc) degree in the Department of Mechanical and Mechatronics Engineering at the University of Waterloo. The degree requires six terms of full-time registration, completion of 3--5 graduate-level courses, appointment of two additional faculty readers, and a mandatory 15-day public display period. The target completion date is early July, with a seminar scheduled for late July.
+This work is submitted in partial fulfillment of the requirements for a Master of Applied Science (MASc) degree in the Department of Mechanical and Mechatronics Engineering at the University of Waterloo. The degree requires six terms of full-time registration, completion of 3--5 graduate-level courses, appointment of two additional faculty readers, and a mandatory 15-day public display period. The target completion date is early July, with a seminar scheduled for late July.
 
 \begin{table}[H]
 \centering

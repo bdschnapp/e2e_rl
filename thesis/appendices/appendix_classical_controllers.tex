@@ -131,7 +131,7 @@ to prevent windup, and it is reset at episode boundaries. Forward,
     - K_i \!\int\! e_y - K_d\, e_\psi + K_{p,t}\, e_{y,t},
     \label{eq:app_cc_pid_fwd}
 \end{equation}
-and reverse (regulating the trailer errors, with the hitch stabiliser),
+and reverse (regulating the trailer errors, with the hitch stabilizer),
 \begin{equation}
     \delta_{\mathrm{des}} = k_{\mathrm{hitch}}\,\gamma + k_{\mathrm{ff}}\,\kappa
     + K_p\, e_{y,t} + K_i \!\int\! e_{y,t} + K_d\, e_{\psi,t}.
@@ -243,7 +243,7 @@ $\dot{\gamma} = K(\delta_T - \gamma)$,
 \end{equation}
 The reference curvature enters both models as a measured disturbance through
 $E_c = [\,0,\ -\lvert V \rvert,\ 0\,]^\top$. After the QP returns the virtual input, an
-analytic inner map realises it on the physical tractor and supplies the anti-jackknife
+analytic inner map realizes it on the physical tractor and supplies the anti-jackknife
 counter-steer,
 \begin{equation}
     \delta_f = \arctan\!\left(\frac{L_1}{L_2}\,\operatorname{sign}(V)\,\sin\gamma
