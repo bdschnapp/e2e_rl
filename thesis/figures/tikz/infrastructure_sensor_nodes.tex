@@ -1,0 +1,38 @@
+\begin{tikzpicture}[
+  >=Stealth, font=\footnotesize,
+  node2/.style={draw, fill=black!70, text=white, rounded corners, inner sep=2pt, font=\scriptsize},
+  box/.style={draw, rounded corners, align=center, inner sep=3pt, font=\scriptsize}
+]
+  % node positions
+  \coordinate (A) at (-3.4,2.3);
+  \coordinate (B) at (3.4,2.3);
+  \coordinate (C) at (-3.4,-2.3);
+
+  % coverage cones, each opening from a node toward the vehicle region
+  \foreach \n in {A,B,C}{
+    \fill[blue!8] (\n) -- (-2.4,0.55) -- (1.4,-0.55) -- cycle;
+  }
+
+  % onboard blind spot behind the trailer, covered by the infrastructure cones
+  \fill[red!12] (-2.4,-0.55) rectangle (-1.5,0.55);
+  \node[font=\scriptsize, red!60, align=center] at (-3.0,0) {onboard\\blind spot};
+
+  % vehicle (top-down): trailer + tractor
+  \draw[fill=black!12] (-1.5,-0.35) rectangle (0.6,0.35);
+  \draw[fill=black!30] (0.6,-0.3) rectangle (1.35,0.3);
+  \node[font=\scriptsize] at (-0.45,0) {trailer};
+  \node[font=\scriptsize] at (0.98,-0.55) {tractor};
+
+  % infrastructure LiDAR nodes
+  \node[node2] at (A) {LiDAR};
+  \node[node2] at (B) {LiDAR};
+  \node[node2] at (C) {LiDAR};
+
+  % offboard fusion and ROS2 delivery
+  \node[box] (fus) at (3.6,-2.3) {offboard fusion\\ROS1 $\to$ ROS2};
+  \draw[->,gray,dashed] (B) -- (fus);
+  \draw[->,gray,dashed] (A) to[out=-90,in=150] (fus);
+  \draw[->,gray,dashed] (C) to[out=-25,in=200] (fus);
+  \draw[->] (fus) to[out=110,in=-20]
+        node[font=\scriptsize, pos=0.55, right]{obstacle list (ROS2)} (1.35,-0.1);
+\end{tikzpicture}

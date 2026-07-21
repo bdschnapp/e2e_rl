@@ -57,9 +57,9 @@ REVERSE_REWARDS = ["dense", "no_hitch", "multiplicative", "guided"]
 
 OBS_LABEL = {
     "state": "State (8)",
-    "lidar8": "Lidar-8 (10)",
-    "lidar24": "Lidar-24 (26)",
-    "lidar64": "Lidar-64 (66)",
+    "lidar8": "LiDAR-8 (10)",
+    "lidar24": "LiDAR-24 (26)",
+    "lidar64": "LiDAR-64 (66)",
     "bev": "BEV ($32{\\times}32$)",
 }
 OBS_ORDER = ["state", "lidar8", "lidar24", "lidar64", "bev"]

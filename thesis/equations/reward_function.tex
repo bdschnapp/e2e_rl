@@ -58,7 +58,7 @@ which rewards matching the pure-pursuit steering, and the multiplicative reward
 $R_{\mathrm{mult}}^{\mathrm{fwd}}$ defined above. The schedule $\alpha_k \in [0,1]$ governs
 the transition from imitation toward the task reward and is described in
 \cref{sec:highdim_training}, where the same mechanism is reused to fine-tune an imitated
-policy. At $\alpha_k = 1$ the guided reward is a pure pure-pursuit clone.
+policy. At $\alpha_k = 1$ the guided reward is a pure-pursuit clone.
 
 \paragraph{Reverse lane-following rewards.}
 For reverse driving, the terminal reward is
@@ -69,7 +69,9 @@ R_{\mathrm{term}}^{\mathrm{rev}} =
 -500, & \text{failure},
 \end{cases}
 \end{equation}
-with shared shaping terms
+The terminal rewards for the reverse scenario are significantly larger magnitude than the forward variant to encourage the policy to continue driving and learn to stabilize the hitch angle while tracking the path. Using the same terminal rewards as the forward scenario resulted in reverse policies that intentionally ended each episode early with failure to avoid the penalty from poor path tracking that accumulated over each step of the episode.
+
+The shared shaping terms are
 \begin{align}
 r_p^{\mathrm{rev}} &= 3\,\mathrm{clip}(-\dot{x}, 0, 1), \\
 P_{\mathrm{path}} &= e_y^2 + 0.5\,e_\psi^2 + 0.5\,e_{y,t}^2 + 0.25\,e_{\psi,t}^2,
@@ -92,8 +94,7 @@ R_{\mathrm{guide}}^{\mathrm{rev}}(k) &= \alpha_k
 
 \paragraph{Obstacle difficulty.}
 The obstacle-aware terms below are keyed to a scalar difficulty $d \in [0,1]$, a
-static geometric clearance ratio computed once per episode at the tightest blocked
-cross-section:
+static geometric clearance ratio computed as the tightest cross-section in the observable path window:
 \begin{equation}
 d = \mathrm{clip}\!\left(1 - \frac{g_{\max} - w_v}{w_L - w_v},\; 0,\; 1\right),
 \label{eq:obstacle_difficulty}

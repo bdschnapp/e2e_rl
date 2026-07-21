@@ -1,0 +1,20 @@
+\begin{tikzpicture}[
+  >=Stealth, font=\footnotesize, node distance=7mm and 18mm,
+  block/.style={draw, rounded corners, align=center, inner sep=4pt, minimum height=9mm},
+  lbl/.style={midway, font=\scriptsize, align=center}
+]
+  \node[block] (lane) {\texttt{lane\_reference\_node}};
+  \node[block, below=of lane] (hitch) {\texttt{hitch\_angle\_estimator}};
+  \node[block, below=of hitch] (loc) {Autoware localization\\(LiDAR NDT)};
+  \node[block, right=22mm of hitch] (bridge) {\texttt{rl\_bridge\_node}\\10\,Hz TD3 policy};
+  \node[block, right=of bridge] (can) {\texttt{controller\_canbridge}};
+  \node[block, right=of can] (veh) {Hunter SE\\(CAN bus)};
+
+  \draw[->] (lane)  -- (bridge) node[lbl,above]{reference path,\\ \texttt{drive\_direction}};
+  \draw[->] (hitch) -- (bridge) node[lbl,above]{\texttt{/vehicle/}\\\texttt{trailer\_state}};
+  \draw[->] (loc)   -- (bridge) node[lbl,below]{kinematic\\ state};
+  \draw[->] (bridge) -- (can) node[lbl,above]{\texttt{Control}};
+  \draw[->] (can)   -- (veh) node[lbl,above]{CAN\\ command};
+  \draw[->] (veh.south) to[out=-90,in=-90,looseness=1.2]
+        node[lbl,below]{velocity, steering feedback} (can.south);
+\end{tikzpicture}

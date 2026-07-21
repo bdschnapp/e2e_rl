@@ -1,0 +1,45 @@
+\begin{tikzpicture}[>=Stealth,line join=round,scale=1.15,every node/.style={font=\small}]
+  % headings: tractor psi=35 deg, trailer psi_t=10 deg (gamma=25), steer delta=18 deg
+  \coordinate (R) at (0,0);            % tractor rear axle = hitch (L_h approx 0)
+  \coordinate (F) at (35:3.2);         % tractor front axle
+  \coordinate (T) at (190:4.6);        % trailer axle (behind hitch)
+  \coordinate (Xr) at (3.4,0);         % +x reference ray from R
+  \coordinate (Tf) at (10:2.6);        % trailer forward-heading ray from R
+  \coordinate (Fh) at ($(F)+(35:1.1)$);  % tractor heading extension at front axle
+  \coordinate (Fw) at ($(F)+(53:1.0)$);  % steered front-wheel heading
+
+  % global frame
+  \draw[->,gray!70] (-5.6,-2.0) -- (-4.6,-2.0) node[right,black]{$x$};
+  \draw[->,gray!70] (-5.6,-2.0) -- (-5.6,-1.0) node[above,black]{$y$};
+
+  % bodies
+  \draw[very thick] (R) -- (F);        % tractor
+  \draw[very thick] (R) -- (T);        % trailer
+
+  % reference and heading dashed lines
+  \draw[dashed,gray] (R) -- (Xr);
+  \draw[dashed,gray] (R) -- (Tf);
+  \draw[dashed,gray] (F) -- (Fh);
+
+  % wheels (short thick segments along local heading)
+  \draw[line width=3pt] ($(R)+(35:-0.30)$) -- ($(R)+(35:0.30)$);   % rear
+  \draw[line width=3pt] ($(F)+(53:-0.30)$) -- ($(F)+(53:0.30)$);   % steered front
+  \draw[line width=3pt] ($(T)+(10:-0.30)$) -- ($(T)+(10:0.30)$);   % trailer
+  \draw[->,thick] (F) -- (Fw);                                     % steered-wheel heading
+
+  % hitch marker
+  \fill (R) circle (2pt);
+
+  % angles
+  \pic[draw,->,angle radius=1.05cm,angle eccentricity=1.25,"$\psi$"]      {angle=Xr--R--F};
+  \pic[draw,->,angle radius=1.85cm,angle eccentricity=1.16,"$\psi_t$"]    {angle=Xr--R--Tf};
+  \pic[draw,->,angle radius=0.62cm,angle eccentricity=1.7,"$\gamma$"]     {angle=Tf--R--F};
+  \pic[draw,->,angle radius=0.60cm,angle eccentricity=1.7,"$\delta$"]     {angle=Fh--F--Fw};
+
+  % labels
+  \node[below=2pt] at (R) {rear axle (hitch)};
+  \node[above left=-1pt] at (T) {trailer axle};
+  \node[above] at (F) {front axle};
+  \node at ($(R)!0.5!(T)+(100:0.42)$) {$L_t$};
+  \node at ($(R)!0.55!(F)+(125:0.35)$) {$L$};
+\end{tikzpicture}

@@ -9,6 +9,13 @@ The deployment is built on a deliberately stripped-down Autoware stack. The stan
 
 \section{Hardware Platform}
 
+\begin{figure}[t]
+  \centering
+  \safegraphic[width=0.85\textwidth]{figures/hardware/platform.jpg}{Photo of the AgileX Hunter SE tractor coupled to the lab trailer through the revolute hitch.}
+  \caption{The physical articulated platform: an AgileX Hunter SE tractor coupled to the lab trailer through a revolute hitch at the tractor rear axle.}
+  \label{fig:hw_platform}
+\end{figure}
+
 \subsection{Tractor Vehicle}
 
 The physical tractor is an AgileX Hunter SE, a compact electric wheeled unmanned ground vehicle with an Ackermann steering geometry. The relevant mechanical parameters are a wheelbase of $0.65$\,m, a wheel radius of $0.15$\,m, and a maximum steering angle of $0.436$\,rad ($25^\circ$). Vehicle actuation is commanded over a CAN bus on a 20\,ms cycle. Speed commands are encoded as 16-bit signed integers in units of 1\,mm/s (the commanded speed in m/s scaled by $1000$) and steering commands as 16-bit signed integers scaled by approximately $1320$ counts per radian ($\approx 0.8$\,mrad per count).
@@ -18,6 +25,13 @@ The physical tractor is an AgileX Hunter SE, a compact electric wheeled unmanned
 The trailer is coupled to the tractor through a revolute hitch joint located marginally behind the tractor rear axle, which was added to the tractor-trailer model used for training. The lab trailer has a wheelbase of approximately $2.8$\,m and a body width of roughly $0.33$\,m. The articulation angle $\gamma$, defined as the difference between the tractor and trailer headings ($\gamma = \psi_\text{truck} - \psi_\text{trailer}$), is estimated onboard from the tractor's own LiDAR rather than measured by any trailer-mounted sensor. The procedure is detailed in Section~\ref{sec:hitch_estimation}. The estimate is published to the ROS2 network on the \texttt{/vehicle/trailer\_state} topic. The control bridge consumes the most recent published value, with no staleness gating currently applied. Two distinct angular limits appear in the stack and should not be conflated. The onboard estimator clamps the published articulation estimate to $|\gamma| \le 90^\circ$, whereas the deployment trailer model defines a tighter operational limit of $|\gamma| \le 80^\circ$ ($1.40$\,rad), itself below the $90^\circ$ jackknife condition used to terminate simulation episodes.
 
 \subsection{Sensor Suite}
+
+\begin{figure}[t]
+  \centering
+  \safegraphic[width=0.85\textwidth]{figures/hardware/sensor_suite.jpg}{Photo of the onboard sensor suite mounted on the tractor.}
+  \caption{Onboard sensor suite: the front-mounted RoboSense Helios LiDAR, the Basler cameras, the u-blox GNSS antenna, and the WitMotion IMU.}
+  \label{fig:hw_sensors}
+\end{figure}
 
 The vehicle is instrumented with the following sensors:
 
@@ -37,7 +51,14 @@ The deployment stack runs on ROS2 Humble (Ubuntu 22.04)~\cite{macenski2022ros2} 
 
 \subsection{Relationship to the Conventional Articulated Pipeline}
 
-For context, Autoware's conventional approach to articulated vehicles is fully model-based. A truck-trailer mode manager routes goals to a freespace planner (a hybrid A\textsuperscript{*} search~\cite{dolgov2010hybridastar} that respects the non-holonomic constraints of the articulated vehicle), and the resulting reference trajectory is tracked by a model-predictive or LQR lateral controller. This model-based pipeline exists within the wider project and represents the standard, well-understood baseline for trailer control. The relevant control background is reviewed in Chapter~\ref{ch:literature_review}. The contribution of this thesis, however, is the learned controller, and the deployment described here therefore routes control through the RL bridge instead of the planner/MPC chain. The two are mutually exclusive at run time and are selected at launch.
+For context, Autoware's conventional approach to articulated vehicles is fully model-based. A truck-trailer mode manager routes goals to a freespace planner (a hybrid A\textsuperscript{*} search~\cite{dolgov2010hybridastar} that respects the non-holonomic constraints of the articulated vehicle), and the resulting reference trajectory is tracked by a model-predictive or LQR lateral controller. This model-based pipeline exists within the wider project and represents the standard, well-understood baseline for trailer control. The relevant control background is reviewed in Chapter~\ref{ch:literature_review}. The contribution of this thesis, however, is the learned controller, and the deployment described here therefore routes control through the RL bridge instead of the planner/MPC chain. The two are mutually exclusive at run time and are selected at launch. \Cref{fig:autoware_stack} shows which modules are retained and which are replaced.
+
+\begin{figure}[t]
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/tikz/autoware_stack}}
+  \caption{Deployment software stack. Autoware's localization and perception are retained unchanged, while the planning and control layers (the conventional freespace planner and MPC/LQR tracker) are replaced by the learned RL bridge. The two control paths are mutually exclusive and selected at launch.}
+  \label{fig:autoware_stack}
+\end{figure}
 
 \subsection{RL Bridge Node Architecture}
 
@@ -56,6 +77,15 @@ The learned control path comprises the following principal nodes:
 \end{description}
 
 The forward and reverse policies are loaded from separate checkpoints and selected according to the \texttt{drive\_direction} flag, so that the same bridge handles both maneuvering regimes without retraining or reconfiguration.
+
+\Cref{fig:rl_bridge} shows how these nodes connect.
+
+\begin{figure}[t]
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/tikz/rl_bridge_dataflow}}
+  \caption{RL bridge dataflow. The \texttt{lane\_reference\_node}, the LiDAR-based \texttt{hitch\_angle\_estimator}, and Autoware localization supply the policy observation to \texttt{rl\_bridge\_node}, which queries the TD3 policy at 10\,Hz and emits a control command that \texttt{controller\_canbridge} translates into Hunter SE CAN frames. Vehicle velocity and steering feedback return through the same bridge.}
+  \label{fig:rl_bridge}
+\end{figure}
 
 \subsection{Hitch Angle Estimation}
 \label{sec:hitch_estimation}
@@ -82,6 +112,13 @@ with $d^v_i$ defined analogously. The fitted orientation minimizes $C(\theta)$ a
     \label{eq:hitch_fit}
 \end{equation}
 This formulation is robust to whether only the front face, both the front and a side face (an ``L'' shape), or only a side face is visible, the dominant cause of failure for a naive single-face normal estimate at large articulation. The four $90^\circ$ heading candidates implied by $\theta^\star$ are disambiguated by choosing the one closest to the previous filtered estimate and most consistent with the dimension prior, yielding a trailer longitudinal direction $\hat{\mathbf{d}}_t = (\cos\theta^\star, \sin\theta^\star)$.
+
+\begin{figure}[t]
+  \centering
+  \safegraphic[width=0.7\textwidth]{figures/hardware/hitch_lidar_fit.png}{LiDAR returns on the trailer face with the fitted rectangle used for articulation-angle estimation.}
+  \caption{Onboard hitch-angle estimation from the tractor LiDAR: returns on the trailer face (points) with the fitted minimum-closeness rectangle, whose orientation gives the articulation angle $\gamma$.}
+  \label{fig:hitch_fit}
+\end{figure}
 
 \paragraph{Articulation angle and filtering.} The raw articulation angle is the signed angle between the truck-forward axis $\hat{\mathbf{x}} = (1, 0)$ and $\hat{\mathbf{d}}_t$,
 \begin{equation}
@@ -120,6 +157,15 @@ which captures model mismatch beyond pure delay (integration scheme, ground-cont
     \label{eq:smith_predict}
 \end{equation}
 so that the policy ``sees'' an effectively delay-free vehicle while the residual keeps the prediction anchored to reality. The shadows are re-synchronized to the measured state on reset and whenever a large state jump is detected. The compensator is implemented and enabled in the deployment launch configuration, though its shadow time constants still require per-platform tuning before the loop can be closed on hardware. Combined with the explicit steering-rate limit it forms the primary mitigation for the actuation gap discussed in Section~\ref{sec:gap_actuation}.
+
+\Cref{fig:smith_predictor} shows the compensator structure.
+
+\begin{figure}[t]
+  \centering
+  \input{figures/tikz/smith_predictor}
+  \caption{Smith-predictor compensator. The command $u$ drives the physical vehicle and two kinematic shadows. The delayed shadow is subtracted from the measured state to form a residual $r$, which corrects the delay-free shadow to give the delay-compensated estimate $\hat{x} = x^{\mathrm{free}} + r$ presented to the policy.}
+  \label{fig:smith_predictor}
+\end{figure}
 
 \paragraph{Learned dynamics model (in progress).} The Smith predictor's fidelity is bounded by the accuracy of the analytical kinematic shadow. Work is in progress to replace, or augment, that shadow with a neural-network approximation of the true system dynamics. A data pipeline converts recorded driving logs (rosbags) into time-aligned $10$\,Hz state--action--next-state datasets (deriving the trailer pose from the truck pose and the estimated hitch angle where it is not directly recorded) and a multilayer-perceptron dynamics model (\texttt{DynamicsMLP}) is trained on these datasets. The learned model is evaluated both by one-step prediction error against held-out logs and by closed-loop rollout divergence from the kinematic model, the latter serving to quantify and localize the sim-to-real dynamics gap. This component is not yet part of the live control loop and is reported here as ongoing work rather than a validated result.
 
@@ -214,7 +260,7 @@ This capability is implemented and running in the laboratory as the indoor-perce
 
 Because the laboratory sensor nodes and their perception stack run under ROS1 (Noetic) while the vehicle runs under ROS2 (Humble), the two are joined by a dedicated interface node. It subscribes to the ROS1 perception outputs and republishes the fused obstacle list over ROS2, where it is consumed by the vehicle's Autoware perception and occupancy-grid representation and thus reaches the RL bridge. Critically, this interface node runs offboard on the laboratory compute rather than on the vehicle. The vehicle's onboard Jetson therefore runs only ROS2, and never has to host a dual ROS1/ROS2 stack. The ROS1 dependency is confined entirely to the off-vehicle infrastructure, which both simplifies the embedded software image and keeps the version-sensitive ROS1 perception packages off the resource-constrained onboard computer.
 
-In laboratory operation the infrastructure nodes recover the region directly behind the trailer that the onboard LiDAR cannot observe, extending obstacle coverage to [TODO]\% of the vehicle's immediate surroundings during reverse maneuveres, at an added end-to-end latency of [TODO]\,ms relative to onboard-only perception.
+In laboratory operation the infrastructure nodes recover the region directly behind the trailer that the onboard LiDAR cannot observe, extending obstacle coverage to [TODO]\% of the vehicle's immediate surroundings during reverse maneuvers, at an added end-to-end latency of [TODO]\,ms relative to onboard-only perception.
 
 % TODO: Infrastructure sensor-node quantitative results (numbers only; system is implemented)
 %   - Behind-trailer detection coverage vs. onboard-only baseline (percentage)
@@ -223,7 +269,7 @@ In laboratory operation the infrastructure nodes recover the region directly beh
 
 \begin{figure}[H]
     \centering
-    \safegraphic[width=0.8\textwidth]{figures/system_architecture/infrastructure_sensor_nodes}{Diagram of the infrastructure LiDAR sensor nodes providing a bird's-eye view of obstacles behind the trailer.}
+    \resizebox{0.85\textwidth}{!}{\input{figures/tikz/infrastructure_sensor_nodes}}
     \caption{Infrastructure sensor-node architecture: fixed off-vehicle LiDAR units give a bird's-eye view of obstacles around the articulated vehicle, covering the region behind the trailer that the onboard sensors cannot observe. Their detections are fused and tracked offboard and delivered to the vehicle over ROS2, so the onboard computer runs only ROS2.}
     \label{fig:sensor_nodes}
 \end{figure}
@@ -242,6 +288,13 @@ In laboratory operation the infrastructure nodes recover the region directly beh
 %       and how the reported summary statistics are computed.
 
 Hardware validation trials were conducted on [TODO: describe test location and scenario]. The forward policy achieved [TODO: describe forward lane-following behavior], with a mean trailer cross-track error of [TODO]\,m and articulation maintained within $|\gamma| < [TODO]^\circ$ throughout nominal operation. Reverse maneuvering [TODO: describe outcome]. [TODO: report the effect of enabling the Smith predictor on oscillation and tracking once tuned.]
+
+\begin{figure}[t]
+  \centering
+  \safegraphic[width=0.85\textwidth]{figures/hardware/deployment_trial.jpg}{Photo of the articulated platform during a hardware trial at the test site.}
+  \caption{The articulated platform during a hardware trial. [TODO: note the test site and maneuver shown.]}
+  \label{fig:deployment_trial}
+\end{figure}
 
 \section{Summary}
 

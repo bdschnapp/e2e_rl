@@ -1,0 +1,18 @@
+\begin{tikzpicture}[
+  >=Stealth, font=\footnotesize, node distance=6mm and 14mm,
+  block/.style={draw, rounded corners, align=center, inner sep=4pt, minimum height=10mm},
+  lbl/.style={midway, font=\scriptsize, align=center}
+]
+  \node[block] (obs) {Observation\\{\scriptsize state / LiDAR / BEV image}};
+  \node[block, right=of obs] (enc) {Feature\\extractor};
+  \node[block, right=of enc] (td3) {TD3 agent\\{\scriptsize actor $\mu$, critics $Q_1,Q_2$}};
+  \node[block, right=of td3] (env) {Tractor-trailer\\simulation};
+
+  \draw[->] (obs) -- (enc);
+  \draw[->] (enc) -- (td3) node[lbl,above]{features};
+  \draw[->] (td3) -- (env) node[lbl,above]{action\\$\dot\delta,\ \sigma$};
+  \draw[->] (env.north) to[out=90,in=90,looseness=0.7]
+        node[lbl,above]{next observation} (obs.north);
+  \draw[->] (env.south) to[out=-90,in=-90,looseness=0.5]
+        node[lbl,below]{reward $r$ (path tracking + hitch stability)} (td3.south);
+\end{tikzpicture}

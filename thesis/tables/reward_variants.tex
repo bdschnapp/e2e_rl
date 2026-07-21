@@ -1,0 +1,27 @@
+\begin{table}[H]
+\centering
+\small
+\caption{Reward variants compared in \cref{ch:results}. Every variant also includes the
+progress term $r_p$ and subtracts the proximity penalty $P_{\mathrm{prox}}$, with terminal
+rewards as defined above. The variants differ in how the tracking and articulation terms combine.}
+\label{tab:reward_variants}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llll@{}}
+\toprule
+Variant & Tracking penalty & Articulation term & Role \\
+\midrule
+\multicolumn{4}{@{}l}{\textbf{Forward}} \\
+Dense          & Additive, tractor + trailer               & None                       & Baseline \\
+Tractor-focus  & Additive, tractor only                    & None                       & Drops trailer term \\
+Multiplicative & Multiplicative product                    & $\exp(-1.5|\gamma|)$ factor & Chosen recipe \\
+Guided (PP)    & Multiplicative (via $R^{\mathrm{fwd}}_{\mathrm{mult}}$) & Via $R^{\mathrm{fwd}}_{\mathrm{mult}}$ & Anneals from pure-pursuit imitation \\
+\addlinespace
+\multicolumn{4}{@{}l}{\textbf{Reverse}} \\
+Dense          & Additive ($P_{\mathrm{path}}$)            & $P_{\mathrm{jack}}$        & Baseline \\
+No-hitch       & Additive ($P_{\mathrm{path}}$)            & None                       & Drops jackknife term \\
+Multiplicative & Multiplicative product                    & $\exp(-2|\gamma|)$ factor  & Chosen recipe \\
+Guided (PP)    & Multiplicative (via $R^{\mathrm{rev}}_{\mathrm{mult}}$) & Via $R^{\mathrm{rev}}_{\mathrm{mult}}$ & Anneals from pure-pursuit imitation \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

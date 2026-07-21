@@ -36,7 +36,7 @@ where $s$ is the current steering angle, $\gamma$ the hitch (articulation) angle
 error pairs $(e_y, e_\psi)$ and $(e_{y,t}, e_{\psi,t})$ are the cross-track and heading
 errors of the tractor and of the trailer respectively; $\kappa$ is the reference path
 curvature at the lookahead point. The trailing entries carry additional task-specific
-channels (for example lidar returns) that the classical controllers do not use.
+channels (for example LiDAR returns) that the classical controllers do not use.
 
 Every controller computes a desired steering angle $\delta_{\mathrm{des}}$ and then
 converts it to the environment's steering-rate action through a common saturating map,

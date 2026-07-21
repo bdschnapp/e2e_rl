@@ -42,6 +42,7 @@
 
 % Plots
 \usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,shapes.geometric,fit,backgrounds,angles,quotes}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 
@@ -181,9 +182,9 @@ thesis, including any required final revisions, as accepted by my examiners.
 
 \noindent Autonomous control of articulated tractor-trailer vehicles is difficult because the passive hitch adds an articulation degree of freedom whose reverse dynamics are open-loop unstable, driving the trailer toward the unrecoverable jackknife configuration. This thesis develops and evaluates a learned controller for this setting, targeting the confined low-speed maneuvers typical of distribution-yard and loading-dock operations, and carries it from simulation onto physical hardware.
 
-A Twin Delayed Deep Deterministic Policy Gradient (TD3) agent is trained in a custom Gymnasium simulation of a shunt-truck tractor-trailer. Controlled ablations isolate the learning algorithm, the reward formulation, and the observation modality. A multiplicative reward that jointly penalizes tracking error and hitch articulation is what makes the unstable reverse task learnable, and a compact engineered state proves more reliable than higher-dimensional lidar or bird's-eye-view image observations under an identical training recipe. Training a policy directly on the raw image fails, and this failure is shown to be an optimization pathology of off-policy actor-critic learning rather than a shortage of perceptual information. It is resolved by distilling the image into the vehicle's path geometry with a frozen, supervised encoder, over which a policy trains from scratch as readily as on the engineered state. The same distillation extends to obstacle navigation, where the learned controller follows an image-inferred avoidance path and decides when a layout is impassable and the vehicle must stop.
+A Twin Delayed Deep Deterministic Policy Gradient (TD3) agent is trained in a custom Gymnasium simulation of a shunt-truck tractor-trailer. Controlled ablations isolate the learning algorithm, the reward formulation, and the observation modality. A multiplicative reward that jointly penalizes tracking error and hitch articulation is what makes the unstable reverse task learnable, and a compact engineered state proves more reliable than higher-dimensional LiDAR or bird's-eye-view image observations under an identical training recipe. Training a policy directly on the raw image fails, and this failure is shown to be an optimization pathology of off-policy actor-critic learning rather than a shortage of perceptual information. It is resolved by distilling the image into the vehicle's path geometry with a frozen, supervised encoder, over which a policy trains from scratch as readily as on the engineered state. The same distillation extends to obstacle navigation, where the learned controller follows an image-inferred avoidance path and decides when a layout is impassable and the vehicle must stop.
 
-The trained forward and reverse policies are deployed on a physical articulated platform, an AgileX Hunter SE, through a stripped-down Autoware stack, supported by an onboard lidar hitch-angle estimator that requires no trailer-mounted sensor and a Smith-predictor compensator for actuator delay.
+The trained forward and reverse policies are deployed on a physical articulated platform, an AgileX Hunter SE, through a stripped-down Autoware stack, supported by an onboard LiDAR hitch-angle estimator that requires no trailer-mounted sensor and a Smith-predictor compensator for actuator delay.
 \clearpage
 
 \begin{center}\textbf{Acknowledgements}\end{center}
