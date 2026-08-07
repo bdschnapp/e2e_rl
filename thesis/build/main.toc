@@ -1,0 +1,133 @@
+\contentsline {chapter}{Author's Declaration}{ii}{section*.1}%
+\contentsline {chapter}{Abstract}{iii}{section*.2}%
+\contentsline {chapter}{Acknowledgements}{iv}{section*.3}%
+\contentsline {chapter}{List of Figures}{viii}{section*.5}%
+\contentsline {chapter}{List of Tables}{xi}{section*.7}%
+\contentsline {chapter}{List of Abbreviations}{xvi}{chapter*.9}%
+\contentsline {chapter}{List of Symbols}{xvii}{chapter*.10}%
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Motivation}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Problem Definition}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Thesis Contributions}{2}{section.1.3}%
+\contentsline {chapter}{\numberline {2}Literature Review}{4}{chapter.2}%
+\contentsline {section}{\numberline {2.1}The Articulated-Vehicle Control Problem}{4}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Classical Model-Based Control}{5}{section.2.2}%
+\contentsline {paragraph}{Feedback Control and Stabilization}{5}{section*.11}%
+\contentsline {paragraph}{Geometric and Nonlinear Control}{6}{section*.12}%
+\contentsline {paragraph}{Motion Planning for Articulated Vehicles}{6}{section*.13}%
+\contentsline {paragraph}{Strengths and Limitations}{6}{section*.14}%
+\contentsline {section}{\numberline {2.3}Learning-Based Control}{7}{section.2.3}%
+\contentsline {paragraph}{Deep Reinforcement Learning Foundations}{7}{section*.15}%
+\contentsline {paragraph}{Actor-Critic and Policy-Gradient Methods}{7}{section*.16}%
+\contentsline {paragraph}{Reinforcement Learning for Autonomous Driving}{8}{section*.17}%
+\contentsline {paragraph}{Reinforcement Learning for Articulated Vehicles}{8}{section*.18}%
+\contentsline {paragraph}{Sequence Models and Curriculum Learning}{8}{section*.19}%
+\contentsline {section}{\numberline {2.4}Perception and Representation Learning}{9}{section.2.4}%
+\contentsline {paragraph}{Convolutional Networks for Driving}{9}{section*.20}%
+\contentsline {paragraph}{Representation Learning and Autoencoders}{9}{section*.21}%
+\contentsline {paragraph}{Range Sensing and Point-Cloud Perception}{10}{section*.22}%
+\contentsline {section}{\numberline {2.5}Sim-to-Real Transfer}{10}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Safety and Standards}{11}{section.2.6}%
+\contentsline {section}{\numberline {2.7}Synthesis and Research Gap}{11}{section.2.7}%
+\contentsline {chapter}{\numberline {3}Modeling, Simulation, and Problem Formulation}{12}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Tractor Dynamics}{12}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Trailer Articulation and Reverse Instability}{14}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Vehicle Parameters}{16}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Simulation Environment}{17}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Control Policy Interface}{19}{subsection.3.4.1}%
+\contentsline {section}{\numberline {3.5}Environment Tasks}{19}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Lane Following}{20}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Obstacle Avoidance}{20}{subsection.3.5.2}%
+\contentsline {section}{\numberline {3.6}Scalable Simulation: GPU-Parallel Batched Environments}{20}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Batched Environment Design}{21}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}Numerical Parity}{22}{subsection.3.6.2}%
+\contentsline {subsection}{\numberline {3.6.3}Throughput and Scaling}{22}{subsection.3.6.3}%
+\contentsline {chapter}{\numberline {4}Learning Framework and Experimental Results}{25}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Learning Framework Overview}{25}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Learning Algorithm and Training Configuration}{27}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Twin Delayed Deep Deterministic Policy Gradient}{27}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Training Configuration}{27}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}Evaluation Protocol}{29}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Reward Formulation and Selection}{30}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Reward Variants}{30}{subsection.4.4.1}%
+\contentsline {paragraph}{Forward lane-following rewards}{31}{section*.30}%
+\contentsline {paragraph}{Reverse lane-following rewards}{31}{section*.31}%
+\contentsline {paragraph}{Obstacle difficulty}{32}{section*.32}%
+\contentsline {paragraph}{Obstacle-aware extensions}{32}{section*.33}%
+\contentsline {paragraph}{Branching hidden-path reward}{33}{section*.34}%
+\contentsline {subsection}{\numberline {4.4.2}Selecting the Algorithm and the Reward}{33}{subsection.4.4.2}%
+\contentsline {section}{\numberline {4.5}Observation and Perception Design}{36}{section.4.5}%
+\contentsline {paragraph}{LiDAR Observation}{36}{section*.40}%
+\contentsline {paragraph}{Bird's-Eye-View Observation}{36}{section*.41}%
+\contentsline {subsection}{\numberline {4.5.1}Image Encoding and Representation Learning}{37}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Observation Space Summary}{38}{subsection.4.5.2}%
+\contentsline {section}{\numberline {4.6}Observation-Space Ablation}{39}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Training High-Dimensional-Observation Policies}{41}{section.4.7}%
+\contentsline {subsection}{\numberline {4.7.1}An Off-Policy Instability Hypothesis}{42}{subsection.4.7.1}%
+\contentsline {subsection}{\numberline {4.7.2}Representation Pretraining and Warm-Starting the Policy}{42}{subsection.4.7.2}%
+\contentsline {subsection}{\numberline {4.7.3}Geometry Distillation}{43}{subsection.4.7.3}%
+\contentsline {subsection}{\numberline {4.7.4}Isolating the Failure Mode}{44}{subsection.4.7.4}%
+\contentsline {subsection}{\numberline {4.7.5}What the Frozen Encoder Recovers}{46}{subsection.4.7.5}%
+\contentsline {section}{\numberline {4.8}Obstacle Navigation}{48}{section.4.8}%
+\contentsline {subsection}{\numberline {4.8.1}Obstacle Reward and Curriculum Design}{49}{subsection.4.8.1}%
+\contentsline {paragraph}{Difficulty as a geometric proxy}{49}{section*.49}%
+\contentsline {paragraph}{Stop-gate}{49}{section*.50}%
+\contentsline {paragraph}{Branching hidden-path reward}{49}{section*.51}%
+\contentsline {paragraph}{Curriculum and training protocol}{50}{section*.52}%
+\contentsline {subsection}{\numberline {4.8.2}Direct Obstacle Encoding}{50}{subsection.4.8.2}%
+\contentsline {subsection}{\numberline {4.8.3}Observing the Avoidance Path}{50}{subsection.4.8.3}%
+\contentsline {subsection}{\numberline {4.8.4}The Stop Decision and Forward Results}{51}{subsection.4.8.4}%
+\contentsline {subsection}{\numberline {4.8.5}State-Dependent Difficulty in Reverse}{52}{subsection.4.8.5}%
+\contentsline {subsection}{\numberline {4.8.6}Recovering the Difficulty from the Image}{54}{subsection.4.8.6}%
+\contentsline {subsection}{\numberline {4.8.7}Deterministic Safety Gate}{55}{subsection.4.8.7}%
+\contentsline {section}{\numberline {4.9}Comparison with Classical Controllers}{57}{section.4.9}%
+\contentsline {subsection}{\numberline {4.9.1}Information Parity between Learned and Classical Controllers}{59}{subsection.4.9.1}%
+\contentsline {section}{\numberline {4.10}Failure Modes and Deployment Relevance}{60}{section.4.10}%
+\contentsline {section}{\numberline {4.11}Summary}{60}{section.4.11}%
+\contentsline {chapter}{\numberline {5}Sim-to-Real Deployment}{62}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Overview}{62}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Hardware Platform}{63}{section.5.2}%
+\contentsline {paragraph}{Tractor Vehicle}{63}{section*.66}%
+\contentsline {paragraph}{Trailer}{63}{section*.67}%
+\contentsline {paragraph}{Sensor Suite}{64}{section*.68}%
+\contentsline {section}{\numberline {5.3}Software Architecture}{64}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Middleware and Framework}{64}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Relationship to the Conventional Articulated Pipeline}{65}{subsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.3.3}RL Bridge Node Architecture}{65}{subsection.5.3.3}%
+\contentsline {subsection}{\numberline {5.3.4}Hitch Angle Estimation}{67}{subsection.5.3.4}%
+\contentsline {paragraph}{Region of interest}{68}{section*.72}%
+\contentsline {paragraph}{Rectangle fitting}{68}{section*.73}%
+\contentsline {paragraph}{Articulation angle and filtering}{68}{section*.74}%
+\contentsline {subsection}{\numberline {5.3.5}Trailer State Estimation}{69}{subsection.5.3.5}%
+\contentsline {section}{\numberline {5.4}Sim-to-Real Gap Analysis}{69}{section.5.4}%
+\contentsline {paragraph}{Vehicle Scale and Parameterization}{70}{section*.75}%
+\contentsline {paragraph}{Command Latency and Actuation Dynamics}{70}{section*.76}%
+\contentsline {paragraph}{Hitch-Angle Sensing}{70}{section*.77}%
+\contentsline {paragraph}{Path Distribution}{71}{section*.78}%
+\contentsline {paragraph}{Jackknife Prevention}{71}{section*.79}%
+\contentsline {paragraph}{Localization Dependency}{72}{section*.80}%
+\contentsline {section}{\numberline {5.5}Infrastructure Sensor Nodes}{72}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Deployment Results}{73}{section.5.6}%
+\contentsline {subsection}{\numberline {5.6.1}Trial Protocol}{73}{subsection.5.6.1}%
+\contentsline {subsection}{\numberline {5.6.2}Tracking Performance}{74}{subsection.5.6.2}%
+\contentsline {subsection}{\numberline {5.6.3}Articulation Limit Cycle}{75}{subsection.5.6.3}%
+\contentsline {section}{\numberline {5.7}Summary}{77}{section.5.7}%
+\contentsline {chapter}{\numberline {6}Conclusion}{78}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Summary of Findings}{78}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Limitations}{79}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Future Work}{80}{section.6.3}%
+\contentsline {chapter}{\numberline {A}Classical Controller Implementation}{82}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Common framework}{82}{section.A.1}%
+\contentsline {subsection}{\numberline {A.1.1}Observation layout and shared action mapping}{82}{subsection.A.1.1}%
+\contentsline {subsection}{\numberline {A.1.2}Forward and reverse tracking}{83}{subsection.A.1.2}%
+\contentsline {subsection}{\numberline {A.1.3}Vehicle parameters}{83}{subsection.A.1.3}%
+\contentsline {section}{\numberline {A.2}Pure Pursuit}{84}{section.A.2}%
+\contentsline {section}{\numberline {A.3}PID}{84}{section.A.3}%
+\contentsline {section}{\numberline {A.4}LQR}{85}{section.A.4}%
+\contentsline {section}{\numberline {A.5}Kinematic LTV MPC}{86}{section.A.5}%
+\contentsline {subsection}{\numberline {A.5.1}Prediction models}{86}{subsection.A.5.1}%
+\contentsline {subsection}{\numberline {A.5.2}Condensed quadratic program}{87}{subsection.A.5.2}%
+\contentsline {section}{\numberline {A.6}Gain-tuning methodology}{88}{section.A.6}%
+\contentsline {section}{\numberline {A.7}Evaluation harness}{89}{section.A.7}%
+\contentsline {chapter}{\numberline {B}High-Fidelity Geographic Simulation}{90}{appendix.B}%
+\contentsline {subsection}{\numberline {B.0.1}Articulated Vehicle Model}{92}{subsection.B.0.1}%

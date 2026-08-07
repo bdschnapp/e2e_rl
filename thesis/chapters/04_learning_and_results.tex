@@ -1,17 +1,13 @@
 % =====================================================================
-% MERGED CHAPTER: chapters/04_learning_framework.tex + chapters/05_results_discussion.tex
+% Learning framework and results, merged from the former chapters 4 and 5 so
+% that each design decision is followed immediately by the evidence for it and
+% nothing is set up twice. Scalable Simulation lives in
+% chapters/sections/scalable_simulation.tex and is now \input at the end of
+% chapter 3.
 %
-% Drop-in replacement for BOTH of those includes in main.tex:
-%     \include{chapters/04_learning_and_results}
-% The two source files are left untouched so this merge can be compared
-% against them, or abandoned by reverting one line of main.tex.
+% Both chapter labels (ch:learning_framework, ch:results) are carried, so
+% cross-references written against either of the former chapters still resolve.
 %
-% Structure: each design decision is followed immediately by the evidence for
-% it, so nothing is set up twice. The old section 4.9 (Scalable Simulation) is
-% NOT here; it lives in chapters/sections/scalable_simulation.tex for \input at
-% the end of chapter 3.
-%
-% Both chapter labels are carried so no other file's \cref breaks.
 % Open editorial items are marked "% REVIEW:<id>" at the exact sentence they
 % apply to; ids match thesis/AMIR_REVIEW_CHECKLIST.md.
 %     grep -n "% REVIEW" chapters/04_learning_and_results.tex
@@ -39,13 +35,12 @@ This chapter develops the learned controller and, alongside it, the evidence for
 \end{figure}
 
 The agent perceives its surroundings through one of three observation families, forming a deliberate progression from a fully engineered representation to raw imagery:
-% REVIEW:B6/A5 the 8-dim framing is deliberate here (stable 8-dim state, then perception
-% destabilizes training, which motivates the minimal 2-dim state plus perception later),
-% but that arc is not yet written out, and Amir asks that "dimension" be defined as the
-% number of independent inputs.
+% REVIEW:B6 the 8-input framing is deliberate here (stable 8-input state, then perception
+% destabilizes training, which motivates the minimal 2-input state plus perception later),
+% but that arc is not yet written out.
 \begin{itemize}
     \item \textbf{State}: an 8 input vector $[\delta,\gamma,e_y,e_\psi,e_{y,t},e_{\psi,t},\kappa_1,\kappa_2]$ containing the steering angle, the hitch articulation angle, the tractor and trailer cross-track and heading errors, and two local path-curvature samples.
-    \item \textbf{Minimal State + LiDAR}: a 2-dimensional vector $[\delta,\gamma]$  containing the steering angle and the hitch angle augmented with $N$ normalized range readings, where the beam count $N \in \{8,24,64\}$ is varied in the LiDAR ablation of \cref{sec:obs_ablation}.
+    \item \textbf{Minimal State + LiDAR}: a 2 input vector $[\delta,\gamma]$  containing the steering angle and the hitch angle augmented with $N$ normalized range readings, where the beam count $N \in \{8,24,64\}$ is varied in the LiDAR ablation of \cref{sec:obs_ablation}.
     \item \textbf{Minimal State + BEV image}: The same minimal state vector and a $32 \times 32$ grayscale bird's-eye-view image.
 \end{itemize}
 The LiDAR and image modalities are taken up in \cref{sec:perception}. This progression lets the marginal value of richer perception be measured against its added representation-learning and inference cost rather than assumed.
@@ -75,9 +70,7 @@ The implementation is Stable Baselines3~\cite{raffin2021sb3} on the Gymnasium en
 
 The training configuration is held fixed across the observation and reward studies, so that an ablation changes only the variable under test. It is deliberately a conservative configuration rather than a tuned one: the library defaults for the off-policy algorithms, together with a modest learning rate and explicit exploration noise. That choice was forced by experience. An earlier throughput-oriented configuration, which raised the learning rate to $2\times10^{-3}$ alongside a much larger minibatch and many gradient steps per environment step, diverged once the reward magnitude grew and the stop action was added to the action space. \Cref{tab:training_config} lists the settings actually used, and they are the regime in which every result reported here was obtained.
 
-% REVIEW the full per-algorithm table could move to appendices/appendix_hyperparameters.tex,
-% which is currently empty. Values here are from scripts/train_sb3.py::build_model in the
-% batched training repository.
+% Values are from scripts/train_sb3.py::build_model in the batched training repository.
 \begin{table}[H]
 \centering
 \caption{Training configuration used for the algorithm and reward studies. Settings not listed are the Stable Baselines3 defaults for the algorithm in question, including the TD3 soft-update rate, policy delay, and target-noise parameters. A dash marks a setting that does not apply to that algorithm.}
@@ -179,7 +172,7 @@ As introduced in \cref{ch:simulation}, the BEV image originates from the Pygame 
 
 The BEV image must be turned into a feature vector before it can drive the policy. Two routes are studied: training an image encoder end-to-end with the agent, and pretraining an encoder so that a usable visual representation is available from the first control step.
 
-A Convolutional Neural Network (CNN)~\cite{lecun1998gradient} serves as the end-to-end image front-end, implemented as a custom feature extractor within Stable Baselines3~\cite{raffin2021sb3}. Matching the scale of the $32 \times 32$ observation, the image branch is deliberately small, a two-layer convolutional encoder with $1 \rightarrow 5 \rightarrow 5$ channels maps the image to an 80-dimensional feature vector, followed by a linear projection to 64 image features. A separate two-layer multilayer perceptron embeds the 8-dimensional state vector to 64 dimensions. The two branches are concatenated into a 128-dimensional feature vector for the TD3 actor and critic heads. Two choices in this extractor are made specifically for stability with a high-dimensional input: layer normalization is applied to the image features so their scale cannot swamp the intrinsic state embedding, and the actor and critic feature extractors are kept separate, following the TD3 default, so that critic representation updates do not overwrite the actor's features.
+A Convolutional Neural Network (CNN)~\cite{lecun1998gradient} serves as the end-to-end image front-end, implemented as a custom feature extractor within Stable Baselines3~\cite{raffin2021sb3}. Matching the scale of the $32 \times 32$ observation, the image branch is deliberately small, a two-layer convolutional encoder with $1 \rightarrow 5 \rightarrow 5$ channels maps the image to an 80-dimensional feature vector, followed by a linear projection to 64 image features. A separate two-layer multilayer perceptron embeds the 8 input state vector to 64 dimensions. The two branches are concatenated into a 128-dimensional feature vector for the TD3 actor and critic heads. Two choices in this extractor are made specifically for stability with a high-dimensional input: layer normalization is applied to the image features so their scale cannot swamp the intrinsic state embedding, and the actor and critic feature extractors are kept separate, following the TD3 default, so that critic representation updates do not overwrite the actor's features.
 
 Training this image branch end-to-end is not free of pitfalls. Inserting a randomly initialized CNN branch into an otherwise successful state-based policy can harm early TD3 learning. The agent converged to a short-horizon wall-collision behavior even though the same vector state was sufficient for rapid learning. Two diagnostic encoders isolate this effect. The \texttt{state\_only} BEV encoder keeps the dictionary observation and multi-input policy path but ignores the image branch, confirming that the BEV environment and multi-input wrapper can still learn from the vector state alone. The \texttt{scaled\_cnn} encoder instead introduces the image branch gradually, scaling the image features by a coefficient that ramps from zero to one over training, with an optional second schedule that fades out the extrinsic vector components once the image branch carries full weight.
 
@@ -202,7 +195,7 @@ The full observation interface used across experiments is summarized in \cref{ta
 \toprule
 Component & Description & Role \\
 \midrule
-\texttt{vector} & 8-dimensional state: $[\delta,\gamma,e_y,e_\psi,e_{y,t},e_{\psi,t},\kappa_1,\kappa_2]$ & Provides precise articulation and path-tracking state information \\
+\texttt{vector} & 8 input state: $[\delta,\gamma,e_y,e_\psi,e_{y,t},e_{\psi,t},\kappa_1,\kappa_2]$ & Provides precise articulation and path-tracking state information \\
 \texttt{lidar} & $N$ normalized obstacle ranges, with $N \in \{8,24,64\}$ & Encodes local free space around the leading unit without image processing \\
 \texttt{image}  & $32 \times 32$ BEV crop, binary occupancy or signed-distance field, with optional coordinate channels & Encodes lane layout, local path shape, obstacle positions, and vehicle geometry \\
 \bottomrule
@@ -273,9 +266,7 @@ The cleanest route removes both failure sources at once, by refusing to let rein
   \label{fig:geometry_distillation}
 \end{figure}
 
-% REVIEW:B13/A6 "cheap direct measurements" should become "calculations based on on-board
-% sensor measurements", or Amir's shorter "measurements or estimates".
-The encoder takes the SDF-BEV with its two coordinate channels (\cref{sec:perception}) through a small three-layer convolutional tower into a $128$-dimensional trunk with layer normalization, from which a linear head regresses the standardized geometry vector. The observation the policy receives is then split along the physics of the problem. The internal states, the steering angle $\delta$ and the hitch articulation angle $\gamma$, are supplied as true proprioception, because they are cheap direct measurements on the vehicle and, being internal, are less reliably recoverable from an ego-centric top-down image, as noted in \cref{sec:perception}. The exteroceptive geometry, the tractor and trailer tracking errors and the path-curvature look-aheads, is taken from the frozen encoder's prediction, because that is precisely what an external top-down view encodes.
+The encoder takes the SDF-BEV with its two coordinate channels (\cref{sec:perception}) through a small three-layer convolutional tower into a $128$-dimensional trunk with layer normalization, from which a linear head regresses the standardized geometry vector. The observation the policy receives is then split along the physics of the problem. The internal states, the steering angle $\delta$ and the hitch articulation angle $\gamma$, are supplied as true proprioception, because they are available on the vehicle as measurements or estimates from on-board sensing and, being internal, are less reliably recoverable from an ego-centric top-down image, as noted in \cref{sec:perception}. The exteroceptive geometry, the tractor and trailer tracking errors and the path-curvature look-aheads, is taken from the frozen encoder's prediction, because that is precisely what an external top-down view encodes.
 
 % REVIEW:B18 check whether "distillation" is the right term for this recipe.
 This design removes both failure sources identified above. Because the encoder is trained only by supervised regression and then frozen, the critic is never fed the non-stationary, high-variance features of a co-trained encoder, so the concern behind Route A does not arise. Because the policy is trained from scratch on the frozen features, its actor and critic co-evolve from a cold start, so there is no pretrained-actor-versus-fresh-critic mismatch of the kind Route B must manage. Distillation also settles a question the imitation route could not: predicting the state from the image alone cannot be satisfied through a state branch, so success at the prediction task is direct evidence that the image is a sufficient statistic for the geometry it encodes. The per-component recoverability of the geometry and the from-scratch learning curve are reported in \cref{sec:geometry_encoder}.
@@ -302,8 +293,6 @@ This diagnosis also exposes why the imitation warm-start, though it works, is no
 
 Two measurements test the geometry-distillation recipe of \cref{sec:geometry_distillation}. The first asks whether the image is a sufficient statistic for the geometry, by scoring how well each state component can be predicted from the image alone. \Cref{tab:geometry_recoverability} reports the per-component test $R^2$. The exteroceptive geometry, the tractor and trailer tracking errors and the two curvature look-aheads, is recovered almost perfectly, with $R^2$ at or above 0.97 for seven of the eight components. Only the internal steering angle resists, at 0.66, which is exactly the component a top-down view of the surroundings cannot see, and why steering is supplied as proprioception rather than predicted. This is the direct evidence the imitation route could not provide: the image really does encode the path geometry.
 
-% REVIEW:B2 the curvature R^2 values in this table are outdated; current runs produce
-% significantly higher numbers. Determine whether it is an import bug or missing data.
 \input{tables/geometry_recoverability}
 
 The second measurement asks whether a policy can then learn on these frozen features. \Cref{fig:geometry_rl_curve} shows the from-scratch learning curve. Completion climbs monotonically to full parity by roughly 300 thousand steps, with no imitation, no critic warm-up, no unfreezing schedule, and no collapse, tracing the same trajectory as the engineered-state run. The image policy that could not learn at all in \cref{sec:obs_ablation} learns cleanly once the encoder is decoupled from the reward-driven gradient. Cross-track error at parity averages 0.55 m against 0.46 m for the engineered-state policy, a gap consistent with the few-percent prediction error the encoder carries, though the per-seed spread on both runs is wide enough that the two overlap.
@@ -370,11 +359,7 @@ In the forward direction this static-difficulty recipe works well. \Cref{tab:obs
 \label{sec:reverse_dynamic_difficulty}
 
 % REVIEW:B20 the systematic reverse off-path error argument needs a cleaner explanation.
-% REVIEW:A8 Amir notes that reverse motion is inherently unstable, so the forward approach may
-% not carry over, and suggests a form of feedback in the network. This section already argues
-% the forward recipe does not transfer; answer him explicitly and add recurrent policies to
-% future work.
-Reverse is the hardest case, and the forward recipe does not transfer to it. A static difficulty describes the layout, the free gap, but not the situation, and in reverse the two come apart. Because reverse tracking runs a systematic off-path error of around $0.8$~m, tracking well at one moment does not imply the trailer will clear the coming gap, so a policy gated on layout difficulty over-attempts in the ambiguous band and clips obstacles there, crashing on around forty to forty-five percent of the attempts it makes in that band.
+Reverse is the hardest case, and the forward recipe does not transfer to it. Because the reverse dynamics are open-loop unstable, no component tuned forward can be assumed to carry over, and each correction below was rederived for the reverse direction. Stabilization rests on what the policy observes rather than on memory inside it: the articulation angle enters the observation directly and the reward penalizes its growth, so the network remains a static feedback law over the instantaneous state. A static difficulty describes the layout, the free gap, but not the situation, and in reverse the two come apart. Because reverse tracking runs a systematic off-path error of around $0.8$~m, tracking well at one moment does not imply the trailer will clear the coming gap, so a policy gated on layout difficulty over-attempts in the ambiguous band and clips obstacles there, crashing on around forty to forty-five percent of the attempts it makes in that band.
 
 % REVIEW:B10 define dynamic difficulty explicitly: the static difficulty inflated by the
 % current error from the obstacle-aware path.
@@ -428,7 +413,7 @@ A learned controller has to be shown competent at plain tracking before its obst
 % caption and into the body text.
 \input{tables/benchmark_results}
 
-Forward tracking is saturated, so completion cannot separate the methods and the comparison there is only about tracking quality. Reverse is more informative. The learned policy reaches completion comparable to pure pursuit and ahead of PID, which establishes the competence the obstacle results depend on, a policy that can actually stabilize and track the trailer on the unstable reverse task. On the unfiltered pool pure pursuit completes 98.0\% of the reverse layouts and the learned policy 95.9\%, a small edge for pure pursuit on plain reverse tracking that is expected. The case for the learned controller does not rest on this tracking comparison. It rests on the integrated obstacle task of \cref{sec:obstacle_results}, where pure pursuit alone is not a controller and the classical alternative is the full planner-and-tracker stack. In articulated control, success is not simply the lowest cross-track error, because hitch stability takes precedence over exact path following. A policy that holds the hitch angle inside a safe margin throughout a reverse maneuver is more successful than one that shaves cross-track error but risks jackknifing, which is why the benchmark reports completion, trailer tracking, and articulation stability together rather than collapsing them into one score.
+Forward tracking is saturated, so completion cannot separate the methods and the comparison there is only about tracking quality. Reverse is more informative. The learned policy reaches completion comparable to pure pursuit and ahead of PID, which establishes the competence the obstacle results depend on, a policy that can actually stabilize and track the trailer on the unstable reverse task. On the unfiltered pool pure pursuit completes 98.0\% of the reverse layouts and the learned policy 97.5\%, a difference that sits inside the seed interval. The case for the learned controller does not rest on this tracking comparison. It rests on the integrated obstacle task of \cref{sec:obstacle_results}, where pure pursuit alone is not a controller and the classical alternative is the full planner-and-tracker stack. In articulated control, success is not simply the lowest cross-track error, because hitch stability takes precedence over exact path following. A policy that holds the hitch angle inside a safe margin throughout a reverse maneuver is more successful than one that shaves cross-track error but risks jackknifing, which is why the benchmark reports completion, trailer tracking, and articulation stability together rather than collapsing them into one score.
 
 \subsection{Information Parity between Learned and Classical Controllers}
 \label{sec:information_parity}

@@ -1,0 +1,486 @@
+\begin{thebibliography}{10}
+
+\bibitem{mayne2000constrained}
+D.~Q. Mayne, J.~B. Rawlings, C.~V. Rao, and P.~O.~M. Scokaert, ``Constrained
+  model predictive control: Stability and optimality,'' {\em Automatica},
+  vol.~36, no.~6, pp.~789--814, 2000.
+
+\bibitem{tymkow2024me780}
+R.~Tymkow and B.~Schnapp, ``Application of deep deterministic policy gradient
+  (ddpg) and decision transformer reinforcement learning to vehicle path
+  following,'' Tech. Rep. ME~780 Course Project Report, University of Waterloo,
+  Dept. of Mechanical and Mechatronics Engineering, 2024.
+\newblock Unpublished graduate course report.
+
+\bibitem{schnapp2024ece682}
+B.~Schnapp, ``{LQR} control of vehicle bicycle model,'' Tech. Rep. ECE~682
+  Course Project Report, University of Waterloo, Dept. of Mechanical and
+  Mechatronics Engineering, 2024.
+\newblock Unpublished graduate course report.
+
+\bibitem{fujimoto2018td3}
+S.~Fujimoto, H.~van Hoof, and D.~Meger, ``Addressing function approximation
+  error in actor-critic methods,'' in {\em Proceedings of the 35th
+  International Conference on Machine Learning (ICML)}, pp.~1587--1596, 2018.
+
+\bibitem{coulter1992pure}
+R.~C. Coulter, ``Implementation of the pure pursuit path tracking algorithm,''
+  Tech. Rep. CMU-RI-TR-92-01, Robotics Institute, Carnegie Mellon University,
+  1992.
+
+\bibitem{rawlings2017mpc}
+J.~B. Rawlings, D.~Q. Mayne, and M.~M. Diehl, {\em Model Predictive Control:
+  Theory, Computation, and Design}.
+\newblock Madison, WI: Nob Hill Publishing, 2~ed., 2017.
+
+\bibitem{pendleton2017survey}
+S.~D. Pendleton, H.~Andersen, X.~Du, X.~Shen, M.~Meghjani, Y.~H. Eng, D.~Rus,
+  and M.~H. Ang, ``Perception, planning, control, and coordination for
+  autonomous vehicles,'' {\em Machines}, vol.~5, no.~1, p.~6, 2017.
+
+\bibitem{fancher2007directional}
+P.~Fancher and C.~Winkler, ``Directional performance issues in evaluation and
+  design of articulated heavy vehicles,'' {\em Vehicle System Dynamics},
+  vol.~45, pp.~607--647, 2007.
+
+\bibitem{altafini2001reversing}
+C.~Altafini, A.~Speranzon, and B.~Wahlberg, ``A feedback control scheme for
+  reversing a truck and trailer vehicle,'' {\em IEEE Transactions on Robotics
+  and Automation}, vol.~17, no.~6, pp.~915--922, 2001.
+
+\bibitem{anderson1990optimal}
+B.~D.~O. Anderson and J.~B. Moore, {\em Optimal Control: Linear Quadratic
+  Methods}.
+\newblock Englewood Cliffs, NJ: Prentice-Hall, 1990.
+
+\bibitem{odhams2011active}
+A.~M.~C. Odhams, R.~L. Roebuck, B.~A. Jujnovich, and D.~Cebon, ``Active
+  steering of a tractor--semi-trailer,'' {\em Proceedings of the Institution of
+  Mechanical Engineers, Part D: Journal of Automobile Engineering}, vol.~225,
+  no.~7, pp.~847--869, 2011.
+
+\bibitem{jujnovich2013path}
+B.~A. Jujnovich and D.~Cebon, ``Path-following steering control for articulated
+  vehicles,'' {\em Journal of Dynamic Systems, Measurement, and Control},
+  vol.~135, no.~3, p.~031006, 2013.
+
+\bibitem{beglini2020antijackknife}
+M.~Beglini, L.~Lanari, and G.~Oriolo, ``Anti-jackknifing control of
+  tractor-trailer vehicles via intrinsically stable {MPC},'' in {\em 2020 IEEE
+  International Conference on Robotics and Automation (ICRA)}, pp.~8806--8812,
+  2020.
+
+\bibitem{fliess1995flatness}
+M.~Fliess, J.~L{\'e}vine, P.~Martin, and P.~Rouchon, ``Flatness and defect of
+  non-linear systems: Introductory theory and examples,'' {\em International
+  Journal of Control}, vol.~61, no.~6, pp.~1327--1361, 1995.
+
+\bibitem{samson1995chained}
+C.~Samson, ``Control of chained systems: Application to path following and
+  time-varying point-stabilization of mobile robots,'' {\em IEEE Transactions
+  on Automatic Control}, vol.~40, no.~1, pp.~64--77, 1995.
+
+\bibitem{karaman2011sampling}
+S.~Karaman and E.~Frazzoli, ``Sampling-based algorithms for optimal motion
+  planning,'' {\em The International Journal of Robotics Research}, vol.~30,
+  no.~7, pp.~846--894, 2011.
+
+\bibitem{lavalle2006planning}
+S.~M. LaValle, {\em Planning Algorithms}.
+\newblock Cambridge, UK: Cambridge University Press, 2006.
+
+\bibitem{dolgov2010hybridastar}
+D.~Dolgov, S.~Thrun, M.~Montemerlo, and J.~Diebel, ``Path planning for
+  autonomous vehicles in unknown semi-structured environments,'' {\em
+  International Journal of Robotics Research}, vol.~29, no.~5, pp.~485--501,
+  2010.
+
+\bibitem{ljungqvist2017lattice}
+O.~Ljungqvist, N.~Evestedt, M.~Cirillo, D.~Axehill, and O.~Holmer,
+  ``Lattice-based motion planning for a general 2-trailer system,'' in {\em
+  2017 IEEE Intelligent Vehicles Symposium (IV)}, pp.~819--824, 2017.
+
+\bibitem{oliveira2020optimization}
+R.~Oliveira, O.~Ljungqvist, P.~F. Lima, and B.~Wahlberg, ``Optimization-based
+  on-road path planning for articulated vehicles,'' {\em IFAC-PapersOnLine},
+  vol.~53, no.~2, pp.~15572--15579, 2020.
+
+\bibitem{hoffmann2007autonomous}
+G.~M. Hoffmann, C.~J. Tomlin, M.~Montemerlo, and S.~Thrun, ``Autonomous
+  automobile trajectory tracking for off-road driving: Controller design,
+  experimental validation and racing,'' in {\em American Control Conference
+  (ACC)}, pp.~2296--2301, 2007.
+
+\bibitem{sutton2018rl}
+R.~S. Sutton and A.~G. Barto, {\em Reinforcement Learning: An Introduction}.
+\newblock Cambridge, MA: MIT Press, 2~ed., 2018.
+
+\bibitem{mnih2015dqn}
+V.~Mnih, K.~Kavukcuoglu, D.~Silver, A.~A. Rusu, J.~Veness, M.~G. Bellemare,
+  A.~Graves, M.~Riedmiller, A.~K. Fidjeland, G.~Ostrovski, S.~Petersen,
+  C.~Beattie, A.~Sadik, I.~Antonoglou, H.~King, D.~Kumaran, D.~Wierstra,
+  S.~Legg, and D.~Hassabis, ``Human-level control through deep reinforcement
+  learning,'' {\em Nature}, vol.~518, no.~7540, pp.~529--533, 2015.
+
+\bibitem{silver2014dpg}
+D.~Silver, G.~Lever, N.~Heess, T.~Degris, D.~Wierstra, and M.~Riedmiller,
+  ``Deterministic policy gradient algorithms,'' in {\em Proceedings of the 31st
+  International Conference on Machine Learning (ICML)}, pp.~387--395, 2014.
+
+\bibitem{lillicrap2016ddpg}
+T.~P. Lillicrap, J.~J. Hunt, A.~Pritzel, N.~Heess, T.~Erez, Y.~Tassa,
+  D.~Silver, and D.~Wierstra, ``Continuous control with deep reinforcement
+  learning,'' in {\em International Conference on Learning Representations
+  (ICLR)}, 2016.
+
+\bibitem{schulman2017ppo}
+J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, and O.~Klimov, ``Proximal
+  policy optimization algorithms,'' {\em arXiv preprint arXiv:1707.06347},
+  2017.
+
+\bibitem{haarnoja2018sac}
+T.~Haarnoja, A.~Zhou, P.~Abbeel, and S.~Levine, ``Soft actor-critic: Off-policy
+  maximum entropy deep reinforcement learning with a stochastic actor,'' in
+  {\em Proceedings of the 35th International Conference on Machine Learning
+  (ICML)}, pp.~1861--1870, 2018.
+
+\bibitem{kiran2022survey}
+B.~R. Kiran, I.~Sobh, V.~Talpaert, P.~Mannion, A.~A. Al~Sallab, S.~Yogamani,
+  and P.~P{\'e}rez, ``Deep reinforcement learning for autonomous driving: A
+  survey,'' {\em IEEE Transactions on Intelligent Transportation Systems},
+  vol.~23, no.~6, pp.~4909--4926, 2022.
+
+\bibitem{codevilla2018cil}
+F.~Codevilla, M.~M{\"u}ller, A.~M. L{\'o}pez, V.~Koltun, and A.~Dosovitskiy,
+  ``End-to-end driving via conditional imitation learning,'' in {\em 2018 IEEE
+  International Conference on Robotics and Automation (ICRA)}, 2018.
+
+\bibitem{kendall2019learningdrive}
+A.~Kendall, J.~Hawke, D.~Janz, P.~Mazur, D.~Reda, J.-M. Allen, V.-D. Lam,
+  A.~Bewley, and A.~Shah, ``Learning to drive in a day,'' in {\em 2019 IEEE
+  International Conference on Robotics and Automation (ICRA)}, pp.~8248--8254,
+  2019.
+
+\bibitem{sallab2017framework}
+A.~El~Sallab, M.~Abdou, E.~Perot, and S.~Yogamani, ``Deep reinforcement
+  learning framework for autonomous driving,'' {\em Electronic Imaging,
+  Autonomous Vehicles and Machines}, vol.~29, pp.~70--76, 2017.
+
+\bibitem{nguyen1990truck}
+D.~H. Nguyen and B.~Widrow, ``Neural networks for self-learning control
+  systems,'' {\em IEEE Control Systems Magazine}, vol.~10, no.~3, pp.~18--23,
+  1990.
+
+\bibitem{bejar2018backing}
+E.~Bejar and A.~Mor{\'a}n, ``Backing up control of a self-driving truck-trailer
+  vehicle with deep reinforcement learning and fuzzy logic,'' in {\em 2018 IEEE
+  International Symposium on Signal Processing and Information Technology
+  (ISSPIT)}, pp.~202--207, 2018.
+
+\bibitem{kang2024tractortrailer}
+Q.~Kang, A.~Hartmannsgruber, S.-H. Tan, X.~Zhang, and C.-M. Chew, ``Deep
+  reinforcement learning based tractor-trailer tracking control,'' in {\em 2024
+  IEEE International Conference on Intelligent Transportation Systems (ITSC)},
+  pp.~3147--3153, 2024.
+
+\bibitem{ng1999shaping}
+A.~Y. Ng, D.~Harada, and S.~Russell, ``Policy invariance under reward
+  transformations: Theory and application to reward shaping,'' in {\em
+  Proceedings of the 16th International Conference on Machine Learning (ICML)},
+  pp.~278--287, 1999.
+
+\bibitem{chen2021decision}
+L.~Chen, K.~Lu, A.~Rajeswaran, K.~Lee, A.~Grover, M.~Laskin, P.~Abbeel,
+  A.~Srinivas, and I.~Mordatch, ``Decision transformer: Reinforcement learning
+  via sequence modeling,'' in {\em Advances in Neural Information Processing
+  Systems (NeurIPS)}, vol.~34, pp.~15084--15097, 2021.
+
+\bibitem{bengio2009curriculum}
+Y.~Bengio, J.~Louradour, R.~Collobert, and J.~Weston, ``Curriculum learning,''
+  in {\em Proceedings of the 26th International Conference on Machine Learning
+  (ICML)}, pp.~41--48, 2009.
+
+\bibitem{narvekar2020curriculum}
+S.~Narvekar, B.~Peng, M.~Leonetti, J.~Sinapov, M.~E. Taylor, and P.~Stone,
+  ``Curriculum learning for reinforcement learning domains: A framework and
+  survey,'' {\em Journal of Machine Learning Research}, vol.~21, no.~181,
+  pp.~1--50, 2020.
+
+\bibitem{schaul2016per}
+T.~Schaul, J.~Quan, I.~Antonoglou, and D.~Silver, ``Prioritized experience
+  replay,'' in {\em International Conference on Learning Representations
+  (ICLR)}, 2016.
+
+\bibitem{lecun1998gradient}
+Y.~LeCun, L.~Bottou, Y.~Bengio, and P.~Haffner, ``Gradient-based learning
+  applied to document recognition,'' {\em Proceedings of the IEEE}, vol.~86,
+  no.~11, pp.~2278--2324, 1998.
+
+\bibitem{krizhevsky2012alexnet}
+A.~Krizhevsky, I.~Sutskever, and G.~E. Hinton, ``Imagenet classification with
+  deep convolutional neural networks,'' in {\em Advances in Neural Information
+  Processing Systems (NeurIPS)}, vol.~25, pp.~1097--1105, 2012.
+
+\bibitem{he2016resnet}
+K.~He, X.~Zhang, S.~Ren, and J.~Sun, ``Deep residual learning for image
+  recognition,'' in {\em IEEE Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, pp.~770--778, 2016.
+
+\bibitem{bojarski2016end}
+M.~Bojarski, D.~Del~Testa, D.~Dworakowski, B.~Firner, B.~Flepp, P.~Goyal, L.~D.
+  Jackel, M.~Monfort, U.~Muller, J.~Zhang, X.~Zhang, J.~Zhao, and K.~Zieba,
+  ``End to end learning for self-driving cars,'' {\em arXiv preprint
+  arXiv:1604.07316}, 2016.
+
+\bibitem{philion2020lss}
+J.~Philion and S.~Fidler, ``Lift, splat, shoot: Encoding images from arbitrary
+  camera rigs by implicitly unprojecting to 3d,'' in {\em European Conference
+  on Computer Vision (ECCV)}, pp.~194--210, 2020.
+
+\bibitem{elfes1989occupancy}
+A.~Elfes, ``Using occupancy grids for mobile robot perception and navigation,''
+  {\em Computer}, vol.~22, no.~6, pp.~46--57, 1989.
+
+\bibitem{hinton2006reducing}
+G.~E. Hinton and R.~R. Salakhutdinov, ``Reducing the dimensionality of data
+  with neural networks,'' {\em Science}, vol.~313, no.~5786, pp.~504--507,
+  2006.
+
+\bibitem{lange2010deep}
+S.~Lange and M.~Riedmiller, ``Deep auto-encoder neural networks in
+  reinforcement learning,'' in {\em International Joint Conference on Neural
+  Networks (IJCNN)}, pp.~1--8, 2010.
+
+\bibitem{kingma2014vae}
+D.~P. Kingma and M.~Welling, ``Auto-encoding variational bayes,'' in {\em
+  International Conference on Learning Representations (ICLR)}, 2014.
+
+\bibitem{finn2016spatial}
+C.~Finn, X.~Y. Tan, Y.~Duan, T.~Darrell, S.~Levine, and P.~Abbeel, ``Deep
+  spatial autoencoders for visuomotor learning,'' in {\em 2016 IEEE
+  International Conference on Robotics and Automation (ICRA)}, pp.~512--519,
+  2016.
+
+\bibitem{ronneberger2015unet}
+O.~Ronneberger, P.~Fischer, and T.~Brox, ``U-net: Convolutional networks for
+  biomedical image segmentation,'' in {\em Medical Image Computing and
+  Computer-Assisted Intervention (MICCAI)}, pp.~234--241, 2015.
+
+\bibitem{qi2017pointnet}
+C.~R. Qi, H.~Su, K.~Mo, and L.~J. Guibas, ``{PointNet}: Deep learning on point
+  sets for 3d classification and segmentation,'' in {\em IEEE Conference on
+  Computer Vision and Pattern Recognition (CVPR)}, pp.~652--660, 2017.
+
+\bibitem{zhao2020sim2real}
+W.~Zhao, J.~P. Queralta, and T.~Westerlund, ``Sim-to-real transfer in deep
+  reinforcement learning for robotics: A survey,'' in {\em 2020 IEEE Symposium
+  Series on Computational Intelligence (SSCI)}, pp.~737--744, 2020.
+
+\bibitem{tobin2017domain}
+J.~Tobin, R.~Fong, A.~Ray, J.~Schneider, W.~Zaremba, and P.~Abbeel, ``Domain
+  randomization for transferring deep neural networks from simulation to the
+  real world,'' in {\em IEEE/RSJ International Conference on Intelligent Robots
+  and Systems (IROS)}, pp.~23--30, 2017.
+
+\bibitem{peng2018dynamicsrand}
+X.~B. Peng, M.~Andrychowicz, W.~Zaremba, and P.~Abbeel, ``Sim-to-real transfer
+  of robotic control with dynamics randomization,'' in {\em 2018 IEEE
+  International Conference on Robotics and Automation (ICRA)}, 2018.
+
+\bibitem{chebotar2019closingloop}
+Y.~Chebotar, A.~Handa, V.~Makoviychuk, M.~Macklin, J.~Issac, N.~Ratliff, and
+  D.~Fox, ``Closing the sim-to-real loop: Adapting simulation randomization
+  with real world experience,'' in {\em 2019 IEEE International Conference on
+  Robotics and Automation (ICRA)}, pp.~8973--8979, 2019.
+
+\bibitem{bousmalis2018domainadapt}
+K.~Bousmalis, A.~Irpan, P.~Wohlhart, Y.~Bai, M.~Kelcey, M.~Kalakrishnan,
+  L.~Downs, J.~Ibarz, P.~Pastor, K.~Konolige, S.~Levine, and V.~Vanhoucke,
+  ``Using simulation and domain adaptation to improve efficiency of deep
+  robotic grasping,'' in {\em 2018 IEEE International Conference on Robotics
+  and Automation (ICRA)}, pp.~4243--4250, 2018.
+
+\bibitem{dosovitskiy2017carla}
+A.~Dosovitskiy, G.~Ros, F.~Codevilla, A.~L{\'o}pez, and V.~Koltun, ``{CARLA}:
+  An open urban driving simulator,'' in {\em Conference on Robot Learning
+  (CoRL)}, pp.~1--16, 2017.
+
+\bibitem{garcia2015saferl}
+J.~Garc{\'i}a and F.~Fern{\'a}ndez, ``A comprehensive survey on safe
+  reinforcement learning,'' {\em Journal of Machine Learning Research},
+  vol.~16, pp.~1437--1480, 2015.
+
+\bibitem{ames2019cbf}
+A.~D. Ames, S.~Coogan, M.~Egerstedt, G.~Notomista, K.~Sreenath, and P.~Tabuada,
+  ``Control barrier functions: Theory and applications,'' in {\em 18th European
+  Control Conference (ECC)}, pp.~3420--3431, 2019.
+
+\bibitem{iso21448}
+{International Organization for Standardization}, ``{ISO 21448:2022} road
+  vehicles --- safety of the intended functionality.'' ISO Standard, 2022.
+
+\bibitem{iso26262}
+{International Organization for Standardization}, ``{ISO 26262}: Road vehicles
+  --- functional safety.'' ISO Standard, 2018.
+
+\bibitem{ul4600}
+{Underwriters Laboratories}, ``{UL 4600}: Standard for safety for the
+  evaluation of autonomous products.'' UL Standard, 2022.
+
+\bibitem{sae_j3016}
+{SAE International}, ``{J3016}: Taxonomy and definitions for terms related to
+  driving automation systems for on-road motor vehicles.'' SAE Standard, 2021.
+
+\bibitem{rajamani2011vehicle}
+R.~Rajamani, {\em Vehicle Dynamics and Control}.
+\newblock New York: Springer, 2~ed., 2011.
+
+\bibitem{kalmar2022ottawa}
+{Kalmar Ottawa}, {\em Ottawa 4x2 {DOT/EPA} Terminal Tractor: Standard
+  Specifications}.
+\newblock Kalmar Ottawa, 2022.
+\newblock Manufacturer specification sheet.
+
+\bibitem{macinnis1997inertia}
+D.~D. MacInnis, W.~E. Cliff, and K.~W. Ising, ``A comparison of moment of
+  inertia estimation techniques for vehicle dynamics simulation,'' in {\em SAE
+  Technical Paper Series}, no.~970951, (Warrendale, PA), pp.~99--117, SAE
+  International, 1997.
+
+\bibitem{ervin1976tire}
+R.~D. Ervin, C.~B. Winkler, J.~E. Bernard, and R.~K. Gupta, ``Effects of tire
+  properties on truck and bus handling, volume {IV}: Final report,'' Tech. Rep.
+  DOT-HS-802-143, Highway Safety Research Institute, University of Michigan,
+  Ann Arbor, MI, 1976.
+\newblock Prepared for the National Highway Traffic Safety Administration, U.S.
+  Department of Transportation.
+
+\bibitem{towers2024gymnasium}
+M.~Towers, A.~Kwiatkowski, J.~Terry, J.~U. Balis, G.~De~Cola, T.~Deleu,
+  M.~Goul{\~a}o, A.~Kallinteris, M.~Krimmel, A.~KG, {\em et~al.}, ``Gymnasium:
+  A standard interface for reinforcement learning environments,'' {\em arXiv
+  preprint arXiv:2407.17032}, 2024.
+
+\bibitem{raffin2021sb3}
+A.~Raffin, A.~Hill, A.~Gleave, A.~Kanervisto, M.~Ernestus, and N.~Dormann,
+  ``Stable-baselines3: Reliable reinforcement learning implementations,'' {\em
+  Journal of Machine Learning Research}, vol.~22, no.~268, pp.~1--8, 2021.
+
+\bibitem{pygame}
+{Pygame community}, ``pygame: {Python} game development library.''
+  \url{https://www.pygame.org}.
+\newblock Cross-platform set of {Python} modules built on {SDL}.
+
+\bibitem{pacejka2012tyre}
+H.~B. Pacejka, {\em Tyre and Vehicle Dynamics}.
+\newblock Oxford: Butterworth-Heinemann, 3~ed., 2012.
+
+\bibitem{harris2020numpy}
+C.~R. Harris, K.~J. Millman, S.~J. van~der Walt, R.~Gommers, P.~Virtanen,
+  D.~Cournapeau, E.~Wieser, J.~Taylor, S.~Berg, N.~J. Smith, R.~Kern, M.~Picus,
+  S.~Hoyer, M.~H. van Kerkwijk, M.~Brett, A.~Haldane, J.~F. del R{\'i}o,
+  M.~Wiebe, P.~Peterson, P.~G{\'e}rard-Marchant, K.~Sheppard, T.~Reddy,
+  W.~Weckesser, H.~Abbasi, C.~Gohlke, and T.~E. Oliphant, ``Array programming
+  with {NumPy},'' {\em Nature}, vol.~585, no.~7825, pp.~357--362, 2020.
+
+\bibitem{okuta2017cupy}
+R.~Okuta, Y.~Unno, D.~Nishino, S.~Hido, and C.~Loomis, ``{CuPy}: A
+  {NumPy}-compatible library for {NVIDIA} {GPU} calculations,'' in {\em
+  Proceedings of Workshop on Machine Learning Systems (LearningSys) at the 31st
+  Conference on Neural Information Processing Systems (NIPS)}, 2017.
+
+\bibitem{higham2005scaling}
+N.~J. Higham, ``The scaling and squaring method for the matrix exponential
+  revisited,'' {\em SIAM Journal on Matrix Analysis and Applications}, vol.~26,
+  no.~4, pp.~1179--1193, 2005.
+
+\bibitem{fujimoto2019bcq}
+S.~Fujimoto, D.~Meger, and D.~Precup, ``Off-policy deep reinforcement learning
+  without exploration,'' in {\em Proceedings of the 36th International
+  Conference on Machine Learning (ICML)}, pp.~2052--2062, 2019.
+
+\bibitem{fujimoto2021td3bc}
+S.~Fujimoto and S.~S. Gu, ``A minimalist approach to offline reinforcement
+  learning,'' in {\em Advances in Neural Information Processing Systems
+  (NeurIPS)}, vol.~34, pp.~20132--20145, 2021.
+
+\bibitem{yarats2021sacae}
+D.~Yarats, A.~Zhang, I.~Kostrikov, B.~Amos, J.~Pineau, and R.~Fergus,
+  ``Improving sample efficiency in model-free reinforcement learning from
+  images,'' in {\em Proceedings of the AAAI Conference on Artificial
+  Intelligence}, vol.~35, pp.~10674--10681, 2021.
+
+\bibitem{chen2020cheating}
+D.~Chen, B.~Zhou, V.~Koltun, and P.~Kr\"ahenb\"uhl, ``Learning by cheating,''
+  in {\em Proceedings of the Conference on Robot Learning (CoRL)}, pp.~66--75,
+  2020.
+
+\bibitem{smith1957closer}
+O.~J.~M. Smith, ``Closer control of loops with dead time,'' {\em Chemical
+  Engineering Progress}, vol.~53, no.~5, pp.~217--219, 1957.
+
+\bibitem{biber2003ndt}
+P.~Biber and W.~Stra{\ss}er, ``The normal distributions transform: A new
+  approach to laser scan matching,'' in {\em IEEE/RSJ International Conference
+  on Intelligent Robots and Systems (IROS)}, pp.~2743--2748, 2003.
+
+\bibitem{macenski2022ros2}
+S.~Macenski, T.~Foote, B.~Gerkey, C.~Lalancette, and W.~Woodall, ``Robot
+  operating system 2: Design, architecture, and uses in the wild,'' {\em
+  Science Robotics}, vol.~7, no.~66, p.~eabm6074, 2022.
+
+\bibitem{kato2018autoware}
+S.~Kato, S.~Tokunaga, Y.~Maruyama, S.~Maeda, M.~Hirabayashi, Y.~Kitsukawa,
+  A.~Monrroy, T.~Ando, Y.~Fujii, and T.~Azumi, ``Autoware on board: Enabling
+  autonomous vehicles with embedded systems,'' in {\em ACM/IEEE International
+  Conference on Cyber-Physical Systems (ICCPS)}, pp.~287--296, 2018.
+
+\bibitem{paszke2019pytorch}
+A.~Paszke, S.~Gross, F.~Massa, A.~Lerer, J.~Bradbury, G.~Chanan, T.~Killeen,
+  Z.~Lin, N.~Gimelshein, L.~Antiga, {\em et~al.}, ``Pytorch: An imperative
+  style, high-performance deep learning library,'' in {\em Advances in Neural
+  Information Processing Systems (NeurIPS)}, vol.~32, pp.~8024--8035, 2019.
+
+\bibitem{zhang2017lshape}
+X.~Zhang, W.~Xu, C.~Dong, and J.~M. Dolan, ``Efficient {L}-shape fitting for
+  vehicle detection using laser scanners,'' in {\em 2017 IEEE Intelligent
+  Vehicles Symposium (IV)}, pp.~54--59, 2017.
+
+\bibitem{kalman1960new}
+R.~E. Kalman, ``A new approach to linear filtering and prediction problems,''
+  {\em Journal of Basic Engineering}, vol.~82, no.~1, pp.~35--45, 1960.
+
+\bibitem{cao2023infrastructure}
+Y.~Cao, ``Object segmentation and reconstruction using infrastructure sensor
+  nodes for autonomous mobility,'' Master's thesis, University of Waterloo,
+  Waterloo, Ontario, Canada, 2023.
+\newblock MASc thesis.
+
+\bibitem{storn1997differential}
+R.~Storn and K.~Price, ``Differential evolution -- a simple and efficient
+  heuristic for global optimization over continuous spaces,'' {\em Journal of
+  Global Optimization}, vol.~11, no.~4, pp.~341--359, 1997.
+
+\bibitem{koenig2004gazebo}
+N.~Koenig and A.~Howard, ``Design and use paradigms for gazebo, an open-source
+  multi-robot simulator,'' in {\em IEEE/RSJ International Conference on
+  Intelligent Robots and Systems (IROS)}, pp.~2149--2154, 2004.
+
+\bibitem{perseghetti2021rudisworlds}
+B.~Perseghetti and {Rudis Laboratories}, ``{rudislabs\_gazebo\_worlds}:
+  Georeferenced {Gazebo} world models.''
+  \url{https://github.com/rudislabs/rudislabs_gazebo_worlds}, 2021.
+\newblock Open-source software repository, Apache-2.0 licence.
+
+\bibitem{blender}
+{Blender Online Community}, {\em Blender --- a {3D} Modelling and Rendering
+  Package}.
+\newblock Blender Foundation, Amsterdam.
+\newblock \url{https://www.blender.org}.
+
+\bibitem{openstreetmap}
+{OpenStreetMap contributors}, ``{OpenStreetMap}.''
+  \url{https://www.openstreetmap.org}, 2024.
+\newblock Map data available under the Open Database License (ODbL).
+
+\end{thebibliography}

@@ -27,28 +27,5 @@ Building on that foundation, this thesis addresses these challenges through the 
     \item engineering reward functions that balance cross-track error, heading error, hitch articulation stability, and collision avoidance;
     \item implementing and benchmarking Twin Delayed Deep Deterministic Policy Gradient (TD3)~\cite{fujimoto2018td3} agents in lane-following and obstacle-avoidance tasks within a custom Gymnasium-based simulation environment;
     \item comparing the learned policies against tuned classical control baselines, including pure-pursuit~\cite{coulter1992pure}, PID, and MPC~\cite{rawlings2017mpc}, on matched articulated path-tracking tasks;
-    \item deploying the trained forward and reverse TD3 policies directly on a physical articulated platform (an AgileX Hunter SE) through a stripped-down Autoware stack (the ``RL bridge'') supported by an onboard LiDAR-based hitch-angle estimator that requires no trailer-mounted sensing and a Smith-predictor compensator for actuator delay (\cref{ch:sim_to_real}).
+    \item deploying the trained forward and reverse TD3 policies directly on a physical articulated platform (an AgileX Hunter SE) through a stripped-down Autoware stack (the ``RL bridge'') supported by an onboard LiDAR-based hitch-angle estimator that requires no trailer-mounted sensing and a Smith-predictor compensator for command latency (\cref{ch:sim_to_real}).
 \end{itemize}
-
-The research aligns with the objectives of the University of Waterloo Mechatronics Vehicle Systems Lab (MVSL) and Electrans Technologies Ltd.
-
-\section{Institutional Context}
-
-This work is submitted in partial fulfillment of the requirements for a Master of Applied Science (MASc) degree in the Department of Mechanical and Mechatronics Engineering at the University of Waterloo. The degree requires six terms of full-time registration, completion of 3--5 graduate-level courses, appointment of two additional faculty readers, and a mandatory 15-day public display period. The target completion date is early July, with a seminar scheduled for late July.
-
-\begin{table}[H]
-\centering
-\caption{MASc thesis requirements summary}
-\label{tab:masc_requirements}
-\begin{tabular}{l p{0.68\linewidth}}
-\toprule
-Element & Requirement \\
-\midrule
-Research Scope   & Substantial problem extending beyond existing laboratory results \\
-Literature Review & Comprehensive assessment of classical control and modern AI approaches \\
-Validation       & Simulation-based empirical evidence across multiple environment configurations, complemented by a physical hardware deployment \\
-Length/Format    & Typically 80--120 pages; GSPA formatting and UWSpace submission \\
-Committee        & Supervisor plus two faculty readers; formal display period \\
-\bottomrule
-\end{tabular}
-\end{table}

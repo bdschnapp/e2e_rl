@@ -1,0 +1,235 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Learning Framework and Experimental Results}{25}{chapter.4}\protected@file@percent }
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{ch:learning_framework}{{4}{25}{Learning Framework and Experimental Results}{chapter.4}{}}
+\newlabel{ch:learning_framework@cref}{{[chapter][4][]4}{[1][25][]25}}
+\newlabel{ch:results}{{4}{25}{Learning Framework and Experimental Results}{chapter.4}{}}
+\newlabel{ch:results@cref}{{[chapter][4][]4}{[1][25][]25}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}Learning Framework Overview}{25}{section.4.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces Architecture of the learning system: an observation (engineered state, LiDAR, or BEV image) is encoded into a feature vector and passed to the TD3 actor and critics, which output a steering rate and a stop signal. The reward combines path-tracking and hitch-stability terms.\relax }}{26}{figure.caption.28}\protected@file@percent }
+\newlabel{fig:learning_framework}{{4.1}{26}{Architecture of the learning system: an observation (engineered state, LiDAR, or BEV image) is encoded into a feature vector and passed to the TD3 actor and critics, which output a steering rate and a stop signal. The reward combines path-tracking and hitch-stability terms.\relax }{figure.caption.28}{}}
+\newlabel{fig:learning_framework@cref}{{[figure][1][4]4.1}{[1][25][]26}}
+\citation{silver2014dpg}
+\citation{raffin2021sb3}
+\citation{towers2024gymnasium}
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Learning Algorithm and Training Configuration}{27}{section.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Twin Delayed Deep Deterministic Policy Gradient}{27}{subsection.4.2.1}\protected@file@percent }
+\newlabel{sec:td3}{{4.2.1}{27}{Twin Delayed Deep Deterministic Policy Gradient}{subsection.4.2.1}{}}
+\newlabel{sec:td3@cref}{{[subsection][1][4,2]4.2.1}{[1][26][]27}}
+\newlabel{eq:td3_target}{{4.1}{27}{Twin Delayed Deep Deterministic Policy Gradient}{equation.4.2.1}{}}
+\newlabel{eq:td3_target@cref}{{[equation][1][4]4.1}{[1][27][]27}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Training Configuration}{27}{subsection.4.2.2}\protected@file@percent }
+\newlabel{sec:hpo}{{4.2.2}{27}{Training Configuration}{subsection.4.2.2}{}}
+\newlabel{sec:hpo@cref}{{[subsection][2][4,2]4.2.2}{[1][27][]27}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Training configuration used for the algorithm and reward studies. Settings not listed are the Stable Baselines3 defaults for the algorithm in question, including the TD3 soft-update rate, policy delay, and target-noise parameters. A dash marks a setting that does not apply to that algorithm.\relax }}{28}{table.caption.29}\protected@file@percent }
+\newlabel{tab:training_config}{{4.1}{28}{Training configuration used for the algorithm and reward studies. Settings not listed are the Stable Baselines3 defaults for the algorithm in question, including the TD3 soft-update rate, policy delay, and target-noise parameters. A dash marks a setting that does not apply to that algorithm.\relax }{table.caption.29}{}}
+\newlabel{tab:training_config@cref}{{[table][1][4]4.1}{[1][28][]28}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Evaluation Protocol}{29}{section.4.3}\protected@file@percent }
+\newlabel{sec:eval_methodology}{{4.3}{29}{Evaluation Protocol}{section.4.3}{}}
+\newlabel{sec:eval_methodology@cref}{{[section][3][4]4.3}{[1][28][]29}}
+\newlabel{sec:eval_setup}{{4.3}{29}{Evaluation Protocol}{section.4.3}{}}
+\newlabel{sec:eval_setup@cref}{{[section][3][4]4.3}{[1][28][]29}}
+\newlabel{eq:attempt_ev}{{4.2}{30}{Evaluation Protocol}{equation.4.3.2}{}}
+\newlabel{eq:attempt_ev@cref}{{[equation][2][4]4.2}{[1][29][]30}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Reward Formulation and Selection}{30}{section.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.1}Reward Variants}{30}{subsection.4.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Forward lane-following rewards}{31}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reverse lane-following rewards}{31}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Obstacle difficulty}{32}{section*.32}\protected@file@percent }
+\newlabel{eq:obstacle_difficulty}{{4.20}{32}{Obstacle difficulty}{equation.4.4.20}{}}
+\newlabel{eq:obstacle_difficulty@cref}{{[equation][20][4]4.20}{[1][32][]32}}
+\@writefile{toc}{\contentsline {paragraph}{Obstacle-aware extensions}{32}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Branching hidden-path reward}{33}{section*.34}\protected@file@percent }
+\newlabel{eq:branching_reward}{{4.23}{33}{Branching hidden-path reward}{equation.4.4.23}{}}
+\newlabel{eq:branching_reward@cref}{{[equation][23][4]4.23}{[1][33][]33}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Reward variants compared in \cref  {ch:results}. Every variant also includes the progress term $r_p$ and subtracts the proximity penalty $P_{\mathrm  {prox}}$, with terminal rewards as defined above. The variants differ in how the tracking and articulation terms combine.\relax }}{33}{table.caption.35}\protected@file@percent }
+\newlabel{tab:reward_variants}{{4.2}{33}{Reward variants compared in \cref {ch:results}. Every variant also includes the progress term $r_p$ and subtracts the proximity penalty $P_{\mathrm {prox}}$, with terminal rewards as defined above. The variants differ in how the tracking and articulation terms combine.\relax }{table.caption.35}{}}
+\newlabel{tab:reward_variants@cref}{{[table][2][4]4.2}{[1][33][]33}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.2}Selecting the Algorithm and the Reward}{33}{subsection.4.4.2}\protected@file@percent }
+\newlabel{sec:algo_reward}{{4.4.2}{33}{Selecting the Algorithm and the Reward}{subsection.4.4.2}{}}
+\newlabel{sec:algo_reward@cref}{{[subsection][2][4,4]4.4.2}{[1][33][]33}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.3}{\ignorespaces Forward lane-following, best-checkpoint completion rate (\%) for every algorithm and reward combination on the engineered state observation. Cells are the mean over three seeds with a 95\% confidence interval. The chosen recipe is highlighted.\relax }}{34}{table.caption.36}\protected@file@percent }
+\newlabel{tab:algorithm_comparison_forward}{{4.3}{34}{Forward lane-following, best-checkpoint completion rate (\%) for every algorithm and reward combination on the engineered state observation. Cells are the mean over three seeds with a 95\% confidence interval. The chosen recipe is highlighted.\relax }{table.caption.36}{}}
+\newlabel{tab:algorithm_comparison_forward@cref}{{[table][3][4]4.3}{[1][34][]34}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.4}{\ignorespaces Reverse lane-following, best-checkpoint completion rate (\%) for every algorithm and reward combination on the engineered state observation. Cells are the mean over three seeds with a 95\% confidence interval. The chosen recipe is highlighted.\relax }}{34}{table.caption.37}\protected@file@percent }
+\newlabel{tab:algorithm_comparison_reverse}{{4.4}{34}{Reverse lane-following, best-checkpoint completion rate (\%) for every algorithm and reward combination on the engineered state observation. Cells are the mean over three seeds with a 95\% confidence interval. The chosen recipe is highlighted.\relax }{table.caption.37}{}}
+\newlabel{tab:algorithm_comparison_reverse@cref}{{[table][4][4]4.4}{[1][34][]34}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces Reverse lane-following completion against training steps for TD3 under each reward formulation. The multiplicative reward reaches the highest and steadiest completion.\relax }}{35}{figure.caption.38}\protected@file@percent }
+\newlabel{fig:reverse_reward_ablation}{{4.2}{35}{Reverse lane-following completion against training steps for TD3 under each reward formulation. The multiplicative reward reaches the highest and steadiest completion.\relax }{figure.caption.38}{}}
+\newlabel{fig:reverse_reward_ablation@cref}{{[figure][2][4]4.2}{[1][35][]35}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.5}{\ignorespaces Reverse lane-following, TD3 reward detail on the engineered state observation. Beyond completion the multiplicative reward also gives the lowest trailer cross-track error and the tightest hitch behavior, which is why it is carried forward. Mean over three seeds, 95\% confidence interval on completion.\relax }}{36}{table.caption.39}\protected@file@percent }
+\newlabel{tab:reward_ablation_reverse}{{4.5}{36}{Reverse lane-following, TD3 reward detail on the engineered state observation. Beyond completion the multiplicative reward also gives the lowest trailer cross-track error and the tightest hitch behavior, which is why it is carried forward. Mean over three seeds, 95\% confidence interval on completion.\relax }{table.caption.39}{}}
+\newlabel{tab:reward_ablation_reverse@cref}{{[table][5][4]4.5}{[1][35][]36}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}Observation and Perception Design}{36}{section.4.5}\protected@file@percent }
+\newlabel{sec:perception}{{4.5}{36}{Observation and Perception Design}{section.4.5}{}}
+\newlabel{sec:perception@cref}{{[section][5][4]4.5}{[1][36][]36}}
+\@writefile{toc}{\contentsline {paragraph}{LiDAR Observation}{36}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Bird's-Eye-View Observation}{36}{section*.41}\protected@file@percent }
+\citation{lecun1998gradient}
+\citation{raffin2021sb3}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}Image Encoding and Representation Learning}{37}{subsection.4.5.1}\protected@file@percent }
+\citation{lange2010deep}
+\citation{ronneberger2015unet}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.2}Observation Space Summary}{38}{subsection.4.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.6}{\ignorespaces Observation space components\relax }}{39}{table.caption.42}\protected@file@percent }
+\newlabel{tab:observation_components}{{4.6}{39}{Observation space components\relax }{table.caption.42}{}}
+\newlabel{tab:observation_components@cref}{{[table][6][4]4.6}{[1][38][]39}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}Observation-Space Ablation}{39}{section.4.6}\protected@file@percent }
+\newlabel{sec:obs_ablation}{{4.6}{39}{Observation-Space Ablation}{section.4.6}{}}
+\newlabel{sec:obs_ablation@cref}{{[section][6][4]4.6}{[1][39][]39}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.7}{\ignorespaces Observation-space ablation on no-obstacle lane-following, identical TD3 recipe (multiplicative reward, fixed speed) for every observation. Best-checkpoint completion and trailer cross-track error, mean over three seeds with a 95\% confidence interval on completion. Reliability falls as the observation grows, and the effect is sharper in reverse. The reverse BEV run is deferred to the vision-rescue study.\relax }}{40}{table.caption.43}\protected@file@percent }
+\newlabel{tab:obs_ablation}{{4.7}{40}{Observation-space ablation on no-obstacle lane-following, identical TD3 recipe (multiplicative reward, fixed speed) for every observation. Best-checkpoint completion and trailer cross-track error, mean over three seeds with a 95\% confidence interval on completion. Reliability falls as the observation grows, and the effect is sharper in reverse. The reverse BEV run is deferred to the vision-rescue study.\relax }{table.caption.43}{}}
+\newlabel{tab:obs_ablation@cref}{{[table][7][4]4.7}{[1][39][]40}}
+\citation{fujimoto2019bcq}
+\citation{sutton2018rl}
+\citation{fujimoto2021td3bc}
+\citation{yarats2021sacae}
+\newlabel{fig:forward_obs_ablation}{{4.3a}{41}{Forward\relax }{figure.caption.44}{}}
+\newlabel{fig:forward_obs_ablation@cref}{{[subfigure][1][4,3]4.3a}{[1][40][]41}}
+\newlabel{sub@fig:forward_obs_ablation}{{a}{41}{Forward\relax }{figure.caption.44}{}}
+\newlabel{sub@fig:forward_obs_ablation@cref}{{[subfigure][1][4,3]4.3a}{[1][40][]41}}
+\newlabel{fig:reverse_obs_ablation}{{4.3b}{41}{Reverse\relax }{figure.caption.44}{}}
+\newlabel{fig:reverse_obs_ablation@cref}{{[subfigure][2][4,3]4.3b}{[1][40][]41}}
+\newlabel{sub@fig:reverse_obs_ablation}{{b}{41}{Reverse\relax }{figure.caption.44}{}}
+\newlabel{sub@fig:reverse_obs_ablation@cref}{{[subfigure][2][4,3]4.3b}{[1][40][]41}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.3}{\ignorespaces Observation-space ablation learning curves, completion against training steps for the identical TD3 recipe under each observation. The raw image never leaves zero, and the higher-dimensional LiDAR scans learn less reliably than the compact state.\relax }}{41}{figure.caption.44}\protected@file@percent }
+\newlabel{fig:obs_ablation}{{4.3}{41}{Observation-space ablation learning curves, completion against training steps for the identical TD3 recipe under each observation. The raw image never leaves zero, and the higher-dimensional LiDAR scans learn less reliably than the compact state.\relax }{figure.caption.44}{}}
+\newlabel{fig:obs_ablation@cref}{{[figure][3][4]4.3}{[1][40][]41}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.7}Training High-Dimensional-Observation Policies}{41}{section.4.7}\protected@file@percent }
+\newlabel{sec:highdim_training}{{4.7}{41}{Training High-Dimensional-Observation Policies}{section.4.7}{}}
+\newlabel{sec:highdim_training@cref}{{[section][7][4]4.7}{[1][41][]41}}
+\newlabel{sec:vision}{{4.7}{41}{Training High-Dimensional-Observation Policies}{section.4.7}{}}
+\newlabel{sec:vision@cref}{{[section][7][4]4.7}{[1][41][]41}}
+\citation{bojarski2016end}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.1}An Off-Policy Instability Hypothesis}{42}{subsection.4.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.2}Representation Pretraining and Warm-Starting the Policy}{42}{subsection.4.7.2}\protected@file@percent }
+\citation{chen2020cheating}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.3}Geometry Distillation}{43}{subsection.4.7.3}\protected@file@percent }
+\newlabel{sec:geometry_distillation}{{4.7.3}{43}{Geometry Distillation}{subsection.4.7.3}{}}
+\newlabel{sec:geometry_distillation@cref}{{[subsection][3][4,7]4.7.3}{[1][43][]43}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.4}{\ignorespaces Geometry-distillation training. In Stage 1 a convolutional encoder is trained by supervised regression to predict the vehicle's path geometry from the bird's-eye-view image, using the simulator's true state as a privileged teacher, and is then frozen. In Stage 2 the policy is trained from scratch with TD3 on the frozen geometry prediction concatenated with the steering and hitch angles supplied as proprioception.\relax }}{44}{figure.caption.45}\protected@file@percent }
+\newlabel{fig:geometry_distillation}{{4.4}{44}{Geometry-distillation training. In Stage 1 a convolutional encoder is trained by supervised regression to predict the vehicle's path geometry from the bird's-eye-view image, using the simulator's true state as a privileged teacher, and is then frozen. In Stage 2 the policy is trained from scratch with TD3 on the frozen geometry prediction concatenated with the steering and hitch angles supplied as proprioception.\relax }{figure.caption.45}{}}
+\newlabel{fig:geometry_distillation@cref}{{[figure][4][4]4.4}{[1][43][]44}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.4}Isolating the Failure Mode}{44}{subsection.4.7.4}\protected@file@percent }
+\newlabel{sec:causal_ladder}{{4.7.4}{44}{Isolating the Failure Mode}{subsection.4.7.4}{}}
+\newlabel{sec:causal_ladder@cref}{{[subsection][4][4,7]4.7.4}{[1][44][]44}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.8}{\ignorespaces The vision-training ladder on forward lane-following. Each rung changes one thing relative to the rung above, so the first configuration that reaches full completion identifies the cause. Representation changes alone leave the policy at zero, imitation restores it, unconstrained fine-tuning destroys it again, and only freezing the actor holds it, which points to the actor rather than the encoder as the failure. Completions are from the development runs. The actor-frozen configuration was repeated over three seeds (1.00 / 1.00 / 0.92), and per-seed archival of the remaining rungs is pending.\relax }}{45}{table.caption.46}\protected@file@percent }
+\newlabel{tab:causal_ladder}{{4.8}{45}{The vision-training ladder on forward lane-following. Each rung changes one thing relative to the rung above, so the first configuration that reaches full completion identifies the cause. Representation changes alone leave the policy at zero, imitation restores it, unconstrained fine-tuning destroys it again, and only freezing the actor holds it, which points to the actor rather than the encoder as the failure. Completions are from the development runs. The actor-frozen configuration was repeated over three seeds (1.00 / 1.00 / 0.92), and per-seed archival of the remaining rungs is pending.\relax }{table.caption.46}{}}
+\newlabel{tab:causal_ladder@cref}{{[table][8][4]4.8}{[1][44][]45}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.5}What the Frozen Encoder Recovers}{46}{subsection.4.7.5}\protected@file@percent }
+\newlabel{sec:geometry_encoder}{{4.7.5}{46}{What the Frozen Encoder Recovers}{subsection.4.7.5}{}}
+\newlabel{sec:geometry_encoder@cref}{{[subsection][5][4,7]4.7.5}{[1][46][]46}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.9}{\ignorespaces Per-component test $R^2$ of predicting each state variable from the bird's-eye-view image alone, using the frozen geometry encoder. The exteroceptive path geometry is recovered almost perfectly, while the internal steering angle resists, which is why steering and the hitch angle are supplied as true proprioception rather than predicted.\relax }}{47}{table.caption.47}\protected@file@percent }
+\newlabel{tab:geometry_recoverability}{{4.9}{47}{Per-component test $R^2$ of predicting each state variable from the bird's-eye-view image alone, using the frozen geometry encoder. The exteroceptive path geometry is recovered almost perfectly, while the internal steering angle resists, which is why steering and the hitch angle are supplied as true proprioception rather than predicted.\relax }{table.caption.47}{}}
+\newlabel{tab:geometry_recoverability@cref}{{[table][9][4]4.9}{[1][46][]47}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.5}{\ignorespaces Geometry-encoder policy completion against training steps on forward lane-following, trained from scratch on the frozen encoder. Completion reaches parity with the engineered-state baseline by about 300 thousand steps with no collapse.\relax }}{48}{figure.caption.48}\protected@file@percent }
+\newlabel{fig:geometry_rl_curve}{{4.5}{48}{Geometry-encoder policy completion against training steps on forward lane-following, trained from scratch on the frozen encoder. Completion reaches parity with the engineered-state baseline by about 300 thousand steps with no collapse.\relax }{figure.caption.48}{}}
+\newlabel{fig:geometry_rl_curve@cref}{{[figure][5][4]4.5}{[1][47][]48}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.8}Obstacle Navigation}{48}{section.4.8}\protected@file@percent }
+\newlabel{sec:obstacle_results}{{4.8}{48}{Obstacle Navigation}{section.4.8}{}}
+\newlabel{sec:obstacle_results@cref}{{[section][8][4]4.8}{[1][48][]48}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8.1}Obstacle Reward and Curriculum Design}{49}{subsection.4.8.1}\protected@file@percent }
+\newlabel{sec:obstacle_reward}{{4.8.1}{49}{Obstacle Reward and Curriculum Design}{subsection.4.8.1}{}}
+\newlabel{sec:obstacle_reward@cref}{{[subsection][1][4,8]4.8.1}{[1][48][]49}}
+\@writefile{toc}{\contentsline {paragraph}{Difficulty as a geometric proxy}{49}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Stop-gate}{49}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Branching hidden-path reward}{49}{section*.51}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Curriculum and training protocol}{50}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8.2}Direct Obstacle Encoding}{50}{subsection.4.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8.3}Observing the Avoidance Path}{50}{subsection.4.8.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8.4}The Stop Decision and Forward Results}{51}{subsection.4.8.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.10}{\ignorespaces Forward obstacle maneuvering, retained static-difficulty model, outcomes stratified by layout difficulty. The policy drives through easy layouts and stops on every hard one with no crash on the hardest, for an overall safe rate of 0.907 at a 0.019 crash rate. The residual crash concentrates in the tight-but-passable band.\relax }}{51}{table.caption.53}\protected@file@percent }
+\newlabel{tab:obstacle_forward_stratified}{{4.10}{51}{Forward obstacle maneuvering, retained static-difficulty model, outcomes stratified by layout difficulty. The policy drives through easy layouts and stops on every hard one with no crash on the hardest, for an overall safe rate of 0.907 at a 0.019 crash rate. The residual crash concentrates in the tight-but-passable band.\relax }{table.caption.53}{}}
+\newlabel{tab:obstacle_forward_stratified@cref}{{[table][10][4]4.10}{[1][51][]51}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8.5}State-Dependent Difficulty in Reverse}{52}{subsection.4.8.5}\protected@file@percent }
+\newlabel{sec:reverse_dynamic_difficulty}{{4.8.5}{52}{State-Dependent Difficulty in Reverse}{subsection.4.8.5}{}}
+\newlabel{sec:reverse_dynamic_difficulty@cref}{{[subsection][5][4,8]4.8.5}{[1][51][]52}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.11}{\ignorespaces Collision geometry by direction. Reverse crashes are dominated by trailer clips, which the body-extent difficulty window addresses, while forward crashes are entirely tractor clips, so the window fix is a reverse-only need.\relax }}{52}{table.caption.54}\protected@file@percent }
+\newlabel{tab:tail_swing}{{4.11}{52}{Collision geometry by direction. Reverse crashes are dominated by trailer clips, which the body-extent difficulty window addresses, while forward crashes are entirely tractor clips, so the window fix is a reverse-only need.\relax }{table.caption.54}{}}
+\newlabel{tab:tail_swing@cref}{{[table][11][4]4.11}{[1][52][]52}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.6}{\ignorespaces Reverse obstacle maneuvering, outcome rates against maximum dynamic difficulty. No crash occurs below the gate near a dynamic difficulty of 0.5, so stopping above it is the correct action.\relax }}{53}{figure.caption.55}\protected@file@percent }
+\newlabel{fig:reverse_obstacle_gate}{{4.6}{53}{Reverse obstacle maneuvering, outcome rates against maximum dynamic difficulty. No crash occurs below the gate near a dynamic difficulty of 0.5, so stopping above it is the correct action.\relax }{figure.caption.55}{}}
+\newlabel{fig:reverse_obstacle_gate@cref}{{[figure][6][4]4.6}{[1][53][]53}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.12}{\ignorespaces Reverse obstacle maneuvering, accepted dynamic-difficulty model, outcomes stratified by the maximum dynamic difficulty reached. Completion falls and stopping rises with difficulty, and no crash occurs below the gate at roughly 0.5. The low-difficulty stops are the accepted articulation limitation, not spurious behavior.\relax }}{53}{table.caption.56}\protected@file@percent }
+\newlabel{tab:obstacle_reverse_stratified}{{4.12}{53}{Reverse obstacle maneuvering, accepted dynamic-difficulty model, outcomes stratified by the maximum dynamic difficulty reached. Completion falls and stopping rises with difficulty, and no crash occurs below the gate at roughly 0.5. The low-difficulty stops are the accepted articulation limitation, not spurious behavior.\relax }{table.caption.56}{}}
+\newlabel{tab:obstacle_reverse_stratified@cref}{{[table][12][4]4.12}{[1][53][]53}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.13}{\ignorespaces Reverse dynamic-difficulty model across three seeds trained from scratch. Two of three seeds reproduce the safe result, and seed 1 converged to a less conservative policy.\relax }}{54}{table.caption.57}\protected@file@percent }
+\newlabel{tab:obstacle_multiseed}{{4.13}{54}{Reverse dynamic-difficulty model across three seeds trained from scratch. Two of three seeds reproduce the safe result, and seed 1 converged to a less conservative policy.\relax }{table.caption.57}{}}
+\newlabel{tab:obstacle_multiseed@cref}{{[table][13][4]4.13}{[1][54][]54}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.14}{\ignorespaces Forward crash rate, static against dynamic difficulty. Dynamic difficulty hurts forward, so forward keeps the static recipe.\relax }}{54}{table.caption.58}\protected@file@percent }
+\newlabel{tab:obstacle_forward_recipe}{{4.14}{54}{Forward crash rate, static against dynamic difficulty. Dynamic difficulty hurts forward, so forward keeps the static recipe.\relax }{table.caption.58}{}}
+\newlabel{tab:obstacle_forward_recipe@cref}{{[table][14][4]4.14}{[1][54][]54}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8.6}Recovering the Difficulty from the Image}{54}{subsection.4.8.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.15}{\ignorespaces Recoverability of the avoidance-path state from the obstacle image, test $R^2$ per component for the forward static and reverse dynamic recipes. The dynamic difficulty channel is highly recoverable in both directions, so there is no perception roadblock. Reverse avoidance-path curvature is softer than forward.\relax }}{55}{table.caption.59}\protected@file@percent }
+\newlabel{tab:obstacle_recoverability}{{4.15}{55}{Recoverability of the avoidance-path state from the obstacle image, test $R^2$ per component for the forward static and reverse dynamic recipes. The dynamic difficulty channel is highly recoverable in both directions, so there is no perception roadblock. Reverse avoidance-path curvature is softer than forward.\relax }{table.caption.59}{}}
+\newlabel{tab:obstacle_recoverability@cref}{{[table][15][4]4.15}{[1][54][]55}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.16}{\ignorespaces Closed-loop vision pipeline, policy driven on image-predicted avoidance-path state with a frozen encoder in the loop. The full pixels-to-control pipeline holds in both directions, a few points of crash above the ground-truth-state policy from prediction noise.\relax }}{55}{table.caption.60}\protected@file@percent }
+\newlabel{tab:vision_closed_loop}{{4.16}{55}{Closed-loop vision pipeline, policy driven on image-predicted avoidance-path state with a frozen encoder in the loop. The full pixels-to-control pipeline holds in both directions, a few points of crash above the ground-truth-state policy from prediction noise.\relax }{table.caption.60}{}}
+\newlabel{tab:vision_closed_loop@cref}{{[table][16][4]4.16}{[1][55][]55}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8.7}Deterministic Safety Gate}{55}{subsection.4.8.7}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.17}{\ignorespaces Reverse obstacle maneuvering with and without the deterministic safety gate, learned policy against pure pursuit on the same hard-layout-dominated pool. Without a gate the learned attempt-versus-abort decision already keeps the learned policy far safer than pure pursuit, which cannot decline a layout. Adding the gate drives the crash rate to near zero for both and leaves their completion comparable. Reference seed. Commit-success is completions over completions plus crashes.\relax }}{57}{table.caption.61}\protected@file@percent }
+\newlabel{tab:safety_gate}{{4.17}{57}{Reverse obstacle maneuvering with and without the deterministic safety gate, learned policy against pure pursuit on the same hard-layout-dominated pool. Without a gate the learned attempt-versus-abort decision already keeps the learned policy far safer than pure pursuit, which cannot decline a layout. Adding the gate drives the crash rate to near zero for both and leaves their completion comparable. Reference seed. Commit-success is completions over completions plus crashes.\relax }{table.caption.61}{}}
+\newlabel{tab:safety_gate@cref}{{[table][17][4]4.17}{[1][56][]57}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.9}Comparison with Classical Controllers}{57}{section.4.9}\protected@file@percent }
+\newlabel{sec:benchmark}{{4.9}{57}{Comparison with Classical Controllers}{section.4.9}{}}
+\newlabel{sec:benchmark@cref}{{[section][9][4]4.9}{[1][57][]57}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.18}{\ignorespaces Forward lane-following controller benchmark on the evaluation pool. Completion is saturated for every method, so it cannot separate them and tracking error does. TD3 is reported over three seeds at the extended 300M-step training budget.\relax }}{58}{table.caption.62}\protected@file@percent }
+\newlabel{tab:benchmark_forward}{{4.18}{58}{Forward lane-following controller benchmark on the evaluation pool. Completion is saturated for every method, so it cannot separate them and tracking error does. TD3 is reported over three seeds at the extended 300M-step training budget.\relax }{table.caption.62}{}}
+\newlabel{tab:benchmark_forward@cref}{{[table][18][4]4.18}{[1][57][]58}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.19}{\ignorespaces Reverse lane-following controller benchmark on the evaluation pool. The learned policy matches pure pursuit on completion to within the seed interval and tracks the path more tightly than every classical controller, including LQR, the strongest classical tracker here. TD3 is reported over three seeds at the extended 300M-step training budget.\relax }}{58}{table.caption.63}\protected@file@percent }
+\newlabel{tab:benchmark_reverse}{{4.19}{58}{Reverse lane-following controller benchmark on the evaluation pool. The learned policy matches pure pursuit on completion to within the seed interval and tracks the path more tightly than every classical controller, including LQR, the strongest classical tracker here. TD3 is reported over three seeds at the extended 300M-step training budget.\relax }{table.caption.63}{}}
+\newlabel{tab:benchmark_reverse@cref}{{[table][19][4]4.19}{[1][57][]58}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.9.1}Information Parity between Learned and Classical Controllers}{59}{subsection.4.9.1}\protected@file@percent }
+\newlabel{sec:information_parity}{{4.9.1}{59}{Information Parity between Learned and Classical Controllers}{subsection.4.9.1}{}}
+\newlabel{sec:information_parity@cref}{{[subsection][1][4,9]4.9.1}{[1][59][]59}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.20}{\ignorespaces Reference-path information available to each method at a single control step on the no-obstacle task. The learned policy's observation is a strict superset of the information used by the pure-pursuit and PID baselines. Only MPC receives an explicit preview of the path ahead.\relax }}{59}{table.caption.64}\protected@file@percent }
+\newlabel{tab:information_parity}{{4.20}{59}{Reference-path information available to each method at a single control step on the no-obstacle task. The learned policy's observation is a strict superset of the information used by the pure-pursuit and PID baselines. Only MPC receives an explicit preview of the path ahead.\relax }{table.caption.64}{}}
+\newlabel{tab:information_parity@cref}{{[table][20][4]4.20}{[1][59][]59}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.10}Failure Modes and Deployment Relevance}{60}{section.4.10}\protected@file@percent }
+\newlabel{sec:failure_analysis}{{4.10}{60}{Failure Modes and Deployment Relevance}{section.4.10}{}}
+\newlabel{sec:failure_analysis@cref}{{[section][10][4]4.10}{[1][60][]60}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.11}Summary}{60}{section.4.11}\protected@file@percent }
+\@setckpt{chapters/04_learning_and_results}{
+\setcounter{page}{62}
+\setcounter{equation}{23}
+\setcounter{enumi}{5}
+\setcounter{enumii}{0}
+\setcounter{enumiii}{0}
+\setcounter{enumiv}{0}
+\setcounter{footnote}{0}
+\setcounter{mpfootnote}{0}
+\setcounter{part}{0}
+\setcounter{chapter}{4}
+\setcounter{section}{11}
+\setcounter{subsection}{0}
+\setcounter{subsubsection}{0}
+\setcounter{paragraph}{0}
+\setcounter{subparagraph}{0}
+\setcounter{figure}{6}
+\setcounter{table}{20}
+\setcounter{parentequation}{0}
+\setcounter{nlinenum}{0}
+\setcounter{LT@tables}{2}
+\setcounter{LT@chunks}{1}
+\setcounter{caption@flags}{2}
+\setcounter{continuedfloat}{0}
+\setcounter{subfigure}{0}
+\setcounter{subtable}{0}
+\setcounter{float@type}{16}
+\setcounter{Item}{10}
+\setcounter{Hfootnote}{0}
+\setcounter{bookmark@seq@number}{63}
+\setcounter{algorithm}{0}
+\setcounter{ALG@line}{0}
+\setcounter{ALG@rem}{0}
+\setcounter{ALG@nested}{0}
+\setcounter{ALG@Lnr}{2}
+\setcounter{ALG@blocknr}{10}
+\setcounter{ALG@storecount}{0}
+\setcounter{ALG@tmpcounter}{0}
+\setcounter{lstnumber}{1}
+\setcounter{section@level}{1}
+\setcounter{lstlisting}{0}
+}

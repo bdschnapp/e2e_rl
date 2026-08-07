@@ -66,21 +66,6 @@
     urlcolor=blue
 }
 
-% Used by chapters/placeholder/*.tex to stand in for figures, tables, and
-% chapter body text without disturbing section/figure/table/equation
-% numbering when a placeholder chapter is swapped in for review.
-\newcommand{\reviewplaceholder}[1]{%
-    \fbox{%
-        \begin{varwidth}{0.85\textwidth}
-            \centering
-            \vspace{0.75em}
-            \textbf{[Omitted for review]}\\[0.5em]
-            #1
-            \vspace{0.75em}
-        \end{varwidth}
-    }%
-}
-
 \makeatletter
 \newcommand{\safegraphic}[3][]{%
     \begingroup
@@ -273,18 +258,16 @@ $\Delta t$ & Simulation timestep \\
 \pagenumbering{arabic}
 
 % Chapters
-\include{chapters/placeholder/01_introduction}
+\include{chapters/01_introduction}
 \include{chapters/02_literature_review}
 \include{chapters/03_modeling_simulation_problem}
-\include{chapters/04_learning_and_results}   % MERGED (was 04_learning_framework + 05_results_discussion)
-\include{chapters/06_sim_to_real}
-\include{chapters/placeholder/07_conclusion}
+\include{chapters/04_learning_and_results}  
+\include{chapters/05_sim_to_real}
+\include{chapters/06_conclusion}
 
 % Appendices
 \appendix
 \include{appendices/appendix_classical_controllers}
-%\include{appendices/placeholder/appendix_hyperparameters}
-%\include{appendices/placeholder/appendix_additional_plots}
 \include{appendices/appendix_high_fidelity_geographic_simulator}
 
 % Bibliography

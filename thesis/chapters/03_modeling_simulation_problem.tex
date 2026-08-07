@@ -11,7 +11,7 @@ This level of fidelity is sufficient for the control tasks studied in this thesi
 
 \section{Trailer Articulation and Reverse Instability}
 
-\Cref{fig:tractor_trailer_geometry} illustrates the tractor-trailer geometry, the tractor and trailer headings $\psi$ and $\psi_t$, and the articulation angle $\gamma = \psi - \psi_t$ used throughout this section.
+\Cref{fig:tractor_trailer_geometry} illustrates the tractor-trailer geometry, the tractor and trailer headings $\psi$ and $\psi_t$, and the articulation angle $\gamma = \psi - \psi_t$ used throughout this section. The hitch is drawn at the rear axle because the reference tractor places it just $0.25$\,m ahead of that axle, under a tenth of the $2.95$\,m tractor wheelbase, and the model retains the offset $L_h$ as a free parameter rather than assuming it away.
 
 \begin{figure}[t]
   \centering
@@ -56,6 +56,13 @@ The values in \cref{tab:vehicle_params} describe the bobtail tractor, which defi
 The training and evaluation environment is a custom 2D simulation built on the Farama Foundation Gymnasium library~\cite{towers2024gymnasium}. Gymnasium provides a standardized API for environments to integrate directly with reinforcement learning algorithm libraries, including Stable Baselines3~\cite{raffin2021sb3}.
 
 The simulation is implemented in Python, with Pygame~\cite{pygame} providing collision masks and rendering. It was built around a rendering pipeline that draws the tractor-trailer and lane geometry as a top-down frame. This representation can be viewed live for monitoring, or passed directly to the image encoder as a bird's-eye-view (BEV) observation, making high-dimensional perception available to the agent without a separate image-synthesis step. At each timestep, the discrete-time tractor-trailer state-space equations are re-evaluated from the previous state and control inputs, updating the vehicle position, heading, hitch angle, and associated error signals, and Pygame redraws the scene as a 2D top-down view from which the BEV image observation is cropped. For large-scale training this rendered observation is later produced without the Pygame renderer by the batched GPU simulator (\cref{sec:batched_sim}), but the rendering pipeline remains the conceptual origin of the BEV observation and the reference for what it encodes.
+
+\begin{figure}[H]
+  \centering
+  \safegraphic[width=0.55\textwidth]{figures/pygame/sim_bev.png}{Top-down simulation view of the tractor and trailer inside the lane corridor.}
+  \caption{The simulated scene from which the bird's-eye-view observation is cropped. The drivable lane corridor is white and everything outside it is blocked; the tractor is blue and the trailer orange. This top-down view, centered on the vehicle and reduced to a $32 \times 32$ crop, is the image the policy receives.}
+  \label{fig:sim_bev}
+\end{figure}
 
 The simulation environment includes:
 

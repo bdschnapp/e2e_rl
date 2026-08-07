@@ -2,3 +2,4 @@ nohup.out
 venv
 logs
 eval_logs
+*.zip

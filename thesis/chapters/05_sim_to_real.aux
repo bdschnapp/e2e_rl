@@ -1,0 +1,135 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\citation{smith1957closer}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Sim-to-Real Deployment}{62}{chapter.5}\protected@file@percent }
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{ch:sim_to_real}{{5}{62}{Sim-to-Real Deployment}{chapter.5}{}}
+\newlabel{ch:sim_to_real@cref}{{[chapter][5][]5}{[1][62][]62}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}Overview}{62}{section.5.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces The physical articulated platform: an AgileX Hunter SE tractor coupled to the lab trailer through a revolute hitch at the tractor rear axle.\relax }}{63}{figure.caption.65}\protected@file@percent }
+\newlabel{fig:hw_platform}{{5.1}{63}{The physical articulated platform: an AgileX Hunter SE tractor coupled to the lab trailer through a revolute hitch at the tractor rear axle.\relax }{figure.caption.65}{}}
+\newlabel{fig:hw_platform@cref}{{[figure][1][5]5.1}{[1][62][]63}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}Hardware Platform}{63}{section.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Tractor Vehicle}{63}{section*.66}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Trailer}{63}{section*.67}\protected@file@percent }
+\citation{biber2003ndt}
+\citation{macenski2022ros2}
+\citation{kato2018autoware}
+\@writefile{toc}{\contentsline {paragraph}{Sensor Suite}{64}{section*.68}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}Software Architecture}{64}{section.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.1}Middleware and Framework}{64}{subsection.5.3.1}\protected@file@percent }
+\citation{dolgov2010hybridastar}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.2}{\ignorespaces Deployment software stack. Autoware's localization and perception are retained unchanged, while the planning and control layers (the conventional freespace planner and MPC/LQR tracker) are replaced by the learned RL bridge. The two control paths are mutually exclusive and selected at launch.\relax }}{65}{figure.caption.69}\protected@file@percent }
+\newlabel{fig:autoware_stack}{{5.2}{65}{Deployment software stack. Autoware's localization and perception are retained unchanged, while the planning and control layers (the conventional freespace planner and MPC/LQR tracker) are replaced by the learned RL bridge. The two control paths are mutually exclusive and selected at launch.\relax }{figure.caption.69}{}}
+\newlabel{fig:autoware_stack@cref}{{[figure][2][5]5.2}{[1][65][]65}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.2}Relationship to the Conventional Articulated Pipeline}{65}{subsection.5.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.3}RL Bridge Node Architecture}{65}{subsection.5.3.3}\protected@file@percent }
+\citation{raffin2021sb3}
+\citation{paszke2019pytorch}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.3}{\ignorespaces RL bridge dataflow. The \texttt  {lane\_reference\_node}, the LiDAR-based \texttt  {hitch\_angle\_estimator}, and Autoware localization supply the policy observation to \texttt  {rl\_bridge\_node}, which queries the TD3 policy at 10\,Hz and emits a control command that \texttt  {controller\_canbridge} translates into Hunter SE CAN frames. Vehicle velocity and steering feedback return through the same bridge.\relax }}{67}{figure.caption.70}\protected@file@percent }
+\newlabel{fig:rl_bridge}{{5.3}{67}{RL bridge dataflow. The \texttt {lane\_reference\_node}, the LiDAR-based \texttt {hitch\_angle\_estimator}, and Autoware localization supply the policy observation to \texttt {rl\_bridge\_node}, which queries the TD3 policy at 10\,Hz and emits a control command that \texttt {controller\_canbridge} translates into Hunter SE CAN frames. Vehicle velocity and steering feedback return through the same bridge.\relax }{figure.caption.70}{}}
+\newlabel{fig:rl_bridge@cref}{{[figure][3][5]5.3}{[1][66][]67}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.4}{\ignorespaces The deployment running in RViz. The left panel shows the occupancy image the policy consumes, drivable in white and blocked in black, built from the lanelet map and the infrastructure obstacle list. The right panel shows the same scene in the map frame, with the tractor and trailer, the LiDAR return field, and the estimated hitch angle annotated on the vehicle.\relax }}{67}{figure.caption.71}\protected@file@percent }
+\newlabel{fig:rviz_deployment}{{5.4}{67}{The deployment running in RViz. The left panel shows the occupancy image the policy consumes, drivable in white and blocked in black, built from the lanelet map and the infrastructure obstacle list. The right panel shows the same scene in the map frame, with the tractor and trailer, the LiDAR return field, and the estimated hitch angle annotated on the vehicle.\relax }{figure.caption.71}{}}
+\newlabel{fig:rviz_deployment@cref}{{[figure][4][5]5.4}{[1][66][]67}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.4}Hitch Angle Estimation}{67}{subsection.5.3.4}\protected@file@percent }
+\newlabel{sec:hitch_estimation}{{5.3.4}{67}{Hitch Angle Estimation}{subsection.5.3.4}{}}
+\newlabel{sec:hitch_estimation@cref}{{[subsection][4][5,3]5.3.4}{[1][67][]67}}
+\citation{zhang2017lshape}
+\citation{kalman1960new}
+\@writefile{toc}{\contentsline {paragraph}{Region of interest}{68}{section*.72}\protected@file@percent }
+\newlabel{eq:hitch_roi_shift}{{5.1}{68}{Region of interest}{equation.5.3.1}{}}
+\newlabel{eq:hitch_roi_shift@cref}{{[equation][1][5]5.1}{[1][68][]68}}
+\@writefile{toc}{\contentsline {paragraph}{Rectangle fitting}{68}{section*.73}\protected@file@percent }
+\newlabel{eq:hitch_closeness}{{5.2}{68}{Rectangle fitting}{equation.5.3.2}{}}
+\newlabel{eq:hitch_closeness@cref}{{[equation][2][5]5.2}{[1][68][]68}}
+\newlabel{eq:hitch_fit}{{5.3}{68}{Rectangle fitting}{equation.5.3.3}{}}
+\newlabel{eq:hitch_fit@cref}{{[equation][3][5]5.3}{[1][68][]68}}
+\@writefile{toc}{\contentsline {paragraph}{Articulation angle and filtering}{68}{section*.74}\protected@file@percent }
+\newlabel{eq:hitch_raw_angle}{{5.4}{68}{Articulation angle and filtering}{equation.5.3.4}{}}
+\newlabel{eq:hitch_raw_angle@cref}{{[equation][4][5]5.4}{[1][68][]68}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.5}Trailer State Estimation}{69}{subsection.5.3.5}\protected@file@percent }
+\newlabel{sec:trailer_state}{{5.3.5}{69}{Trailer State Estimation}{subsection.5.3.5}{}}
+\newlabel{sec:trailer_state@cref}{{[subsection][5][5,3]5.3.5}{[1][69][]69}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.4}Sim-to-Real Gap Analysis}{69}{section.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Vehicle Scale and Parameterization}{70}{section*.75}\protected@file@percent }
+\newlabel{sec:gap_scale}{{5.4}{70}{Vehicle Scale and Parameterization}{section*.75}{}}
+\newlabel{sec:gap_scale@cref}{{[section][4][5]5.4}{[1][69][]70}}
+\@writefile{toc}{\contentsline {paragraph}{Command Latency and Actuation Dynamics}{70}{section*.76}\protected@file@percent }
+\newlabel{sec:gap_actuation}{{5.4}{70}{Command Latency and Actuation Dynamics}{section*.76}{}}
+\newlabel{sec:gap_actuation@cref}{{[section][4][5]5.4}{[1][70][]70}}
+\@writefile{toc}{\contentsline {paragraph}{Hitch-Angle Sensing}{70}{section*.77}\protected@file@percent }
+\newlabel{sec:gap_hitch}{{5.4}{70}{Hitch-Angle Sensing}{section*.77}{}}
+\newlabel{sec:gap_hitch@cref}{{[section][4][5]5.4}{[1][70][]70}}
+\@writefile{toc}{\contentsline {paragraph}{Path Distribution}{71}{section*.78}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Jackknife Prevention}{71}{section*.79}\protected@file@percent }
+\citation{cao2023infrastructure}
+\@writefile{toc}{\contentsline {paragraph}{Localization Dependency}{72}{section*.80}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.5}Infrastructure Sensor Nodes}{72}{section.5.5}\protected@file@percent }
+\newlabel{sec:sensor_nodes}{{5.5}{72}{Infrastructure Sensor Nodes}{section.5.5}{}}
+\newlabel{sec:sensor_nodes@cref}{{[section][5][5]5.5}{[1][72][]72}}
+\newlabel{fig:sensor_nodes}{{\caption@xref {fig:sensor_nodes}{ on input line 185}}{73}{Infrastructure Sensor Nodes}{figure.caption.81}{}}
+\newlabel{fig:sensor_nodes@cref}{{[section][5][5]5.5}{[1][73][]73}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.6}Deployment Results}{73}{section.5.6}\protected@file@percent }
+\newlabel{sec:deployment_results}{{5.6}{73}{Deployment Results}{section.5.6}{}}
+\newlabel{sec:deployment_results@cref}{{[section][6][5]5.6}{[1][73][]73}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.1}Trial Protocol}{73}{subsection.5.6.1}\protected@file@percent }
+\newlabel{sec:deployment_protocol}{{5.6.1}{73}{Trial Protocol}{subsection.5.6.1}{}}
+\newlabel{sec:deployment_protocol@cref}{{[subsection][1][5,6]5.6.1}{[1][73][]73}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.2}Tracking Performance}{74}{subsection.5.6.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Lane following on the physical platform, the four A-to-B trials recorded on 2026-08-05, two in each direction, over the same surveyed lane segment. Statistics cover the policy-controlled segment of each trial and are computed geometrically from the localization estimate against the reference centerline, independently of the policy's own observation. The final column is the fraction of control ticks at which the commanded steering rate sat on its saturation limit.\relax }}{74}{table.caption.82}\protected@file@percent }
+\newlabel{tab:deployment_runs}{{5.1}{74}{Lane following on the physical platform, the four A-to-B trials recorded on 2026-08-05, two in each direction, over the same surveyed lane segment. Statistics cover the policy-controlled segment of each trial and are computed geometrically from the localization estimate against the reference centerline, independently of the policy's own observation. The final column is the fraction of control ticks at which the commanded steering rate sat on its saturation limit.\relax }{table.caption.82}{}}
+\newlabel{tab:deployment_runs@cref}{{[table][1][5]5.1}{[1][74][]74}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.5}{\ignorespaces Tractor tracks for the four deployment trials against the surveyed lane centerline. Solid tracks are forward trials, dashed tracks are reverse. The two forward tracks are nearly coincident and largely hide one another. The forward trials sit on the reference lane throughout, while the reverse trials bow outward by up to two meters before converging near point B.\relax }}{75}{figure.caption.83}\protected@file@percent }
+\newlabel{fig:deployment_trajectories}{{5.5}{75}{Tractor tracks for the four deployment trials against the surveyed lane centerline. Solid tracks are forward trials, dashed tracks are reverse. The two forward tracks are nearly coincident and largely hide one another. The forward trials sit on the reference lane throughout, while the reverse trials bow outward by up to two meters before converging near point B.\relax }{figure.caption.83}{}}
+\newlabel{fig:deployment_trajectories@cref}{{[figure][5][5]5.5}{[1][74][]75}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.3}Articulation Limit Cycle}{75}{subsection.5.6.3}\protected@file@percent }
+\newlabel{sec:deployment_limit_cycle}{{5.6.3}{75}{Articulation Limit Cycle}{subsection.5.6.3}{}}
+\newlabel{sec:deployment_limit_cycle@cref}{{[subsection][3][5,6]5.6.3}{[1][75][]75}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.6}{\ignorespaces The four deployment trials against distance traveled along the reference path. (a) Trailer cross-track error, with the lane corridor shaded. (b) Articulation angle against the operational and jackknife limits. (c) Commanded steering rate against its saturation limit. Solid traces are forward trials, dashed traces are reverse. The reverse trials oscillate continuously and hold the steering rate on its limit, while the forward trials do neither.\relax }}{76}{figure.caption.84}\protected@file@percent }
+\newlabel{fig:deployment_tracking}{{5.6}{76}{The four deployment trials against distance traveled along the reference path. (a) Trailer cross-track error, with the lane corridor shaded. (b) Articulation angle against the operational and jackknife limits. (c) Commanded steering rate against its saturation limit. Solid traces are forward trials, dashed traces are reverse. The reverse trials oscillate continuously and hold the steering rate on its limit, while the forward trials do neither.\relax }{figure.caption.84}{}}
+\newlabel{fig:deployment_tracking@cref}{{[figure][6][5]5.6}{[1][76][]76}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.7}Summary}{77}{section.5.7}\protected@file@percent }
+\@setckpt{chapters/05_sim_to_real}{
+\setcounter{page}{78}
+\setcounter{equation}{6}
+\setcounter{enumi}{5}
+\setcounter{enumii}{0}
+\setcounter{enumiii}{0}
+\setcounter{enumiv}{0}
+\setcounter{footnote}{0}
+\setcounter{mpfootnote}{0}
+\setcounter{part}{0}
+\setcounter{chapter}{5}
+\setcounter{section}{7}
+\setcounter{subsection}{0}
+\setcounter{subsubsection}{0}
+\setcounter{paragraph}{0}
+\setcounter{subparagraph}{0}
+\setcounter{figure}{6}
+\setcounter{table}{1}
+\setcounter{parentequation}{0}
+\setcounter{nlinenum}{0}
+\setcounter{LT@tables}{2}
+\setcounter{LT@chunks}{1}
+\setcounter{caption@flags}{0}
+\setcounter{continuedfloat}{0}
+\setcounter{subfigure}{0}
+\setcounter{subtable}{0}
+\setcounter{float@type}{16}
+\setcounter{Item}{10}
+\setcounter{Hfootnote}{0}
+\setcounter{bookmark@seq@number}{79}
+\setcounter{algorithm}{0}
+\setcounter{ALG@line}{0}
+\setcounter{ALG@rem}{0}
+\setcounter{ALG@nested}{0}
+\setcounter{ALG@Lnr}{2}
+\setcounter{ALG@blocknr}{10}
+\setcounter{ALG@storecount}{0}
+\setcounter{ALG@tmpcounter}{0}
+\setcounter{lstnumber}{1}
+\setcounter{section@level}{1}
+\setcounter{lstlisting}{0}
+}
