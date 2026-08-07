@@ -117,8 +117,7 @@ $k_{\mathrm{hitch}}\,\gamma$ to counter the open-loop-unstable articulation,
 Both laws are stateless functions of the observation, so the controller is fully
 vectorized across the parallel environments. Besides serving as a benchmark, the tuned
 pure-pursuit controller doubles as the reference (``teacher'') signal for the guided
-reward and as a feasibility oracle. A path that a well-tuned pure-pursuit controller can
-complete is deemed geometrically feasible.
+reward.
 
 \section{PID}
 \label{sec:app_cc_pid}
@@ -348,6 +347,6 @@ runs both driving directions and, for each controller, records three per-episode
 The harness handles the stateful controllers by passing a per-environment termination mask
 into the controller at each step, so the PID integrator \eqref{eq:app_cc_pid_int} and the
 MPC warm start are reset exactly when an environment restarts. Evaluating every controller
-in the same loop, on the same feasible path pool, is what makes the reinforcement-learning
-comparison in the results chapter a fair, like-for-like one. The measured numbers are
+in the same loop, on the same unfiltered evaluation pool, is what makes the reinforcement-learning
+comparison in the results chapter fair. The measured numbers are
 reported there rather than in this appendix.

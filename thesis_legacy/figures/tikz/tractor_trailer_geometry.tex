@@ -1,0 +1,68 @@
+% Tractor-trailer geometry (Fig. 3.1).
+% Angles chosen for legibility, not to scale: tractor heading psi = 45 deg,
+% trailer heading psi_t = 15 deg (so gamma = 30 deg), steer delta = 22 deg.
+% Angle arcs are nested at three distinct radii (gamma inner, psi middle,
+% psi_t outer) so no two labels can collide.
+\begin{tikzpicture}[
+    >=Stealth,line join=round,scale=1.45,
+    every node/.style={font=\small},
+    body/.style={line width=1.1pt},
+    wheel/.style={line width=3.2pt,line cap=round},
+    ref/.style={dashed,gray!65},
+    lead/.style={gray!65,line width=0.4pt},
+    ang/.style={draw,->,thin,black}
+  ]
+
+  % ---- key points -------------------------------------------------------
+  \coordinate (R)  at (0,0);              % tractor rear axle = hitch (L_h ~ 0)
+  \coordinate (F)  at (45:3.3);           % tractor front axle
+  \coordinate (T)  at (195:4.6);          % trailer axle (trails behind hitch)
+  \coordinate (Xr) at (3.9,0);            % +x reference ray from the hitch
+  \coordinate (Tf) at (15:3.4);           % trailer forward-heading ray
+  \coordinate (Fh) at ($(F)+(45:1.5)$);   % tractor heading extended past front axle
+  \coordinate (Fw) at ($(F)+(67:1.35)$);  % steered front-wheel heading
+
+  % ---- global frame (parked clear of both bodies) -----------------------
+  \begin{scope}[shift={(-5.3,2.1)}]
+    \draw[->,gray!70] (0,0) -- (0.9,0) node[right=1pt,black]{$x$};
+    \draw[->,gray!70] (0,0) -- (0,0.9) node[above=1pt,black]{$y$};
+  \end{scope}
+
+  % ---- reference and heading rays (drawn first, so bodies sit on top) ---
+  \draw[ref] (R) -- (Xr);
+  \draw[ref] (R) -- (Tf);
+  \draw[ref] (F) -- (Fh);
+
+  % ---- bodies -----------------------------------------------------------
+  \draw[body] (R) -- (F);                 % tractor
+  \draw[body] (R) -- (T);                 % trailer
+
+  % ---- wheels (short segments along their local heading) ----------------
+  \draw[wheel] ($(R)+(45:-0.32)$) -- ($(R)+(45:0.32)$);   % tractor rear
+  \draw[wheel] ($(F)+(67:-0.32)$) -- ($(F)+(67:0.32)$);   % steered front
+  \draw[wheel] ($(T)+(15:-0.32)$) -- ($(T)+(15:0.32)$);   % trailer
+  \draw[->,line width=0.9pt] (F) -- (Fw);                 % steered-wheel heading
+
+  % ---- hitch (open marker so it reads against the rear wheel) -----------
+  \draw[fill=white,line width=0.9pt] (R) circle (2.6pt);
+
+  % ---- angles: nested radii, labels pushed clear ------------------------
+  \pic[ang,angle radius=0.80cm,angle eccentricity=1.36,"$\gamma$"]   {angle=Tf--R--F};
+  \pic[ang,angle radius=1.60cm,angle eccentricity=1.22,"$\psi$"]     {angle=Xr--R--F};
+  \pic[ang,angle radius=2.60cm,angle eccentricity=1.14,"$\psi_t$"]   {angle=Xr--R--Tf};
+  \pic[ang,angle radius=0.85cm,angle eccentricity=1.40,"$\delta$"]   {angle=Fh--F--Fw};
+
+  % ---- length labels ----------------------------------------------------
+  \node at ($(R)!0.45!(T)+(105:0.46)$) {$L_t$};
+  \node at ($(R)!0.50!(F)+(135:0.44)$) {$L$};
+
+  % ---- part labels (leader lines keep text off the geometry) ------------
+  \draw[lead] (R) -- (1.15,-0.78);
+  \node[anchor=west,inner sep=1pt] at (1.20,-0.80) {rear axle (hitch)};
+
+  \node[anchor=north,inner sep=3pt] at ($(T)+(0,-0.30)$) {trailer axle};
+
+  \draw[lead] (F) -- ($(F)+(150:0.80)$);
+  \node[anchor=east,inner sep=1pt] at ($(F)+(150:0.85)$) {front axle};
+
+\end{tikzpicture}

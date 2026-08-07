@@ -1,0 +1,36 @@
+\chapter{High-Fidelity Geographic Simulation}
+\label{app:geo_sim}
+
+The 2D Pygame environment of \cref{ch:modeling} is deliberately abstract. It captures the tractor-trailer kinematics and lane geometry but not the three-dimensional and photometric structure that the deployed perception and localization stack actually consumes. A complementary, higher-fidelity simulation environment was therefore built to exercise the full Autoware stack (LiDAR-based NDT localization, perception, and the RL bridge) inside a geographically faithful ``digital twin'' of a real operating site as a complement to the physical trials.
+
+This environment is built on the Gazebo simulator~\cite{koenig2004gazebo}, extending the open-source Rudis Laboratories georeferenced world-generation toolchain~\cite{perseghetti2021rudisworlds}. Real locations are reconstructed as textured 3D meshes authored in Blender~\cite{blender}, whose physically based materials are baked into texture maps for efficient real-time rendering. Building on that toolchain, the target distribution-center site was rebuilt in Blender directly from public geographic data, with both layers imported through the Blender GIS plugin. Building footprints were pulled from OpenStreetMap~\cite{openstreetmap} and extruded to form the 3D building meshes, and these were draped over aerial orthoimagery from the ESRI World Imagery basemap, replacing the lower-resolution ground textures of the original toolchain with the higher-resolution ESRI imagery (\cref{fig:geo_sim_blender}). Because the reconstruction is driven entirely by the OpenStreetMap footprints and the ESRI imagery layer, the same procedure generates a Gazebo world for any real location, rather than being tied to a single hand-authored site. Each world is anchored to GIS coordinates through the SDF \texttt{spherical\_coordinates} element, which fixes the simulation origin to a real latitude, longitude, and elevation. The \texttt{electrans} tractor and trailer models are then spawned into these worlds, so that the same articulated vehicle can be driven through a virtual replica of the target environment (\cref{fig:electrans_model}).
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.85\textwidth]{figures/ch6/6.5/blender_esri_reconstruction.png}{Blender reconstruction of the target distribution center: OpenStreetMap building footprints extruded over ESRI World Imagery aerial orthophotography, both imported through the Blender GIS plugin.}
+    \caption{Reconstruction of the target distribution-center site in Blender. OpenStreetMap building footprints are extruded to form the 3D building meshes and draped over high-resolution aerial orthoimagery from the ESRI World Imagery basemap, both layers imported through the Blender GIS plugin. The same GIS-driven procedure reconstructs any real distribution center from its geographic coordinates.}
+    \label{fig:geo_sim_blender}
+\end{figure}
+
+\begin{figure}[H]
+        \centering
+        \safegraphic[width=\textwidth]{figures/ch6/6.5/gazebo_dc_loading_dock.png}{The electrans tractor-trailer spawned at a loading dock in the georeferenced Gazebo world.}
+        \caption{The \texttt{electrans} tractor spawned at a loading dock within the world.}
+        \label{fig:geo_sim_gazebo_vehicle}
+\end{figure}
+
+Because the world is georeferenced and rendered in three dimensions, this environment directly targets several of the sim-to-real gaps catalogued above. A LiDAR sensor model produces point clouds against real building and ground geometry, so NDT scan matching and the onboard hitch-angle estimator (\cref{sec:hitch_estimation}) can be exercised against realistic returns; the geographic anchoring lets the GNSS and map frames be reproduced consistently with the physical site; and the photorealistic rendering makes it possible to evaluate camera-based perception that the abstract 2D environment cannot represent. It is also the natural setting in which to prototype the infrastructure sensor nodes of \cref{sec:sensor_nodes}, since virtual LiDAR units can be placed at arbitrary surveyed locations in the georeferenced world. The environment and its GIS-driven world-generation pipeline are complete. What remains is the quantitative characterization of policy behavior within it, which is identified as future work in \cref{ch:conclusion}.
+
+\subsection{Articulated Vehicle Model}
+\label{sec:electrans_model}
+
+The articulated vehicle spawned into the georeferenced worlds is the \texttt{electrans} tractor-trailer, shown in \cref{fig:electrans_model}. It is defined in the conventional ROS/Gazebo manner as a URDF assembled from \texttt{xacro} macros, rather than as a hand-written SDF model. The tractor shares its entire \texttt{xacro} description with the AgileX Hunter model used elsewhere in the project. The same parameterized macros define an Ackermann steering geometry (a pair of revolute front-steering links bounded by the maximum steering angle), continuous-rotation rear wheels coupled by a mimic joint, the link inertials, and the Gazebo friction and \texttt{ros2\_control} blocks. The two vehicles differ only in scale and in the body mesh. The Hunter's compact chassis mesh is replaced by a cab-over terminal-tractor body, and the model is scaled accordingly. Reusing a single \texttt{xacro} description in this way keeps the simulated tractor kinematically consistent with the physical Hunter platform on which the policies are deployed, while presenting the larger visual form of the terminal tractor this thesis targets.
+
+The trailer is coupled to the tractor through a revolute hitch joint at the tractor rear axle, matching the hitch convention of the kinematic model in \cref{ch:modeling}. It is modeled as a single box body carried on one axle and reuses the same wheel meshes and inertial macros as the tractor, so that the complete articulated system is expressed through the shared macro library. Because the model is authored as standard xacro, it drops directly into both the Gazebo digital twin of this section and the wider Autoware simulation tooling without modification.
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.75\textwidth]{figures/ch6/6.5/electrans_model.png}{The electrans tractor-trailer model: a cab-over tractor coupled to a box trailer through a revolute hitch joint.}
+    \caption{The \texttt{electrans} tractor-trailer model. The tractor reuses the AgileX Hunter \texttt{xacro} description (Ackermann front steering, continuous rear wheels, and \texttt{ros2\_control} blocks), rescaled and given a cab-over terminal-tractor body mesh. The box trailer is attached through a revolute hitch joint at the tractor rear axle.}
+    \label{fig:electrans_model}
+\end{figure}

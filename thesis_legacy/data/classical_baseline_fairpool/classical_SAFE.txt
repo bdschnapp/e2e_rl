@@ -1,0 +1,10 @@
+[forward]
+    PurePursuit  compl=1.000 cte=0.145 hitch=0.083
+    PID          compl=1.000 cte=0.167 hitch=0.097
+    LQR          compl=1.000 cte=0.255 hitch=0.099
+    MPC          compl=1.000 cte=0.265 hitch=0.102
+[reverse]
+    PurePursuit  compl=1.000 cte=0.910 hitch=0.132
+    PID          compl=0.898 cte=0.804 hitch=0.262
+    LQR          compl=0.964 cte=0.582 hitch=0.166
+    MPC          compl=0.991 cte=0.828 hitch=0.133

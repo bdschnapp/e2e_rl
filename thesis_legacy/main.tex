@@ -1,0 +1,294 @@
+\documentclass[12pt]{report}
+
+% Page layout
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% Absorb minor justification overfulls (last-resort stretch) without altering normal spacing.
+\setlength{\emergencystretch}{3em}
+
+% Math
+\usepackage{amsmath,amssymb,amsfonts}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{array}
+\usepackage{longtable}
+
+% Figures
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{varwidth}
+
+% Lists
+\usepackage{enumitem}
+
+% Links
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+% Algorithms
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Code listings
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Plots
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,shapes.geometric,fit,backgrounds,angles,quotes}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% Sectioning: make \paragraph a display heading on its own line (bold, no
+% trailing period) rather than a run-in heading.
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+  {-3.25ex \@plus -1ex \@minus -.2ex}%
+  {1.2ex \@plus .2ex}%
+  {\normalfont\normalsize\bfseries}}
+\makeatother
+
+% Bibliography
+\usepackage{cite}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% Used by chapters/placeholder/*.tex to stand in for figures, tables, and
+% chapter body text without disturbing section/figure/table/equation
+% numbering when a placeholder chapter is swapped in for review.
+\newcommand{\reviewplaceholder}[1]{%
+    \fbox{%
+        \begin{varwidth}{0.85\textwidth}
+            \centering
+            \vspace{0.75em}
+            \textbf{[Omitted for review]}\\[0.5em]
+            #1
+            \vspace{0.75em}
+        \end{varwidth}
+    }%
+}
+
+\makeatletter
+\newcommand{\safegraphic}[3][]{%
+    \begingroup
+    \edef\thesis@graphicpath{#2}%
+    \IfFileExists{\thesis@graphicpath}{%
+        \includegraphics[#1]{#2}%
+    }{%
+        \fbox{%
+            \begin{varwidth}{0.85\textwidth}
+                \centering
+                \vspace{0.75em}
+                \textbf{Figure unavailable}\\[0.5em]
+                #3\\[0.5em]
+                \texttt{\detokenize{#2}}
+                \vspace{0.75em}
+            \end{varwidth}
+        }%
+    }%
+    \endgroup
+}
+\makeatother
+
+\title{Autonomous Articulated Vehicle Control via Deep Reinforcement Learning and High-Dimensional Perception}
+\author{Benjamin David Schnapp}
+\date{\today}
+
+% =====================================================
+% THESIS TODO NOTES
+% =====================================================
+% - Choose 2 readers
+% - Schedule seminar
+% - Apply reader suggestions
+% - Target thesis complete by early July
+% - Schedule seminar for late July
+
+\begin{document}
+
+\pagenumbering{roman}
+\pagestyle{plain}
+
+% =====================================================
+% Title page (UW GSPA format; see reference_papers/sample_title_page.pdf)
+% =====================================================
+\thispagestyle{empty}
+\begin{center}
+\vspace*{\fill}
+{\LARGE\bfseries Autonomous Articulated Vehicle Control via Deep Reinforcement Learning and High-Dimensional Perception\par}
+\vspace{2.5cm}
+
+by\par
+\vspace{1cm}
+
+Benjamin David Schnapp\par
+\vspace{2.5cm}
+
+A thesis\\
+presented to the University of Waterloo\\
+in fulfillment of the\\
+thesis requirement for the degree of\\
+Master of Applied Science\\
+in\\
+Mechanical and Mechatronics Engineering\par
+\vspace{2.5cm}
+
+Waterloo, Ontario, Canada, 2026\par
+\vspace{1cm}
+
+\textcopyright\ Benjamin David Schnapp 2026\par
+\vspace*{\fill}
+\end{center}
+\clearpage
+
+% =====================================================
+% UW GSPA required front matter
+% Order per uwaterloo.ca thesis-formatting: Title, Author's Declaration,
+% [Statement of Contributions if applicable], Abstract, Acknowledgements,
+% then Table of Contents / List of Figures / List of Tables.
+% =====================================================
+
+\begin{center}\textbf{Author's Declaration}\end{center}
+\phantomsection\addcontentsline{toc}{chapter}{Author's Declaration}
+\vspace{1em}
+
+\noindent I hereby declare that I am the sole author of this thesis. This is a true copy of the
+thesis, including any required final revisions, as accepted by my examiners.
+
+\bigskip
+\noindent I understand that my thesis may be made electronically available to the public.
+\clearpage
+
+% ----- Statement of Contributions (DEFERRED: confirm with advisor whether required) -----
+% UW requires this page IF the thesis contains co-authored or previously published material.
+% Likely applicable here. Collaborations to declare once confirmed:
+%   - Infrastructure sensor-node code was authored entirely by another person; the author
+%     contributed only the ROS1 -> ROS2 interface node.
+%   - The ME780 course report this work builds on was co-authored (ref: Tymkow, cite tymkow2024).
+%   - "Electrans project" Agilex sim-to-real Autoware work: the RL pipeline was entirely the
+%     author's own; the parallel traditional (planner/controller) pipeline was developed in
+%     heavy collaboration with two other people.
+% When confirmed, uncomment and complete:
+%\chapter*{Statement of Contributions}
+%\addcontentsline{toc}{chapter}{Statement of Contributions}
+%[TODO: Statement of Contributions -- see collaboration notes above.]
+
+\begin{center}\textbf{Abstract}\end{center}
+\phantomsection\addcontentsline{toc}{chapter}{Abstract}
+\vspace{1em}
+
+\noindent Autonomous control of articulated tractor-trailer vehicles is difficult because the passive hitch adds an articulation degree of freedom whose reverse dynamics are open-loop unstable, driving the trailer toward the unrecoverable jackknife configuration. This thesis develops and evaluates a learned controller for this setting, targeting the confined low-speed maneuvers typical of distribution-yard and loading-dock operations, and carries it from simulation onto physical hardware.
+
+A Twin Delayed Deep Deterministic Policy Gradient (TD3) agent is trained in a custom Gymnasium simulation of a shunt-truck tractor-trailer. Controlled ablations isolate the learning algorithm, the reward formulation, and the observation modality. A multiplicative reward that jointly penalizes tracking error and hitch articulation is what makes the unstable reverse task learnable, and a compact engineered state proves more reliable than higher-dimensional LiDAR or bird's-eye-view image observations under an identical training recipe. Training a policy directly on the raw image fails, and this failure is shown to be an optimization pathology of off-policy actor-critic learning rather than a shortage of perceptual information. It is resolved by distilling the image into the vehicle's path geometry with a frozen, supervised encoder, over which a policy trains from scratch as readily as on the engineered state. The same distillation extends to obstacle navigation, where the learned controller follows an image-inferred avoidance path and decides when a layout is impassable and the vehicle must stop.
+
+The trained forward and reverse policies are deployed on a physical articulated platform, an AgileX Hunter SE, through a stripped-down Autoware stack, supported by an onboard LiDAR hitch-angle estimator that requires no trailer-mounted sensor and a Smith-predictor compensator for actuator delay.
+\clearpage
+
+\begin{center}\textbf{Acknowledgements}\end{center}
+\phantomsection\addcontentsline{toc}{chapter}{Acknowledgements}
+\vspace{1em}
+
+\noindent [TODO: Acknowledgements. Supervisor, committee readers, MVSL / Electrans collaborators,
+funding sources, family.]
+\clearpage
+
+\tableofcontents
+
+\phantomsection\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+
+\phantomsection\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+
+\chapter*{List of Abbreviations}
+\addcontentsline{toc}{chapter}{List of Abbreviations}
+\begin{longtable}{@{}p{2.6cm}p{0.72\linewidth}@{}}
+BEV   & Bird's-Eye View \\
+CAN   & Controller Area Network \\
+CNN   & Convolutional Neural Network \\
+CTE   & Cross-Track Error \\
+DDPG  & Deep Deterministic Policy Gradient \\
+DQN   & Deep Q-Network \\
+GNSS  & Global Navigation Satellite System \\
+GPU   & Graphics Processing Unit \\
+IMU   & Inertial Measurement Unit \\
+LiDAR & Light Detection and Ranging \\
+LQR   & Linear-Quadratic Regulator \\
+MASc  & Master of Applied Science \\
+MDP   & Markov Decision Process \\
+MPC   & Model Predictive Control \\
+MVSL  & Mechatronics Vehicle Systems Lab \\
+NDT   & Normal Distributions Transform \\
+NMPC  & Nonlinear Model Predictive Control \\
+PID   & Proportional-Integral-Derivative \\
+PPO   & Proximal Policy Optimization \\
+RL    & Reinforcement Learning \\
+ROS   & Robot Operating System \\
+RTK   & Real-Time Kinematic \\
+SAC   & Soft Actor-Critic \\
+SDF   & Signed-Distance Field \\
+TD3   & Twin Delayed Deep Deterministic Policy Gradient \\
+UGV   & Unmanned Ground Vehicle \\
+\end{longtable}
+
+\chapter*{List of Symbols}
+\addcontentsline{toc}{chapter}{List of Symbols}
+\begin{longtable}{@{}p{2.6cm}p{0.72\linewidth}@{}}
+$\delta$ & Tractor steering angle \\
+$\dot{\delta}$ & Steering rate (control action) \\
+$\gamma$ & Hitch articulation angle \\
+$\psi$ & Tractor heading \\
+$\psi_t$ & Trailer heading \\
+$\dot{\psi}$ & Tractor yaw rate \\
+$e_y,\; e_\psi$ & Tractor cross-track and heading error \\
+$e_{y,t},\; e_{\psi,t}$ & Trailer cross-track and heading error \\
+$\kappa_1,\; \kappa_2$ & Near and far path-curvature samples \\
+$L_h$ & Signed hitch offset from the tractor rear axle \\
+$L_t$ & Trailer wheelbase (hitch to trailer axle) \\
+$l_f,\; l_r$ & Tractor front and rear axle distance from the center of gravity \\
+$m$ & Tractor mass \\
+$I_z$ & Tractor yaw moment of inertia \\
+$C_f,\; C_r$ & Front and rear cornering stiffness \\
+$v$ & Longitudinal speed \\
+$\sigma$ & Stop signal (control action) \\
+$d$ & Geometric obstacle-difficulty rating \\
+$\gamma_d$ & Reinforcement-learning discount factor \\
+$\alpha_k$ & Guided-reward annealing coefficient \\
+$\Delta t$ & Simulation timestep \\
+\end{longtable}
+
+\newpage
+\pagenumbering{arabic}
+
+% Chapters
+\include{chapters/placeholder/01_introduction}
+\include{chapters/02_literature_review}
+\include{chapters/03_modeling_simulation_problem}
+\include{chapters/04_learning_framework}
+\include{chapters/05_results_discussion}
+\include{chapters/06_sim_to_real}
+\include{chapters/placeholder/07_conclusion}
+
+% Appendices
+\appendix
+\include{appendices/appendix_classical_controllers}
+\include{appendices/placeholder/appendix_hyperparameters}
+\include{appendices/placeholder/appendix_additional_plots}
+
+% Bibliography
+\bibliographystyle{ieeetr}
+\bibliography{bibliography/references,bibliography/thesis_refs}
+
+\end{document}

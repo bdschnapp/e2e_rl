@@ -1,45 +1,68 @@
-\begin{tikzpicture}[>=Stealth,line join=round,scale=1.15,every node/.style={font=\small}]
-  % headings: tractor psi=35 deg, trailer psi_t=10 deg (gamma=25), steer delta=18 deg
-  \coordinate (R) at (0,0);            % tractor rear axle = hitch (L_h approx 0)
-  \coordinate (F) at (35:3.2);         % tractor front axle
-  \coordinate (T) at (190:4.6);        % trailer axle (behind hitch)
-  \coordinate (Xr) at (3.4,0);         % +x reference ray from R
-  \coordinate (Tf) at (10:2.6);        % trailer forward-heading ray from R
-  \coordinate (Fh) at ($(F)+(35:1.1)$);  % tractor heading extension at front axle
-  \coordinate (Fw) at ($(F)+(53:1.0)$);  % steered front-wheel heading
+% Tractor-trailer geometry (Fig. 3.1).
+% Angles chosen for legibility, not to scale: tractor heading psi = 45 deg,
+% trailer heading psi_t = 15 deg (so gamma = 30 deg), steer delta = 22 deg.
+% Angle arcs are nested at three distinct radii (gamma inner, psi middle,
+% psi_t outer) so no two labels can collide.
+\begin{tikzpicture}[
+    >=Stealth,line join=round,scale=1.45,
+    every node/.style={font=\small},
+    body/.style={line width=1.1pt},
+    wheel/.style={line width=3.2pt,line cap=round},
+    ref/.style={dashed,gray!65},
+    lead/.style={gray!65,line width=0.4pt},
+    ang/.style={draw,->,thin,black}
+  ]
 
-  % global frame
-  \draw[->,gray!70] (-5.6,-2.0) -- (-4.6,-2.0) node[right,black]{$x$};
-  \draw[->,gray!70] (-5.6,-2.0) -- (-5.6,-1.0) node[above,black]{$y$};
+  % ---- key points -------------------------------------------------------
+  \coordinate (R)  at (0,0);              % tractor rear axle = hitch (L_h ~ 0)
+  \coordinate (F)  at (45:3.3);           % tractor front axle
+  \coordinate (T)  at (195:4.6);          % trailer axle (trails behind hitch)
+  \coordinate (Xr) at (3.9,0);            % +x reference ray from the hitch
+  \coordinate (Tf) at (15:3.4);           % trailer forward-heading ray
+  \coordinate (Fh) at ($(F)+(45:1.5)$);   % tractor heading extended past front axle
+  \coordinate (Fw) at ($(F)+(67:1.35)$);  % steered front-wheel heading
 
-  % bodies
-  \draw[very thick] (R) -- (F);        % tractor
-  \draw[very thick] (R) -- (T);        % trailer
+  % ---- global frame (parked clear of both bodies) -----------------------
+  \begin{scope}[shift={(-5.3,2.1)}]
+    \draw[->,gray!70] (0,0) -- (0.9,0) node[right=1pt,black]{$x$};
+    \draw[->,gray!70] (0,0) -- (0,0.9) node[above=1pt,black]{$y$};
+  \end{scope}
 
-  % reference and heading dashed lines
-  \draw[dashed,gray] (R) -- (Xr);
-  \draw[dashed,gray] (R) -- (Tf);
-  \draw[dashed,gray] (F) -- (Fh);
+  % ---- reference and heading rays (drawn first, so bodies sit on top) ---
+  \draw[ref] (R) -- (Xr);
+  \draw[ref] (R) -- (Tf);
+  \draw[ref] (F) -- (Fh);
 
-  % wheels (short thick segments along local heading)
-  \draw[line width=3pt] ($(R)+(35:-0.30)$) -- ($(R)+(35:0.30)$);   % rear
-  \draw[line width=3pt] ($(F)+(53:-0.30)$) -- ($(F)+(53:0.30)$);   % steered front
-  \draw[line width=3pt] ($(T)+(10:-0.30)$) -- ($(T)+(10:0.30)$);   % trailer
-  \draw[->,thick] (F) -- (Fw);                                     % steered-wheel heading
+  % ---- bodies -----------------------------------------------------------
+  \draw[body] (R) -- (F);                 % tractor
+  \draw[body] (R) -- (T);                 % trailer
 
-  % hitch marker
-  \fill (R) circle (2pt);
+  % ---- wheels (short segments along their local heading) ----------------
+  \draw[wheel] ($(R)+(45:-0.32)$) -- ($(R)+(45:0.32)$);   % tractor rear
+  \draw[wheel] ($(F)+(67:-0.32)$) -- ($(F)+(67:0.32)$);   % steered front
+  \draw[wheel] ($(T)+(15:-0.32)$) -- ($(T)+(15:0.32)$);   % trailer
+  \draw[->,line width=0.9pt] (F) -- (Fw);                 % steered-wheel heading
 
-  % angles
-  \pic[draw,->,angle radius=1.05cm,angle eccentricity=1.25,"$\psi$"]      {angle=Xr--R--F};
-  \pic[draw,->,angle radius=1.85cm,angle eccentricity=1.16,"$\psi_t$"]    {angle=Xr--R--Tf};
-  \pic[draw,->,angle radius=0.62cm,angle eccentricity=1.7,"$\gamma$"]     {angle=Tf--R--F};
-  \pic[draw,->,angle radius=0.60cm,angle eccentricity=1.7,"$\delta$"]     {angle=Fh--F--Fw};
+  % ---- hitch (open marker so it reads against the rear wheel) -----------
+  \draw[fill=white,line width=0.9pt] (R) circle (2.6pt);
 
-  % labels
-  \node[below=2pt] at (R) {rear axle (hitch)};
-  \node[above left=-1pt] at (T) {trailer axle};
-  \node[above] at (F) {front axle};
-  \node at ($(R)!0.5!(T)+(100:0.42)$) {$L_t$};
-  \node at ($(R)!0.55!(F)+(125:0.35)$) {$L$};
+  % ---- angles: nested radii, labels pushed clear ------------------------
+  \pic[ang,angle radius=0.80cm,angle eccentricity=1.36,"$\gamma$"]   {angle=Tf--R--F};
+  \pic[ang,angle radius=1.60cm,angle eccentricity=1.22,"$\psi$"]     {angle=Xr--R--F};
+  \pic[ang,angle radius=2.60cm,angle eccentricity=1.14,"$\psi_t$"]   {angle=Xr--R--Tf};
+  \pic[ang,angle radius=0.85cm,angle eccentricity=1.40,"$\delta$"]   {angle=Fh--F--Fw};
+
+  % ---- length labels ----------------------------------------------------
+  \node at ($(R)!0.45!(T)+(105:0.46)$) {$L_t$};
+  \node at ($(R)!0.50!(F)+(135:0.44)$) {$L$};
+
+  % ---- part labels (leader lines keep text off the geometry) ------------
+  \draw[lead] (R) -- (1.15,-0.78);
+  \node[anchor=west,inner sep=1pt] at (1.20,-0.80) {rear axle (hitch)};
+
+  \node[anchor=north,inner sep=3pt] at ($(T)+(0,-0.30)$) {trailer axle};
+
+  \draw[lead] (F) -- ($(F)+(150:0.80)$);
+  \node[anchor=east,inner sep=1pt] at ($(F)+(150:0.85)$) {front axle};
+
 \end{tikzpicture}

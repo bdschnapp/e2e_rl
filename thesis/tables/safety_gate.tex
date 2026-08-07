@@ -1,0 +1,19 @@
+% Hand-authored from the Phase 3 safety-gate analysis (SAFETY_GATE_FILTER.md,
+% scripts/safety_gate_sweep.py, reference reverse seed hp_reverse_avoidance_d_win_dyn_s0).
+% Deterministic gate: STOP if peak dynamic difficulty > 0.375 or peak |hitch| > 0.6 rad.
+
+\begin{table}[H]
+\centering
+\caption{Reverse obstacle maneuvering with and without the deterministic safety gate, learned policy against pure pursuit on the same hard-layout-dominated pool. Without a gate the learned attempt-versus-abort decision already keeps the learned policy far safer than pure pursuit, which cannot decline a layout. Adding the gate drives the crash rate to near zero for both and leaves their completion comparable. Reference seed. Commit-success is completions over completions plus crashes.}
+\label{tab:safety_gate}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+Controller & \makecell{Crash, native stop\\no gate (\%)} & \makecell{Crash, with\\gate (\%)} & \makecell{Completion,\\with gate (\%)} & \makecell{Commit\\success (\%)} \\
+\midrule
+Learned (RL)  & 5.2  & 0.0 & 17.7 & 99.8 \\
+Pure pursuit  & 54.0 & 0.2 & 18.1 & 99.0 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

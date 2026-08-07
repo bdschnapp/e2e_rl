@@ -1,0 +1,31 @@
+CURVATURE PROBE forward_static  spacing=0.25m  k1@2.5m k2@5.0m  n=307200
+
+EXP-1 per-component R2 (image->state):
+  e_y       R2=+0.952 var=0.1355
+  e_psi     R2=+0.896 var=0.0055
+  e_y_t     R2=+0.975 var=0.2322
+  e_psi_t   R2=+0.986 var=0.0049
+  k1        R2=+0.644 var=0.0001
+  k2        R2=+0.593 var=0.0001
+  d_win     R2=+0.891 var=0.0305
+
+EXP-1 mechanism:
+  e_psi resid corr hitch=-0.016 steer=+0.005
+  e_psi R2 direct=0.896  from[pred e_psi_t,hitch,steer]=0.335
+  k1 |resid| corr |true curv|=+0.661
+
+EXP-2a path-point (spacing-corrected):
+  SANITY exact-FD from TRUE offsets (must ~1.0): k1=+1.000 k2=+1.000
+  smooth-fraction (cubic of TRUE offsets): k1=+0.650 k2=+0.039
+  offset-encoder R2 mean=0.991
+  k1: direct=+0.644 pred-exactFD=-46.070 pred-cubic=+0.568
+  k2: direct=+0.593 pred-exactFD=-66.675 pred-cubic=+0.188
+
+EXP-2b curvature R2 stratified by obstacle_divergence_m:
+  [0.00,0.20) n= 30438  k1_R2=+0.965 k2_R2=+0.827 epsi_R2=+0.900
+  [0.20,1.00) n=   275  k1_R2=+0.244 k2_R2=+0.140 epsi_R2=+0.820
+
+EXP-2b curvature R2 stratified by abs_true_k1:
+  [0.00,0.02) n= 28890  k1_R2=+0.700 k2_R2=+0.520 epsi_R2=+0.892
+  [0.02,0.05) n=  1790  k1_R2=+0.980 k2_R2=+0.811 epsi_R2=+0.911
+  [0.10,0.31) n=    23  k1_R2=+0.404 k2_R2=-31.591 epsi_R2=+0.580

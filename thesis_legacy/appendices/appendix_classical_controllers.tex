@@ -1,0 +1,353 @@
+\chapter{Classical Controller Implementation}
+\label{app:classical_controllers}
+
+The deep reinforcement-learning policy is benchmarked against four classical
+path-tracking controllers. This appendix documents their implementation: the exact
+control laws, the forward and reverse variants, the way each controller was tuned, and
+the harness used to evaluate them. The four controllers are chosen to span the classical
+control spectrum, from a purely geometric law through to constrained optimal control with
+preview:
+
+\begin{itemize}
+    \item \textbf{Pure Pursuit}, a geometric proportional law;
+    \item \textbf{PID}, classical error feedback with an integral term;
+    \item \textbf{LQR}, optimal static linear feedback on the error dynamics;
+    \item \textbf{Kinematic LTV MPC}, optimal constrained control with preview.
+\end{itemize}
+
+All four are implemented in the batched simulator
+(\texttt{tractor\_trailer\_rl\_cupy}) so that they run inside the same vectorized
+environment as the learned policies. Crucially, every controller emits the same action
+as the RL agent, a bounded steering rate, so the comparison between
+classical and learned control is made on identical terms.
+
+\section{Common framework}
+\label{sec:app_cc_common}
+
+\subsection{Observation layout and shared action mapping}
+
+Each controller is a function of the observation vector already produced by the
+environment. For the trailer tasks this vector is
+\begin{equation}
+    o = [\,s,\ \gamma,\ e_y,\ e_\psi,\ e_{y,t},\ e_{\psi,t},\ \kappa,\ \dots\,],
+    \label{eq:app_cc_obs}
+\end{equation}
+where $s$ is the current steering angle, $\gamma$ the hitch (articulation) angle, and the
+error pairs $(e_y, e_\psi)$ and $(e_{y,t}, e_{\psi,t})$ are the cross-track and heading
+errors of the tractor and of the trailer respectively; $\kappa$ is the reference path
+curvature at the lookahead point. The trailing entries carry additional task-specific
+channels (for example LiDAR returns) that the classical controllers do not use.
+
+Every controller computes a desired steering angle $\delta_{\mathrm{des}}$ and then
+converts it to the environment's steering-rate action through a common saturating map,
+\begin{equation}
+    \dot{\delta} = \operatorname{clip}\!\left(\frac{\delta_{\mathrm{des}} - s}{\Delta t},\
+    -\dot{\delta}_{\max},\ +\dot{\delta}_{\max}\right),
+    \label{eq:app_cc_steerrate}
+\end{equation}
+where $\Delta t$ is the simulation step and $\dot{\delta}_{\max}$ the steering-rate limit.
+Because the learned policy also outputs $\dot{\delta}$, and \cref{eq:app_cc_steerrate}
+applies to all four baselines identically, the classical and learned controllers act
+through exactly the same interface.
+
+\subsection{Forward and reverse tracking}
+\label{sec:app_cc_fwdrev}
+
+Each controller has a forward and a reverse variant, reflecting a structural asymmetry of
+the articulated vehicle. Driving forward, the tractor leads and the trailer follows
+passively, so it suffices to regulate the tractor errors $(e_y, e_\psi)$ towards zero.
+Driving in reverse, the trailer leads and the coupling inverts. The hitch angle
+$\gamma$ becomes open-loop unstable (small articulation errors grow and the vehicle
+jackknifes), so the reverse controllers regulate the trailer errors
+$(e_{y,t}, e_{\psi,t})$ and must additionally include an explicit hitch-stabilizing action.
+This asymmetry is why the reverse variants below are not simply the forward laws with a
+sign change, and why their gains had to be tuned separately
+(\cref{sec:app_cc_tuning}).
+
+\subsection{Vehicle parameters}
+
+The benchmark uses the full-size shunt-truck configuration. The parameters that enter the
+controllers are summarized in \cref{tab:app_cc_params}. Here $L_1$ is the tractor
+wheelbase, $L_2$ the effective trailer length (hitch to trailer axle), and $V$ the fixed
+longitudinal speed held constant throughout the fixed-speed path-tracking experiments. The
+large length ratio $L_2/L_1 \approx 4.2$ is what makes the reverse hitch dynamics
+difficult to stabilize.
+
+\begin{table}[H]
+\centering
+\caption{Shunt-truck parameters used by the classical controllers.}
+\label{tab:app_cc_params}
+\begin{tabular}{llc}
+\toprule
+Symbol & Quantity & Value \\
+\midrule
+$L_1$ & Tractor wheelbase & $2.95$\,m \\
+$L_2$ & Trailer length (hitch to axle) & $12.5$\,m \\
+$V$ & Fixed longitudinal speed & $5.0$\,m/s \\
+$\Delta t$ & Simulation step & $0.1$\,s \\
+$\delta_{\max}$ & Steering-angle limit & $0.87$\,rad ($\approx 50^{\circ}$) \\
+$\dot{\delta}_{\max}$ & Steering-rate limit & $25^{\circ}$/s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In the reverse variants the speed enters with a sign, $V < 0$. Because the environment's
+tractor yaw response to steering does not itself flip sign in reverse, the along-path
+kinematics use the magnitude $\lvert V \rvert$ while the yaw dynamics retain the signed
+$V$. This distinction is carried consistently through the LQR and MPC models below.
+
+\section{Pure Pursuit}
+\label{sec:app_cc_pp}
+
+The pure-pursuit controller \cite{coulter1992pure} is a fixed proportional geometric law.
+Forward, it combines a curvature feed-forward with proportional cross-track and heading
+feedback on the tractor errors,
+\begin{equation}
+    \delta_{\mathrm{des}} = -\bigl(k_{\mathrm{ff}} \arctan(L_1 \kappa)
+    + k_y\, e_y + k_\theta\, e_\psi\bigr).
+    \label{eq:app_cc_pp_fwd}
+\end{equation}
+Reverse, it regulates the trailer errors and adds an explicit hitch-stabilizing term
+$k_{\mathrm{hitch}}\,\gamma$ to counter the open-loop-unstable articulation,
+\begin{equation}
+    \delta_{\mathrm{des}} = k_{\mathrm{hitch}}\,\gamma + k_{\mathrm{ff}}\,\kappa
+    + k_y\, e_{y,t} + k_\theta\, e_{\psi,t}.
+    \label{eq:app_cc_pp_rev}
+\end{equation}
+Both laws are stateless functions of the observation, so the controller is fully
+vectorized across the parallel environments. Besides serving as a benchmark, the tuned
+pure-pursuit controller doubles as the reference (``teacher'') signal for the guided
+reward and as a feasibility oracle. A path that a well-tuned pure-pursuit controller can
+complete is deemed geometrically feasible.
+
+\section{PID}
+\label{sec:app_cc_pid}
+
+The PID controller extends the proportional law with an integral term that removes
+steady-state cross-track offset. The integral is accumulated per environment and clamped
+to prevent windup, and it is reset at episode boundaries. Forward,
+\begin{equation}
+    \delta_{\mathrm{des}} = -k_{\mathrm{ff}}\,\kappa - K_p\, e_y
+    - K_i \!\int\! e_y - K_d\, e_\psi + K_{p,t}\, e_{y,t},
+    \label{eq:app_cc_pid_fwd}
+\end{equation}
+and reverse (regulating the trailer errors, with the hitch stabilizer),
+\begin{equation}
+    \delta_{\mathrm{des}} = k_{\mathrm{hitch}}\,\gamma + k_{\mathrm{ff}}\,\kappa
+    + K_p\, e_{y,t} + K_i \!\int\! e_{y,t} + K_d\, e_{\psi,t}.
+    \label{eq:app_cc_pid_rev}
+\end{equation}
+The derivative gain $K_d$ multiplies the heading error, so it acts as a heading-damping
+term rather than a numerical time derivative. The integrator uses the anti-windup update
+\begin{equation}
+    I \leftarrow \operatorname{clip}\!\bigl(I + e\,\Delta t,\ -I_{\max},\ +I_{\max}\bigr),
+    \label{eq:app_cc_pid_int}
+\end{equation}
+where $e$ is the regulated cross-track error ($e_y$ forward, $e_{y,t}$ reverse). Because
+the controller carries this per-environment state, the evaluation loop passes a
+termination mask so that $I$ is zeroed for any environment that resets on the current
+step.
+
+\section{LQR}
+\label{sec:app_cc_lqr}
+
+The LQR baseline is the canonical optimal-linear controller, static feedback $u = -Kx$ on
+a linear model of the tracking-error dynamics, plus a curvature feed-forward
+\cite{rajamani2011vehicle}. The error state is
+\begin{equation}
+    x = [\,e_{\mathrm{lat}},\ e_{\mathrm{head}},\ \gamma\,]^\top,
+    \label{eq:app_cc_lqr_state}
+\end{equation}
+the lateral and heading error of the leading unit (tractor forward, trailer reverse)
+together with the hitch angle. The input is the steering angle $u = \delta$. The
+continuous error dynamics $\dot{x} = A_c x + B_c u$ are direction-specific. Forward,
+\begin{equation}
+    A_c = \begin{bmatrix}
+        0 & V & 0 \\[2.2mm]
+        0 & 0 & 0 \\[2.2mm]
+        0 & 0 & -\dfrac{V}{L_2}
+    \end{bmatrix},
+    \qquad
+    B_c = \begin{bmatrix}
+        0 \\[2.2mm] \dfrac{V}{L_1} \\[2.2mm] \dfrac{V}{L_1}
+    \end{bmatrix},
+    \label{eq:app_cc_lqr_fwd}
+\end{equation}
+and reverse, where the leading trailer progresses along the path at speed
+$\lvert V \rvert$ while the yaw dynamics keep the signed $V$,
+\begin{equation}
+    A_c = \begin{bmatrix}
+        0 & \lvert V \rvert & 0 \\[2.2mm]
+        0 & 0 & \dfrac{V}{L_2} \\[2.2mm]
+        0 & 0 & -\dfrac{V}{L_2}
+    \end{bmatrix},
+    \qquad
+    B_c = \begin{bmatrix}
+        0 \\[2.2mm] 0 \\[2.2mm] \dfrac{\lvert V \rvert}{L_1}
+    \end{bmatrix}.
+    \label{eq:app_cc_lqr_rev}
+\end{equation}
+The pair $(A_c, B_c)$ is discretized by zero-order hold at the step $\Delta t$ to give
+$(A_d, B_d)$. With state and input weights $Q = \operatorname{diag}(q_{\mathrm{lat}},
+q_{\mathrm{head}}, q_\gamma)$ and $R$, the infinite-horizon gain follows from the discrete
+algebraic Riccati equation. Its stabilizing solution $P$ yields
+\begin{equation}
+    K = \bigl(R + B_d^\top P B_d\bigr)^{-1} B_d^\top P A_d.
+    \label{eq:app_cc_lqr_gain}
+\end{equation}
+Because the speed is constant, $K$ is computed once at construction and then applied to
+every environment, so the controller stays fully vectorized. The command adds a
+steady-state feed-forward that holds the vehicle on a constant-curvature arc: a
+feed-forward steer $\delta_{\mathrm{ff}} = L_1 \kappa$ and a hitch reference
+$\gamma_{\mathrm{ref}} = \operatorname{sign}(V)\, L_2\, \kappa$, giving
+\begin{equation}
+    \delta = \delta_{\mathrm{ff}} - K\,(x - x_{\mathrm{ref}}),
+    \qquad
+    x_{\mathrm{ref}} = [\,0,\ 0,\ \gamma_{\mathrm{ref}}\,]^\top,
+    \label{eq:app_cc_lqr_cmd}
+\end{equation}
+which is then saturated to $\pm\delta_{\max}$ and mapped to a steering rate through
+\cref{eq:app_cc_steerrate}. The reverse weights place a heavy penalty on control effort
+and hitch deviation, which is what damps the otherwise unstable reverse plant.
+
+\section{Kinematic LTV MPC}
+\label{sec:app_cc_mpc}
+
+The final baseline is a linear time-varying model-predictive controller
+\cite{rawlings2017mpc} that adds a finite preview horizon and explicit input constraints.
+The MPC uses the same error state $x = [\,e_{\mathrm{lat}}, e_{\mathrm{head}}, \gamma\,]^\top$
+as the LQR but plans over an $N$-step horizon.
+
+\subsection{Prediction models}
+
+Forward, the tractor leads, so the MPC tracks the tractor errors with the steering angle
+$\delta$ as the input, giving the same $(A_c, B_c)$ as the forward LQR model
+\eqref{eq:app_cc_lqr_fwd}. Reverse, servoing the trailer pose with the unstable hitch
+dynamics inside the optimization causes the long shunt trailer to oscillate and
+jackknife. The reverse controller therefore uses a flatness / virtual-input
+reformulation (following the Autoware trailer LTV-MPC): the QP plans the trailer as
+a stable bicycle driven by a virtual trailer steer $\delta_T$, and the hitch enters
+only through an inner loop that has been closed to the stable first-order dynamics
+$\dot{\gamma} = K(\delta_T - \gamma)$,
+\begin{equation}
+    A_c = \begin{bmatrix}
+        0 & \lvert V \rvert & 0 \\[2.2mm]
+        0 & 0 & \dfrac{V}{L_2} \\[2.2mm]
+        0 & 0 & -K
+    \end{bmatrix},
+    \qquad
+    B_c = \begin{bmatrix}
+        0 \\[2.2mm] 0 \\[2.2mm] K
+    \end{bmatrix}.
+    \label{eq:app_cc_mpc_rev}
+\end{equation}
+The reference curvature enters both models as a measured disturbance through
+$E_c = [\,0,\ -\lvert V \rvert,\ 0\,]^\top$. After the QP returns the virtual input, an
+analytic inner map realizes it on the physical tractor and supplies the anti-jackknife
+counter-steer,
+\begin{equation}
+    \delta_f = \arctan\!\left(\frac{L_1}{L_2}\,\operatorname{sign}(V)\,\sin\gamma
+    + \frac{L_1 K}{\lvert V \rvert}\,(\delta_T - \gamma)\right).
+    \label{eq:app_cc_mpc_inner}
+\end{equation}
+The $1/\lvert V \rvert$ factor is what flips the feedback sign in reverse and produces the
+stabilizing counter-steer.
+
+\subsection{Condensed quadratic program}
+
+The continuous models are discretized by zero-order hold and the state trajectory is
+condensed onto the input sequence, so that the optimization variable is the vector of
+$N$ future steering inputs. With the stacked weight $\bar{Q} = I_N \otimes Q$, a control
+penalty $R$, an input-rate penalty $R_d$, and the first-difference operator
+$T = I - I^{(-1)}$ (so that $T$ forms $\Delta u$), the cost Hessian is
+\begin{equation}
+    H = 2\bigl(B_u^\top \bar{Q}\, B_u + R\, I + R_d\, T^\top T\bigr),
+    \label{eq:app_cc_mpc_cost}
+\end{equation}
+where $B_u$ is the condensed input-to-state map. The problem is subject to a steering-rate
+box on the increments, $\lvert \Delta u \rvert \le \dot{\delta}_{\max}\,\Delta t$, and a
+steering box $\lvert u \rvert \le \delta_{\max}$. It is solved per environment with OSQP.
+The rate-penalty term $R_d\,T^\top T$ is weighted heavily in reverse so the controller
+does not chase cross-track measurement ripple. The overall per-step procedure is
+summarized in \cref{alg:app_cc_mpc}.
+
+\begin{algorithm}[H]
+\caption{Kinematic LTV MPC step (per environment)}
+\label{alg:app_cc_mpc}
+\begin{algorithmic}[1]
+\State \textbf{Precompute (once):} discretize $(A_c, B_c, E_c)$ by ZOH; build the
+condensed maps $A_x, B_u, E_w$ and the constant Hessian $H$ from \eqref{eq:app_cc_mpc_cost}.
+\State \textbf{On episode reset:} clear the warm-start input $u_{\text{prev}} \gets 0$.
+\State Read $x_0 = [\,e_{\mathrm{lat}}, e_{\mathrm{head}}, \gamma\,]$ and curvature $\kappa$
+from the observation.
+\State Form the linear cost term from $x_0$, the previewed curvature disturbance, and
+$u_{\text{prev}}$.
+\State Solve the QP with OSQP subject to the steering-rate and steering boxes.
+\If{solver fails} $u \gets u_{\text{prev}}$ \Comment{safe fallback}
+\Else{} $u \gets$ first element of the optimal input sequence
+\EndIf
+\State $u_{\text{prev}} \gets u$
+\State $\delta \gets u$ (forward) \textbf{or} apply inner map \eqref{eq:app_cc_mpc_inner}
+to obtain $\delta_f$ (reverse).
+\State \Return steering rate from \eqref{eq:app_cc_steerrate}.
+\end{algorithmic}
+\end{algorithm}
+
+Only the first input of the optimal sequence is applied (receding horizon). The solved
+input is retained as the warm start for the next step and, like the PID integrator, is
+reset at episode boundaries. If the solver fails to converge, the controller falls back to
+the previous command.
+
+\section{Gain-tuning methodology}
+\label{sec:app_cc_tuning}
+
+The controllers above are defined by their gains and weights: the proportional and
+feed-forward gains of pure pursuit, the PID gains, the LQR state/input weights, and the
+MPC horizon and cost weights. Rather than report a specific set of numbers, which are
+particular to one vehicle configuration, the point of interest is the procedure used to
+obtain them, which is the same for every controller.
+
+Each controller is tuned by a bounded random search (a gain sweep) run directly against
+the simulator \cite{storn1997differential}. On each iteration a candidate gain set is
+sampled uniformly from hand-set ranges, the controller is rolled out over a batch of
+parallel environments, and the candidate is scored by the lexicographic key
+\begin{equation}
+    \bigl(\text{completion rate},\ -\,\text{mean cross-track error}\bigr),
+    \label{eq:app_cc_tuning_key}
+\end{equation}
+so that reliably completing the path is maximized first and, among gains that complete,
+the one with the tightest tracking is preferred. The best candidate is retained. This
+search is run separately for each controller and each direction, because the
+forward and reverse plants differ so strongly.
+
+The reverse variants in particular could not simply inherit the gains tuned on the small
+laboratory vehicle. On the shunt truck those gains destabilize the vehicle, and several
+gains (notably the hitch-stabilizing terms) change sign. This is a direct consequence of
+the open-loop-unstable reverse hitch dynamics and the large trailer-to-tractor length
+ratio $L_2/L_1 \approx 4.2$ discussed in \cref{sec:app_cc_fwdrev}. The reverse controllers
+were therefore re-tuned from scratch for the target geometry.
+
+\section{Evaluation harness}
+\label{sec:app_cc_eval}
+
+All four controllers are evaluated by a single harness that reuses the same batched
+environment as the reinforcement-learning policies, so that the classical baselines and
+the learned policy are measured on identical paths under identical dynamics. The harness
+runs both driving directions and, for each controller, records three per-episode metrics:
+
+\begin{itemize}
+    \item \textbf{Completion}, the fraction of episodes that reach the goal
+    (the mean success flag);
+    \item \textbf{Trailer cross-track error}, the mean absolute lateral error of the
+    trailer over the episode, a measure of tracking accuracy;
+    \item \textbf{Peak hitch angle}, the largest articulation angle reached, a measure
+    of how close the vehicle came to jackknifing (the jackknife threshold is
+    $1.4$\,rad).
+\end{itemize}
+
+The harness handles the stateful controllers by passing a per-environment termination mask
+into the controller at each step, so the PID integrator \eqref{eq:app_cc_pid_int} and the
+MPC warm start are reset exactly when an environment restarts. Evaluating every controller
+in the same loop, on the same unfiltered evaluation pool, is what makes the reinforcement-learning
+comparison in the results chapter a fair, like-for-like one. The measured numbers are
+reported there rather than in this appendix.

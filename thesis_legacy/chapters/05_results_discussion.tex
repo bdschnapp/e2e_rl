@@ -1,0 +1,218 @@
+\chapter{Results and Discussion}
+\label{ch:results}
+
+% Marks a value or figure that is not yet backed by an archived CSV in
+% thesis/data/. Rendered in red so every remaining data gap is visible in the
+% draft and greppable before the final import.
+\newcommand{\pending}[1]{\textcolor{red}{[pending: #1]}}
+
+This chapter reports what the learning framework of \cref{ch:learning_framework} produced. It follows the same order the design took. The algorithm and the reward are settled first on the engineered state, where learning is fast and the outcome is unambiguous. The observation is then opened up, first to LiDAR and then to the raw image, and the study turns to what richer sensing buys and what it costs. Making the image usable at all turns out to be a training problem rather than a perception problem, and isolating that problem is the central result of the chapter. The failure-replay curriculum, the obstacle-navigation task, and the comparison against tuned classical controllers close the chapter. Throughout, the aim is to separate two questions that are easy to conflate, whether the articulated control task benefits from richer sensing, and whether any benefit comes from the sensing itself or from the machinery used to turn it into features.
+
+\section{Evaluation Setup}
+\label{sec:eval_setup}
+
+Every number in this chapter comes from the common evaluation protocol described once in \cref{sec:eval_methodology}, so only the points that bear on reading the tables are repeated here. Policies are scored on a fixed pool of pre-generated scenarios rather than on freshly sampled episodes, so that different controllers face identical layouts. Each configuration is trained over three random seeds and reported as a mean with a 95\% confidence interval, so that the stability of a result, and not only its central value, is visible. This matters here because articulated control training is high-variance, and on the harder tasks the spread across seeds carries as much of the story as the mean does. The lane-following results use best-checkpoint completion with the stop action disabled, so that completion measures tracking quality rather than a policy's willingness to decline a layout. The obstacle results, where declining to attempt is itself part of the behavior, use the attempt-conditional metrics of \cref{sec:eval_methodology} instead.
+
+Generalization is treated as something to measure rather than assume. The evaluation pool is held out from training, and where two methods are close in mean performance the across-seed interval, rather than the point estimate alone, decides whether the difference is real. A gap of a few centimeters in mean cross-track error routinely sits inside the run-to-run scatter on the reverse task, and reporting a single best number would read that scatter as an effect.
+
+A word on the evaluation pool is in order before the numbers. The pool is the unfiltered mild-path distribution, every generated layout kept, and every controller is scored on the identical set. An earlier version of the pool kept only paths a tuned pure-pursuit controller could complete, which guaranteed pure pursuit a perfect score by construction and biased any comparison against it. Removing that filter shifts the reverse rates by at most about two points and changes none of the orderings, so the results reported here are on the unfiltered pool throughout. The qualitative findings, the orderings, the negative results, and the perception analysis do not depend on the pool at all.
+
+\section{Selecting the Algorithm and the Reward}
+\label{sec:algo_reward}
+
+The first question is which learning algorithm and which reward give stable articulated tracking, and the cleanest place to answer it is the engineered state, where perception adds nothing to confound the comparison. Four algorithms, TD3, PPO, a discrete-action PPO, and DQN, were each trained under four reward formulations, in both the forward and the reverse direction, over three seeds. The environment, the observation, and the evaluation were held fixed, and each algorithm was given the settings appropriate to its own update rule as described in \cref{sec:hpo}. \Cref{tab:algorithm_comparison_forward,tab:algorithm_comparison_reverse} report best-checkpoint completion for every cell.
+
+\input{tables/algorithm_comparison_forward}
+\input{tables/algorithm_comparison_reverse}
+
+Forward lane-following is saturated. Both continuous-control algorithms complete every forward layout under every reward, which matches the classical baselines, where pure pursuit, PID, LQR, and MPC all reach full completion forward. Only the combination of a discrete action space and a poorly matched reward breaks the forward task at all. Forward tracking is therefore not where the algorithm or the reward is decided, and the forward reward choice is left to the tracking-quality detail rather than to completion.
+
+Reverse lane-following is where the choice is made. The open-loop reverse dynamics are unstable, as established in \cref{ch:modeling}, so early policies fail often and the algorithm has to recover a stabilizing controller rather than merely refine a tracker. TD3 is the only algorithm that solves the reverse task, with every one of its reward variants completing at least 79\% of the pool. The best non-TD3 reverse cell, PPO under the guided reward at 82.0\%, carries a confidence interval of $\pm 24.6$, so its apparent success rests on a single lucky seed rather than on reliable learning. The best reward is also algorithm-conditional. TD3 pairs best with the multiplicative reward, which forces the tracking and articulation errors down jointly, whereas the on-policy PPO only works under the guided reward that clones the pure-pursuit teacher, and the multiplicative reward is close to catastrophic for DQN. The guided reward fails both discrete algorithms in both directions, which is the expected behavior of a reward that clones a continuous teacher into an action space that cannot represent it, and serves as a clean negative control.
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.8\textwidth]{figures/experiment_results/reverse_reward_ablation.pdf}{Reverse lane-following completion against training steps for TD3 under each reward formulation, mean over three seeds.}
+    \caption{Reverse lane-following completion against training steps for TD3 under each reward formulation. The multiplicative reward reaches the highest and steadiest completion.}
+    \label{fig:reverse_reward_ablation}
+\end{figure}
+
+The chosen recipe is therefore TD3 with the multiplicative reward, and the reverse task is where that choice is justified. \Cref{tab:reward_ablation_reverse} looks past completion to the tracking detail for TD3, and the multiplicative reward is best on every axis at once, the highest completion at 95.9\%, the lowest trailer cross-track error, and the tightest hitch behavior. This single configuration, TD3 with the multiplicative reward on the engineered state, is the configuration carried into the rest of the chapter. Its reverse completion of $0.959 \pm 0.006$ sits about two points under pure pursuit at $0.980$, and it does so with no collapsed seeds. Holding this recipe fixed is what lets every later ablation change one design variable at a time.
+
+\input{tables/reward_ablation_reverse}
+
+\section{Observation-Space Ablation}
+\label{sec:obs_ablation}
+
+With the algorithm and reward fixed, the observation can be opened up. The engineered state is a compact, hand-designed summary of exactly the quantities a tracking controller needs. LiDAR and the bird's-eye-view image carry more of the raw scene but leave the policy to extract those quantities for itself. The question this section answers is what that trade buys. The comparison uses the identical TD3 recipe for every observation, with no curriculum, no failure replay, and no representation warm-up, so that any difference is attributable to the observation and its dimensionality rather than to the training treatment. \Cref{tab:obs_ablation} reports completion and trailer cross-track error for the engineered state, three LiDAR resolutions, and the raw image, in both directions.
+
+\input{tables/obs_ablation_results}
+
+The result contradicts the expectation that more sensing is better. Reliability falls as the observation grows, and the effect sharpens on the harder reverse task. The engineered state is not merely sufficient but the most robust option in both directions. The LiDAR variants show the same pattern internally, which reframes the beam count as a resolution-against-reliability knob rather than a more-is-better axis. The 8-beam scan is the most robust of the LiDAR options, matching the state forward and reaching 90\% reverse, while raising the count to 24 and then 64 beams widens the across-seed spread and then brings on outright seed collapses. The wide confidence intervals on the reverse LiDAR-24 and LiDAR-64 rows are not noise to be averaged away, they are the signature of that collapse, with individual seeds falling to zero completion while others still succeed. Because carrying a sensing modality onto hardware is a separate concern taken up in \cref{ch:sim_to_real}, the point retained here is only that added input dimensions cost reliability on this task rather than earning it.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \safegraphic[width=\textwidth]{figures/experiment_results/forward_obs_ablation.pdf}{Forward observation ablation learning curves.}
+        \caption{Forward}
+        \label{fig:forward_obs_ablation}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \safegraphic[width=\textwidth]{figures/experiment_results/reverse_obs_ablation.pdf}{Reverse observation ablation learning curves.}
+        \caption{Reverse}
+        \label{fig:reverse_obs_ablation}
+    \end{subfigure}
+    \caption{Observation-space ablation learning curves, completion against training steps for the identical TD3 recipe under each observation. The raw image never leaves zero, and the higher-dimensional LiDAR scans learn less reliably than the compact state.}
+    \label{fig:obs_ablation}
+\end{figure}
+
+The raw image is the extreme case. Trained from scratch with the same recipe that solves the state task, the bird's-eye-view policy never completes a single forward layout, and the reverse image run was set aside for the dedicated study of the next section. This is a striking outcome, because the image plainly contains the geometry the state encodes, and more besides. Whatever is stopping the image policy from learning, it is not a shortage of information in the observation. The next section examines why.
+
+\section{Training Vision-Based Policies}
+\label{sec:vision}
+
+An image observation that contains the exteroceptive geometry the engineered state summarizes, yet cannot learn the task the state solves easily, is a contradiction that must be resolved, because the obstacle task of \cref{sec:obstacle_results} requires the image. The hypothesis set out in \cref{sec:highdim_training} is that the failure is an optimization pathology of off-policy actor-critic learning rather than a limit of perception. A randomly initialized image encoder gives the actor and its convolutional front-end far more capacity to chase a cold, over-optimistic critic into off-distribution actions than the compact state does, and the policy collapses into a degenerate short-horizon behavior before the critic corrects. This section reports the evidence that isolates that cause and then the recipe that removes it.
+
+\subsection{Isolating the Failure Mode}
+\label{sec:causal_ladder}
+
+The evidence takes the form of a ladder, where each rung changes exactly one thing relative to the rung above, so that the first configuration to recover completion identifies what was actually broken. \Cref{tab:causal_ladder} lays it out on the forward task.
+
+\input{tables/causal_ladder}
+
+The representation-side fixes come first and none of them work. Rendering the image as a graded signed-distance field rather than a hard occupancy mask, adding coordinate channels, and giving the encoder the stabilizing treatment of layer normalization with separate actor and critic front-ends all leave completion at zero. If the trouble were that the image is a poor learning target, one of these would have improved completion. None does, which points away from the representation as the cause. The picture changes the moment the policy is warm-started by imitation. Cloning the competent state expert into the image policy produces a working controller with full completion, which shows that a non-degenerate policy over the image is reachable. The decisive rungs are what happens next. Letting ordinary reinforcement learning then fine-tune that cloned policy destroys it, dropping completion back to zero, and freezing the encoder while the rest of the policy trains does not save it either. Only freezing the actor, and training the critic alone, holds the cloned policy at parity. Read down the ladder, the cause is neither the image nor the encoder but the actor being driven off-distribution by an untrained critic, exactly the mechanism hypothesized in \cref{sec:highdim_training}. The actor-frozen configuration was repeated over three seeds and held, at 1.00, 1.00, and 0.92 completion.
+
+This diagnosis also exposes why the imitation warm-start, though it works, is not a complete result. Because the image observation still carries the full state vector, the cloning objective can be met largely through the state branch, so a working cloned policy does not on its own prove that the convolutional encoder learned to read the image. Settling that requires an approach where the image alone must supply the geometry.
+
+\subsection{Distilling Geometry into a Frozen Encoder}
+\label{sec:geometry_encoder}
+
+The recipe that removes the failure at its root refuses to let reinforcement learning shape the encoder at all, following \cref{sec:highdim_training}. A convolutional encoder is trained by supervised regression to predict the vehicle and path geometry directly from the bird's-eye-view image, using the simulator's true state as a privileged teacher label. It is then frozen and used as a fixed perception module, and the policy is trained from scratch with ordinary TD3 over a low-dimensional vector, exactly as in the engineered-state baseline. The internal steering and hitch angles are supplied as true proprioception, since they are cheaply available from onboard sensing and state estimation and are not reliably visible in a top-down image, while the exteroceptive path geometry is read from the frozen encoder.
+
+Two measurements test this recipe. The first asks whether the image is a sufficient statistic for the geometry, by scoring how well each state component can be predicted from the image alone. \Cref{tab:geometry_recoverability} reports the per-component test $R^2$. The exteroceptive geometry, the tractor and trailer tracking errors and the two curvature look-aheads, is recovered almost perfectly, with $R^2$ at or above 0.97 for seven of the eight components. Only the internal steering angle resists, at 0.66, which is exactly the component that a top-down view of the surroundings should not be able to see, and precisely why steering is supplied as proprioception rather than predicted. Because predicting the state from the image alone cannot be satisfied through a state branch, this is the direct evidence the imitation route could not provide, the image really does encode the path geometry.
+
+\input{tables/geometry_recoverability}
+
+The second measurement asks whether a policy can then learn on these frozen features. \Cref{fig:geometry_rl_curve} shows the from-scratch learning curve. Completion climbs monotonically to full parity by roughly 300 thousand steps, with no imitation, no critic warm-up, no unfreezing schedule, and no collapse, tracing the same trajectory as the engineered-state run. The image policy that could not learn at all in \cref{sec:obs_ablation} learns cleanly once the encoder is decoupled from the reward-driven gradient. Cross-track error at parity averages 0.55\,m against 0.46\,m for the engineered-state policy trained under the same budget, a gap consistent with the few-percent prediction error the encoder carries, though the per-seed spread on both runs is wide enough that the two overlap.
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.8\textwidth]{figures/experiment_results/geometry_rl_curve.pdf}{Geometry-encoder policy completion against training steps on forward lane-following, seed 0, climbing to full parity by about 300 thousand steps.}
+    \caption{Geometry-encoder policy completion against training steps on forward lane-following, trained from scratch on the frozen encoder. Completion reaches parity with the engineered-state baseline by about 300 thousand steps with no collapse.}
+    \label{fig:geometry_rl_curve}
+\end{figure}
+
+The single-seed curve is confirmed by the full three-seed set. Forward completion reaches 1.000 on every seed, matching the engineered-state policy trained under the same budget, and the reverse direction reaches 0.954 against that policy's 0.967. Reverse needed a longer budget to get there. At 1.3 million steps it averaged 0.831 with wide seed variance, and extending to two million steps recovered the worst seed from 0.646 to 0.910. The limiter was therefore training convergence rather than the encoder or the replay buffer, which rules out the state-only-replay rework the earlier result appeared to call for.
+
+One limitation remains. The question of whether reinforcement learning can safely improve a warm-started policy without re-triggering the collapse was probed directly. Freezing the actor holds parity but by construction never improves the policy, and allowing the actor to move again, even under a reduced learning rate, either collapsed the policy outright or left it oscillating with no improvement in cross-track error, \pending{safe-adaptation collapse rates and CTE}. Unconstrained actor unfreezing is therefore not yet a usable recipe on this task, and whether the lane-tracking reward even leaves headroom for adaptation to capture is left open.
+
+\section{Obstacle Navigation}
+\label{sec:obstacle_results}
+
+The obstacle task is where the preceding results converge. It is the one setting where the engineered state is genuinely insufficient, because a compact tracking summary is blind to obstacles that are not on the reference path, so the image has to carry information the state cannot. It is also where the value of a learned controller and perception system separates cleanly from classical tracking, because avoiding an obstacle is a joint planning-and-control problem rather than a pure tracking one. The approach taken here is not a monolithic mapping from pixels to actions, which \cref{sec:vision} showed does not train. It is a learned but interpretable geometric bottleneck, and the results below build it up one decision at a time.
+
+\subsection{Direct Obstacle Encoding}
+
+The direct approach is to hand the policy the obstacles, as a set of ordered range-and-bearing slots appended to the state. It fails. Trained under the same curriculum, the slot-based policy climbs to a modest completion and then collapses toward zero, and it does so under every slot ordering tried, nearest-first, fixed, and randomized alike. Because a fixed ordering with no reordering collapses just as the others do, the instability is not caused by slots swapping identity between steps. It is the same off-policy training pathology seen in \cref{sec:vision}, now provoked by a different high-dimensional input. This rules out explicit obstacle encoding and motivates a representation that does not ask the policy to parse a variable set of objects at all.
+
+\subsection{Observing the Avoidance Path}
+
+The approach that succeeds gives the policy a path rather than a scene. The environment already computes a hidden avoidance path, a potential-field offset from the centerline that bends around the obstacles, and the reward already tracks it. Instead of feeding the policy the obstacles, the policy is fed the tracking errors and curvature to this avoidance path. Obstacle avoidance then reduces to path following, the task already solved in the preceding sections, and the obstacle information arrives pre-digested as the path to follow. The image predicts this path, in the same learning-by-cheating manner as the geometry encoder of \cref{sec:geometry_encoder}, privileged in simulation and image-derived at deployment.
+
+A ground-truth test isolates the mechanism from the perception. Taking an existing forward state policy and feeding it avoidance-path errors in place of centerline errors, with no retraining at all, cut obstacle collisions roughly in half and lifted completion from about 0.55 to about 0.67. The controller follows whatever path it is given, so the entire obstacle problem can be moved into the choice of path, which is exactly the quantity the image can supply.
+
+\subsection{The Stop Decision and Forward Results}
+
+Following the avoidance path is not enough on its own, because some layouts are not passable and the right action there is to stop rather than to clip an obstacle. The policy is therefore given a windowed difficulty channel, the free-gap difficulty of \cref{eq:obstacle_difficulty} computed over the obstacles inside the observable window, so that the attempt-versus-stop decision is a causal function of what the agent can currently see. As set out in \cref{sec:obstacle_reward}, keying the stop reward on this same windowed difficulty is what makes the value of a stop predictable from the observation. An earlier design that keyed the reward on a global per-episode difficulty made the stop value unpredictable from the observation and collapsed the policy into stopping everywhere, and sharpening the stop calibration, rather than lowering its magnitude, concentrated stopping on the genuinely blocked layouts.
+
+In the forward direction this static-difficulty recipe works well. \Cref{tab:obstacle_forward_stratified} reports the outcome stratified by layout difficulty. The policy drives through easy layouts, stops on every hard one, and does not crash on the hardest, for an overall safe rate of 0.907 at a 0.019 crash rate. The residual crash concentrates in the tight-but-passable band where the attempt-versus-stop call is genuinely ambiguous. This behavior is what the drivability calibration of \cref{sec:eval_methodology} predicts. Calibrating the geometric difficulty against the classical drivability oracle through the expected-value balance of \cref{eq:attempt_ev} puts the forward break-even near a difficulty of $0.8$, so stopping on the hardest layouts is the rational choice rather than a shortfall.
+
+\input{tables/obstacle_forward_stratified}
+
+\subsection{State-Dependent Difficulty in Reverse}
+
+Reverse is the hardest case, and the forward recipe does not transfer to it. A static difficulty describes the layout, the free gap, but not the situation, and in reverse the two come apart. Because reverse tracking runs a systematic off-path error of around $0.8$~m, tracking well at one moment does not imply the trailer will clear the coming gap, so a policy gated on layout difficulty over-attempts in the ambiguous band and clips obstacles there, crashing on around forty to forty-five percent of the attempts it makes in that band.
+
+The fix is to make the difficulty state-dependent. The effective vehicle width is inflated by the current trailer error to the avoidance path rather than by an average, so when the trailer is tracking off-path into an obstacle the usable gap shrinks and the difficulty rises in time to trigger a stop. A second correction concerns where the difficulty looks. In reverse the trailer leads, so a window that looked only ahead of the lead point was blind to obstacles the trailing body was still clearing, which produced a spurious cluster of crashes at apparently low difficulty. Anchoring the window to the whole vehicle body removed it. This is a reverse-specific need, as the collision geometry in \cref{tab:tail_swing} makes plain. Reverse crashes are overwhelmingly trailer clips, the leading trailer sweeping into an obstacle, whereas forward crashes are entirely tractor clips, so the body-extent window matters in reverse and is irrelevant forward.
+
+\input{tables/tail_swing}
+
+With the state-dependent difficulty and the body-extent window in place, the stop decision reduces to a single clean threshold. Measured at the moment of collision, no reverse crash occurs below a dynamic difficulty of about $0.5$, so a stop below that value is unambiguously wrong and a stop at or above it is the best available action. \Cref{fig:reverse_obstacle_gate} shows the outcome stratified by dynamic difficulty, and \cref{tab:obstacle_reverse_stratified} gives the same data numerically. Completion falls and stopping rises across the gate, and the crash rate stays low throughout, with the accepted model reaching an overall crash rate of about $0.05$.
+
+\begin{figure}[H]
+    \centering
+    \safegraphic[width=0.8\textwidth]{figures/experiment_results/reverse_obstacle_gate.pdf}{Reverse obstacle maneuvering, outcome rates against maximum dynamic difficulty, showing the clean crash gate near a dynamic difficulty of 0.5.}
+    \caption{Reverse obstacle maneuvering, outcome rates against maximum dynamic difficulty. No crash occurs below the gate near a dynamic difficulty of 0.5, so stopping above it is the correct action.}
+    \label{fig:reverse_obstacle_gate}
+\end{figure}
+
+\input{tables/obstacle_reverse_stratified}
+
+The reverse recipe is trained from scratch and repeated across three seeds in \cref{tab:obstacle_multiseed}. Two of the three reproduce the safe result at a crash rate around $0.05$, while one seed converged to a less conservative policy that attempts more of the transition band and crashes more there. The spread traces to a critic shock at the boundary where the reward changes from the obstacle-free warm-up to the obstacle task, so the recipe is usable but not yet tightly reproducible. A critic warm-up at that boundary and a safety-aware checkpoint criterion are the levers to tighten it, and both are left as immediate follow-ups. The same table records a second finding. Dynamic difficulty helps reverse but hurts forward, where the vehicle does not jackknife and its tracking error is small, so the width inflation only adds noise. Forward therefore keeps the static recipe, and a single unified stop signal for both directions is not achievable given their different dynamics.
+
+\input{tables/obstacle_multiseed}
+
+\subsection{Recovering the Difficulty from the Image}
+
+The obstacle recipe gates on the dynamic difficulty, which depends on the current trailer error and so is a harder image target than the static path geometry of \cref{sec:geometry_encoder}. The same distillation recovers it. \Cref{tab:obstacle_recoverability} reports the per-component recoverability of the avoidance-path state from the obstacle image in both directions, and the dynamic difficulty channel is recovered well, at a test $R^2$ of $0.948$ forward and $0.954$ reverse. The avoidance-path errors are recovered strongly, while the avoidance-path curvature is softer than in the lane task and softer still in reverse, where the bends are sharper, though the errors and the difficulty channel carry the control.
+
+\input{tables/obstacle_recoverability}
+
+Closing the loop confirms there is no perception roadblock. \Cref{tab:vision_closed_loop} drives each policy on its own image-predicted state, with a frozen encoder in the loop and only the steering and hitch angles taken from proprioception. The full pipeline holds in both directions, with the crash rate sitting a few points above the ground-truth-state policy from ordinary prediction noise, a larger margin in reverse where the curvature is harder to see. The image supplies both the plan, the avoidance path and its difficulty, and the control state, which is the claim the whole perception thread of this chapter was built to support.
+
+\input{tables/vision_closed_loop}
+
+\subsection{Deterministic Safety Gate}
+
+The conservative stops seen above are not spurious behavior. On predominantly straight reverse paths the policy occasionally halts where a continued maneuver would have completed, and at those halts the trailer's hitch articulation is already degrading, with a terminal articulation angle around $0.20$~rad against about $0.01$~rad on completed paths, trending toward the unrecoverable regime near $0.71$~rad that produces the collisions. A reversing tractor-trailer cannot unwind a growing hitch angle by continuing in reverse, because the reverse articulation dynamics are unstable and more reverse motion only grows the hitch. The geometrically required recovery is to pull forward, re-stabilize the articulation on the stable forward dynamics, and re-approach, which is a shunting maneuver. That recovery needs a forward-reverse switching action space that is outside the scope of this continuous-reverse study, so within a reverse-only action space halting is the correct and safe response, and permitting pull-forward recovery is left to future work.
+
+Rather than rely on the policy erring conservative, the same protection can be made explicit and controller-independent with a deterministic safety gate. The gate stops the vehicle before it commits to a maneuver whenever it is in a bad enough state, using two thresholds for the two ways a reverse maneuver crashes. It halts if the peak dynamic difficulty exceeds $0.375$, which catches the obstacle clips where the vehicle tracks well but the gap is too tight, and it halts if the peak hitch angle exceeds $0.6$~rad, which catches the articulation runaways. The hitch threshold sits above the $99$th percentile of successful maneuvers, about $0.40$~rad, and below the articulation-crash floor near $0.71$~rad, so it catches every articulation crash while rarely stopping a maneuver that would have completed. Applied after training with no retraining, on the reference seed the gate reduces the reverse crash rate from $0.052$ to $0.0004$, about five episodes in $11{,}740$.
+
+This gate is what sets the learned and classical controllers apart, and then brings them back together. Without any deterministic gate the learned attempt-versus-abort decision separates the two controllers sharply, because pure pursuit has no way to decline an infeasible layout and crashes on $54$~percent of the hard-layout-dominated pool, against about $5$~percent for the learned policy. Once the deterministic gate is layered on top, the two converge, with the crash rate driven to near zero for both and comparable completion, as \Cref{tab:safety_gate} shows. The learned stop decision is therefore what makes the policy safe when no hand-designed gate is available, and the deterministic gate is an added safety layer that a classical controller can equally use.
+
+\input{tables/safety_gate}
+
+Together, these results explain why a learned controller is warranted here even though a classical planner exists. Its value is the learned attempt-versus-abort stop decision, which a geometric planner does not make, together with the reverse articulated case, where a geometric avoidance path is not by itself trackable and the stop must be tied to the articulation state. Both live in one learned module that reads its plan and its control state from the same image, in place of the separate global planner, local planner, and tracker of the classical stack. The deterministic gate does not displace that value, it adds a controller-independent safety floor on top of it. The comparison against that stack is taken up next.
+
+\section{Comparison with Classical Controllers}
+\label{sec:benchmark}
+
+A learned controller has to be shown competent at plain tracking before its obstacle behavior means anything, so this section places it beside tuned classical control on the no-obstacle task. The framing matters. On pure path tracking a classical controller is complete and verifiable, and for that task it is the sensible choice, so the aim here is not to beat it but to establish that the learned controller reaches comparable tracking competence. The classical controllers were tuned by differential evolution and validated on held-out seeds, and every controller faces the same pool as the learned agent. \Cref{tab:benchmark_forward,tab:benchmark_reverse} report the comparison.
+
+\input{tables/benchmark_results}
+
+Forward tracking is saturated, so completion cannot separate the methods and the comparison there is only about tracking quality. Reverse is more informative. The learned policy reaches completion comparable to pure pursuit and ahead of PID, which establishes the competence the obstacle results depend on, a policy that can actually stabilize and track the trailer on the unstable reverse task. This is a competence result rather than a claim of superiority. On the unfiltered pool pure pursuit completes 98.0\% of the reverse layouts and the learned policy 95.9\%, a small edge for pure pursuit on plain reverse tracking that is expected and is not the basis for the learned controller. The case for the learned controller does not rest on winning this tracking comparison. It rests on the integrated obstacle task of \cref{sec:obstacle_results}, where pure pursuit alone is not a controller and the classical alternative is the full planner-and-tracker stack. In articulated control, success is not simply the lowest cross-track error, because hitch stability takes precedence over exact path following. A policy that holds the hitch angle inside a safe margin throughout a reverse maneuver is more successful than one that shaves cross-track error but risks jackknifing, which is why the benchmark reports completion, trailer tracking, and articulation stability together rather than collapsing them into one score.
+
+\subsection{Information Parity between Learned and Classical Controllers}
+\label{sec:information_parity}
+
+A controller comparison is only meaningful if the methods are given comparable information about the reference path. \Cref{tab:information_parity} summarizes what each method observes at a single control step on the no-obstacle task. The TD3 observation contains the instantaneous tractor and trailer tracking errors together with two path-curvature samples taken ahead of the trailer axle. This is a strict superset of the reference information used by pure pursuit and PID, which close the loop on the same instantaneous errors plus a single curvature sample at one lookahead point. The learned policy is therefore not at an information disadvantage relative to these baselines, if anything it is marginally favored, so the comparison against pure pursuit and PID is a fair, like-for-like test of control quality rather than one confounded by what each method is allowed to see.
+
+\begin{table}[H]
+\centering
+\caption{Reference-path information available to each method at a single control step on the no-obstacle task. The learned policy's observation is a strict superset of the information used by the pure-pursuit and PID baselines. Only MPC receives an explicit preview of the path ahead.}
+\label{tab:information_parity}
+\begin{tabular}{lccc}
+\toprule
+Method & \makecell{Instantaneous\\errors $(e_y, e_\psi)$} & \makecell{Curvature\\lookahead} & \makecell{Full path\\preview} \\
+\midrule
+Pure pursuit          & yes      & 1 pt ($\sim$10\,m)       & no                 \\
+PID                   & yes      & 1 pt ($\sim$10\,m)       & no                 \\
+TD3 (state/LiDAR/BEV) & yes      & 2 pts ($\sim$10, 20\,m)  & no                 \\
+MPC                   & implicit & no                       & $N{=}16/20$ steps   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+MPC is the exception, and it is best read as an informed upper bound rather than a peer. It is supplied with an explicit preview of the path, a full reference trajectory over a receding horizon reconstructed from the same centerline the policy tracks, while the learned policy receives only the two scalar curvature samples. Where MPC attains lower cross-track error, part of that advantage is therefore attributable to horizon information the learned policy never sees, rather than to a superior control law alone. The pure-pursuit and PID comparisons are the information-matched test of whether a learned policy can equal classical feedback control on the articulated tracking task, and closing the remaining gap to MPC by giving the policy an equivalent path-preview observation is identified as future work in \cref{ch:conclusion}.
+
+For obstacle scenarios the benchmark question changes, because the learned obstacle policy is solving a joint local-planning and control problem, including the stop/go decision, whereas the classical controllers are path trackers. The obstacle results are therefore not presented as directly comparable to controller-only baselines unless those baselines are given a matched planning layer and longitudinal policy.
+
+\section{Failure Modes and Deployment Relevance}
+\label{sec:failure_analysis}
+
+Average metrics alone are insufficient for articulated-vehicle control, because the operational significance of a failure depends on how it occurs. The analysis therefore examines representative failure cases for each controller family, such as gradual corner-cutting, growing lateral oscillations, abrupt jackknife onset, and obstacle-clearance failures, rather than mean error alone. Trajectory overlays and hitch-angle traces are the natural diagnostics, because they reveal whether an error mode is geometric, dynamic, or perception-driven, and therefore which part of the pipeline a fix should target. The seed collapses behind the wide confidence intervals of \cref{sec:obs_ablation} are a case in point, since they are not a uniform degradation but a bimodal outcome where a policy either learns the task or falls into a degenerate behavior, which is visible in a trajectory trace in a way a mean completion rate hides.
+
+This failure-oriented reading is also what connects the simulation study to deployment. A controller that attains a low mean cross-track error but exhibits rare catastrophic jackknife episodes is less deployable than one with slightly higher average error and consistent stability margins, which is why the reverse results are read through hitch stability rather than cross-track error alone. For the same reason controller latency and architectural modularity are weighed alongside tracking performance. Overall, the results position the learned controller as a credible peer to classical feedback control on the unstable reverse task, and the geometry-encoder recipe as the piece that makes high-dimensional perception trainable rather than merely available, which is what the obstacle task and eventual hardware deployment in \cref{ch:sim_to_real} require.

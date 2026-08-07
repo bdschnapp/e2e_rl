@@ -1,0 +1,13 @@
+# Outcome among ATTEMPTED episodes (gate never fires) vs peak dynamic difficulty.
+# GATE: stop if peak_dd > 0.375 OR peak_|hitch| > 0.6 rad. model=hp_reverse_avoidance_d_win_dyn_s0, 11740 episodes.
+# ATTEMPTED = 0.236 of all; among attempted: success=0.750 model_stop=0.248 crash=0.002.
+# 'gated_frac' = fraction of the bucket auto-stopped by the filter; buckets with peak_dd>X are 100% gated by definition.
+# succ/model_stop/crash columns are fractions AMONG the not-gated (attempted) episodes in that bucket.
+peak_dd_lo,peak_dd_hi,n_total,gated_frac,n_attempted,succ,model_stop,crash
+0,0.1,756,0.123,663,0.0,1.0,0.0
+0.1,0.2,10,0.0,10,1.0,0.0,0.0
+0.2,0.3,867,0.0,867,0.9942,0.0058,0.0
+0.3,0.375,1228,0.0016,1226,0.9812,0.0147,0.0041
+0.375,0.5,777,1.0,0,,,
+0.5,0.7,1908,1.0,0,,,
+0.7,1.01,6194,1.0,0,,,

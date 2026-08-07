@@ -1,0 +1,58 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Motivation}
+
+The increasing demand for autonomous logistics and the growth of large-scale goods transportation have positioned articulated tractor-trailer vehicles as a critical target for autonomous control research. The transition from rigid-body autonomous navigation to the control of articulated tractor-trailer systems represents a significant escalation in mechanical complexity, perception requirements, and control instability, particularly during the low-speed reverse maneuvering that dominates confined distribution-yard and loading-dock operations, which are the practical setting this thesis targets.
+
+A tractor-trailer vehicle system is distinguished from a single-body vehicle by the articulation degree of freedom at the hitch, whose dynamics fundamentally alter the stability characteristics of the system. In reverse motion, the articulation angle $\gamma$ between the tractor and trailer exhibits open-loop instability. Without precise closed-loop control, any perturbation grows unbounded, culminating in the well-known jackknife condition from which no steering correction can recover the trailer's alignment. Classical approaches such as Nonlinear Model Predictive Control (NMPC) can manage this instability by optimizing over a prediction horizon~\cite{mayne2000constrained}, but their computational demands and reliance on accurate system models limit their applicability in unstructured or sensor-rich environments.
+
+This motivates learning-based controllers that map sensor observations directly to actuation at fixed computational cost. Their practical value, however, ultimately rests on a question that a purely simulated study cannot answer on its own, whether a policy trained entirely in simulation can be transferred to, and run on, a physical articulated vehicle. This thesis pursues both halves of that question, the design and evaluation of the learned controller in simulation, and its deployment on real hardware.
+
+\section{Problem Definition}
+
+The core challenge addressed in this thesis is twofold. First, the kinematic and dynamic complexity of tractor-trailer systems makes it difficult to design reward functions and control policies that simultaneously optimize path tracking performance and hitch stability. Second, real-world autonomous deployment requires perception of lane boundaries and obstacles directly from high-dimensional sensor data, rather than from pre-computed symbolic state representations.
+
+Existing learning-based path-following studies on rigid-body vehicles have shown that continuous-control reinforcement learning can achieve performance competitive with classical baselines under nominal conditions, but robustness degrades when the vehicle model, operating conditions, or path geometry become more demanding. Those limitations are amplified for articulated systems, where reverse instability and hitch-angle growth impose a much narrower margin for control error. [TODO: need references for this paragraph]
+
+\section{Thesis Contributions}
+
+This thesis builds on two pieces of the author's prior graduate coursework, [TODO: how do I gracefully talk about myself?] which established its modeling and learning foundations. The first is a Deep Deterministic Policy Gradient [TODO: Cite?](DDPG) path-following study for a single-body vehicle in a custom OpenAI Gymnasium [TODO: Cite?] simulator, carried out jointly with R.\ Tymkow~\cite{tymkow2024me780}. The second is a single-author linear-quadratic-regulator design for the linearized tractor-trailer model~\cite{schnapp2024ece682}. The present work combines and substantially extends these along three axes: from a single rigid body to an articulated tractor-trailer, from a hand-engineered state vector to high-dimensional perception, and adding the physical hardware deployment that neither prior report attempted.
+
+Building on that foundation, this thesis addresses these challenges through the following contributions:
+
+\begin{itemize}
+    \item developing a kinematic and dynamic model of a tractor-trailer system, including hitch instability analysis for reverse maneuvering;
+    \item designing a vision-based RL observation space that encodes a bird's-eye-view (BEV) image, rendered from a custom Pygame simulation environment, into the vehicle's path geometry through a frozen privileged-distillation encoder;
+    \item engineering reward functions that balance cross-track error, heading error, hitch articulation stability, and collision avoidance;
+    \item implementing and benchmarking Twin Delayed Deep Deterministic Policy Gradient (TD3)~\cite{fujimoto2018td3} agents in lane-following and obstacle-avoidance tasks within a custom Gymnasium-based simulation environment;
+    \item comparing the learned policies against tuned classical control baselines, including pure-pursuit~\cite{coulter1992pure}, PID, and MPC~\cite{rawlings2017mpc}, on matched articulated path-tracking tasks;
+    \item deploying the trained forward and reverse TD3 policies directly on a physical articulated platform (an AgileX Hunter SE) through a stripped-down Autoware stack (the ``RL bridge'') supported by an onboard LiDAR-based hitch-angle estimator that requires no trailer-mounted sensing and a Smith-predictor compensator for actuator delay (\cref{ch:sim_to_real}).
+\end{itemize}
+
+The research aligns with the objectives of the University of Waterloo Mechatronics Vehicle Systems Lab (MVSL) and Electrans Technologies Ltd.
+
+\section{Institutional Context}
+
+This work is submitted in partial fulfillment of the requirements for a Master of Applied Science (MASc) degree in the Department of Mechanical and Mechatronics Engineering at the University of Waterloo. The degree requires six terms of full-time registration, completion of 3--5 graduate-level courses, appointment of two additional faculty readers, and a mandatory 15-day public display period. The target completion date is early July, with a seminar scheduled for late July.
+
+\begin{table}[H]
+\centering
+\caption{MASc thesis requirements summary}
+\label{tab:masc_requirements}
+\begin{tabular}{l p{0.68\linewidth}}
+\toprule
+Element & Requirement \\
+\midrule
+Research Scope   & Substantial problem extending beyond existing laboratory results \\
+Literature Review & Comprehensive assessment of classical control and modern AI approaches \\
+Validation       & Simulation-based empirical evidence across multiple environment configurations, complemented by a physical hardware deployment \\
+Length/Format    & Typically 80--120 pages; GSPA formatting and UWSpace submission \\
+Committee        & Supervisor plus two faculty readers; formal display period \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Thesis Organization}
+
+The remainder of this thesis is structured as follows. Chapter~\ref{ch:literature_review} reviews classical and learning-based control methods for articulated vehicles, alongside the relevant perception, sim-to-real, and safety literature. Chapter~\ref{ch:modeling_simulation_problem} derives the tractor-trailer model, describes the custom Pygame/Gymnasium simulation environment, and formulates the control problem as an MDP. Chapter~\ref{ch:learning_framework} presents the TD3 learning framework, observation spaces, reward design, representation-learning variants, and training methodology. Chapter~\ref{ch:results} presents and discusses the simulation experiments. Chapter~\ref{ch:sim_to_real} carries the learned controller onto a physical tractor-trailer platform, describing the stripped-down Autoware/ROS2 integration that runs the policies, the onboard LiDAR hitch-angle estimator, and the Smith-predictor delay compensation. Chapter~\ref{ch:conclusion} summarizes the findings and outlines future work.

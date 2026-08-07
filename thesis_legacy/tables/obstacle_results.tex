@@ -1,0 +1,22 @@
+% Hand-authored placeholder skeleton. The obstacle-navigation and drivability
+% numbers live in the CuPy repository logs (results_obstacle/) and have not yet
+% been archived under thesis/data/. Cells stay '---' until those logs are
+% imported; the '\pending' marker in the caption keeps the gap greppable.
+
+\begin{table}[H]
+\centering
+\caption{Obstacle-navigation outcomes for the geometry-encoder policy, stratified by geometric difficulty against the per-direction drivability threshold $d^\star$. Reported as completion, deliberate-stop rate, collision conditional on attempting, and minimum clearance. \pending{numbers awaiting import from the obstacle-run logs.}}
+\label{tab:obstacle_results}
+\resizebox{\ifdim\width>\linewidth \linewidth\else \width\fi}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+Direction & Difficulty & \makecell{Completion\\(\%)} & \makecell{Stop\\(\%)} & \makecell{Crash $\mid$\\attempt (\%)} & \makecell{Min\\clearance (m)} \\
+\midrule
+Forward & $d < d^\star$ & --- & --- & --- & --- \\
+Forward & $d \geq d^\star$ & --- & --- & --- & --- \\
+Reverse & $d < d^\star$ & --- & --- & --- & --- \\
+Reverse & $d \geq d^\star$ & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

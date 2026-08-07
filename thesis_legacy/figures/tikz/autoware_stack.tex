@@ -1,0 +1,30 @@
+\begin{tikzpicture}[
+  >=Stealth, font=\footnotesize, node distance=8mm and 12mm,
+  block/.style={draw, rounded corners, align=center, inner sep=4pt, minimum height=10mm, text width=20mm},
+  lbl/.style={midway, font=\scriptsize}
+]
+  \node[block] (sens) {Sensing\\{\scriptsize LiDAR, GNSS, IMU}};
+  \node[block, right=of sens] (loc) {Localization\\{\scriptsize (NDT)}};
+  \node[block, right=of loc] (perc) {Perception};
+  \node[block, right=of perc, fill=black!8] (rl) {RL bridge\\{\scriptsize TD3 policy}};
+  \node[block, right=of rl] (veh) {Vehicle\\{\scriptsize Hunter SE}};
+
+  \draw[->] (sens) -- (loc);
+  \draw[->] (loc) -- (perc);
+  \draw[->] (perc) -- (rl);
+  \draw[->] (rl) -- (veh);
+
+  % Autoware retained group
+  \begin{scope}[on background layer]
+    \node[draw, dashed, rounded corners, fit=(loc)(perc), inner sep=5pt] (aw) {};
+  \end{scope}
+  \node[font=\scriptsize, above=1pt of aw] {Autoware (retained)};
+
+  % replaced conventional pipeline
+  \node[block, below=12mm of rl, fill=gray!12, text=gray!55, draw=gray!55] (conv)
+        {freespace planner\\{\scriptsize + MPC / LQR}};
+  \draw[->, gray!55, dashed] (perc.south) |- (conv.west);
+  \draw[->, gray!55, dashed] (conv.east) -| (veh.south);
+  \node[font=\scriptsize, gray!55, below=1pt of conv, align=center] {conventional pipeline (replaced)};
+  \node[font=\scriptsize, above=1pt of rl] {learned};
+\end{tikzpicture}

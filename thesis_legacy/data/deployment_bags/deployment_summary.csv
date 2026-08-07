@@ -1,0 +1,5 @@
+run,direction,bag_duration_s,window_s,path_progress_m,dist_driven_m,mean_speed_mps,completed,operator_takeover,cte_mean_abs_m,cte_rms_m,cte_max_abs_m,cte_t_mean_abs_m,cte_t_rms_m,cte_t_max_abs_m,frac_trailer_outside_lane,epsi_mean_abs_deg,epsi_max_abs_deg,epsi_t_mean_abs_deg,epsi_t_max_abs_deg,hitch_mean_abs_deg,hitch_max_abs_deg,frac_hitch_over_op_limit,jackknife,steer_max_abs_deg,steer_rate_sat_frac,osc_wavelength_m,osc_amp_pp_deg,osc_cycles
+run_A2B_fwd_20260805_100756,forward,47.0,40.3,23.65,23.75,0.59,True,False,0.045,0.051,0.104,0.223,0.353,1.046,0.0,1.27,5.7,3.83,13.19,9.07,38.73,0.0,False,12.76,0.005,,,0
+run_A2B_fwd_20260805_101802,forward,47.4,40.3,23.61,23.75,0.59,True,False,0.078,0.084,0.158,0.263,0.371,1.026,0.0,1.26,4.85,3.97,14.01,9.42,38.99,0.0,False,11.3,0.0,,,0
+run_A2B_rev_20260805_120951,reverse,115.8,105.9,22.58,26.02,0.246,True,False,0.964,1.243,2.388,0.687,0.847,1.905,0.107,13.98,43.46,10.02,32.17,20.95,51.63,0.0,False,21.64,0.797,2.38,44.3,8
+run_A2B_rev_20260805_124549,reverse,115.8,108.7,22.6,26.77,0.246,True,False,1.102,1.354,2.353,0.764,0.918,1.865,0.108,15.69,55.92,10.13,30.75,21.8,51.13,0.0,False,21.64,0.794,2.62,46.1,8

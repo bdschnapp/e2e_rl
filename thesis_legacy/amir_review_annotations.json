@@ -1,0 +1,1165 @@
+[
+ {
+  "page": 20,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "How do I talk about myself?",
+  "highlighted": "The author\u2019s",
+  "line": "quadratic cost and is optimal for the linearized plant [4]. The author\u2019s prior work applied",
+  "block": "model addresses the multi-variable coupling more directly. Choosing that feedback as a linear-quadratic regulator (LQR) trades tracking accuracy against control effort through a quadratic cost and is optimal for the linearized plant [4]. The author\u2019s prior work applied exactly this design to the linearized tractor model [5]. Model predictive control (MPC) generalizes linear feedback by re-optimizing the steering",
+  "hits": [
+   {
+    "file": "chapters/02_literature_review.tex",
+    "line": 17
+   }
+  ],
+  "chapfile": "chapters/02_literature_review.tex"
+ },
+ {
+  "page": 20,
+  "subtype": "Text",
+  "author": "amirk",
+  "comment": "In general, you should use the passive voice to avoid using first-person pronouns. In this sentence, however, it is fine to leave it as it is.",
+  "highlighted": "The a",
+  "line": "quadratic cost and is optimal for the linearized plant [4]. The author\u2019s prior work applied exactly this design to the linearized tractor model [5].",
+  "block": "model addresses the multi-variable coupling more directly. Choosing that feedback as a linear-quadratic regulator (LQR) trades tracking accuracy against control effort through a quadratic cost and is optimal for the linearized plant [4]. The author\u2019s prior work applied exactly this design to the linearized tractor model [5]. Model predictive control (MPC) generalizes linear feedback by re-optimizing the steering sequence over a receding horizon subject to explicit state and input constraints [6]. This",
+  "hits": [
+   {
+    "file": "chapters/02_literature_review.tex",
+    "line": 17
+   }
+  ],
+  "chapfile": "chapters/02_literature_review.tex"
+ },
+ {
+  "page": 21,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "This is a strong statement. Please add a reference.",
+  "highlighted": "comes with guarantees.",
+  "line": "The appeal of this pipeline is that it comes with guarantees. Given an accurate model, the",
+  "block": "2.2.4 Strengths and Limitations The appeal of this pipeline is that it comes with guarantees. Given an accurate model, the stability of the controller and the feasibility of the planned path can be analyzed and, in principle, guaranteed. Its cost is precisely that dependence. The model must be identified",
+  "hits": [
+   {
+    "file": "chapters/02_literature_review.tex",
+    "line": 28
+   }
+  ],
+  "chapfile": "chapters/02_literature_review.tex"
+ },
+ {
+  "page": 22,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "These are very small subsections. You can remove the sub-subsection numbers and only keep the title in bold.",
+  "highlighted": "2.3.1 Deep Reinforcement Learning Foundations",
+  "line": "2.3.1 Deep Reinforcement Learning Foundations",
+  "block": "their specific application to articulated vehicles. 2.3.1 Deep Reinforcement Learning Foundations Modern RL for control rests on the deep-network function approximators that made high-",
+  "hits": [
+   {
+    "file": "chapters/02_literature_review.tex",
+    "line": 34
+   }
+  ],
+  "chapfile": "chapters/02_literature_review.tex"
+ },
+ {
+  "page": 25,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "space",
+  "highlighted": "code",
+  "line": "images into a compact latent code in an unsupervised pre-training stage [49], an idea applied",
+  "block": "Training a control policy directly on raw images is sample-inefficient, because the policy must learn to see and to act at the same time. Autoencoders decouple these by compressing images into a compact latent code in an unsupervised pre-training stage [49], an idea applied to RL to shrink the policy\u2019s input and accelerate learning [50]. Variational autoencoders im- pose a probabilistic structure on the latent space that can improve its regularity [51], and",
+  "hits": [
+   {
+    "file": "chapters/02_literature_review.tex",
+    "line": 60
+   }
+  ],
+  "chapfile": "chapters/02_literature_review.tex"
+ },
+ {
+  "page": 25,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "drivable space",
+  "highlighted": "obstacle probability",
+  "line": "the classical occupancy grid represents as a discretized map of obstacle probability [48]. At",
+  "block": "Bird\u2019s-eye imagery is not the only high-dimensional modality available to a ground vehicle. Planar LiDAR provides a direct geometric measurement of the surrounding free space, which the classical occupancy grid represents as a discretized map of obstacle probability [48]. At the other extreme of complexity, deep networks such as PointNet learn features directly from raw, unordered three-dimensional point clouds [54]. This thesis deliberately adopts a",
+  "hits": [
+   {
+    "file": "chapters/02_literature_review.tex",
+    "line": 63
+   }
+  ],
+  "chapfile": "chapters/02_literature_review.tex"
+ },
+ {
+  "page": 25,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "this is not equal since vision gets an encoder but lidar does not",
+  "highlighted": "LiDAR and image modalities to be compared on an equal footing",
+  "line": "keeps the observation compact and the sensing model simple, and it allows the LiDAR and image modalities to be compared on an equal footing in chapter 4.",
+  "block": "lighter-weight LiDAR representation that sits between these poles, a fixed-length vector of range returns appended to the state vector, rather than a learned point-cloud encoder. This keeps the observation compact and the sensing model simple, and it allows the LiDAR and image modalities to be compared on an equal footing in chapter 4. 2.5 Sim-to-Real Transfer",
+  "hits": [
+   {
+    "file": "chapters/02_literature_review.tex",
+    "line": 63
+   }
+  ],
+  "chapfile": "chapters/02_literature_review.tex"
+ },
+ {
+  "page": 30,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "need to update this figure to be more clear (too compact right now)",
+  "highlighted": "Figure 3.1: Tractor-trailer geometry. The tractor rear axle carries the hitch (L (L h \u2248 0), from",
+  "line": "Figure 3.1: Tractor-trailer geometry. The tractor rear axle carries the hitch (L \u2248 0), from h which the trailer of wheelbase L trails at articulation angle \u03b3 = \u03c8 \u2212\u03c8 . The front wheel is",
+  "block": "x Figure 3.1: Tractor-trailer geometry. The tractor rear axle carries the hitch (L \u2248 0), from h which the trailer of wheelbase L trails at articulation angle \u03b3 = \u03c8 \u2212\u03c8 . The front wheel is t t steered by \u03b4 relative to the tractor heading \u03c8, and L is the tractor wheelbase.",
+  "hits": [
+   {
+    "file": "chapters/03_modeling_simulation_problem.tex",
+    "line": 19
+   }
+  ],
+  "chapfile": "chapters/03_modeling_simulation_problem.tex"
+ },
+ {
+  "page": 30,
+  "subtype": "Text",
+  "author": "amirk",
+  "comment": "Please make the tiers larger. Please also replace hitch with fifth wheel as this is used for tractor-trailer connection. \n\nAlso, please add a comment for the reason that you have assumed the fifth wheel right at the rear axe.",
+  "highlighted": "Figur which",
+  "line": "Figure 3.1: Tractor-trailer geometry. The tractor rear axle carries the hitch (L \u2248 0), from h which the trailer of wheelbase L trails at articulation angle \u03b3 = \u03c8 \u2212\u03c8 . The front wheel is t t",
+  "block": "x Figure 3.1: Tractor-trailer geometry. The tractor rear axle carries the hitch (L \u2248 0), from h which the trailer of wheelbase L trails at articulation angle \u03b3 = \u03c8 \u2212\u03c8 . The front wheel is t t steered by \u03b4 relative to the tractor heading \u03c8, and L is the tractor wheelbase.",
+  "hits": [
+   {
+    "file": "chapters/03_modeling_simulation_problem.tex",
+    "line": 19
+   }
+  ],
+  "chapfile": "chapters/03_modeling_simulation_problem.tex"
+ },
+ {
+  "page": 34,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "Does it make sense to call this \"lane driving\" instead of line following? ultimately the information given to the policy is about the lane geometry and while the center of the lane is what is being followed, the goal is more \"drive in the lane while attempting to be close to the center\"",
+  "highlighted": "Line Following",
+  "line": "3.5.1 Line Following",
+  "block": "task logic. 3.5.1 Line Following The lane-following environment extends the base tractor-trailer environment to present a",
+  "hits": [
+   {
+    "file": "chapters/03_modeling_simulation_problem.tex",
+    "line": 76
+   }
+  ],
+  "chapfile": "chapters/03_modeling_simulation_problem.tex"
+ },
+ {
+  "page": 34,
+  "subtype": "Text",
+  "author": "amirk",
+  "comment": "I think the title should reflect the goal which lane following regarless of the approach.",
+  "highlighted": "Line",
+  "line": "3.5.1 Line Following",
+  "block": "task logic. 3.5.1 Line Following The lane-following environment extends the base tractor-trailer environment to present a lane-tracking task. A reference lane is generated at the start of each episode using cubic",
+  "hits": [
+   {
+    "file": "chapters/03_modeling_simulation_problem.tex",
+    "line": 76
+   }
+  ],
+  "chapfile": "chapters/03_modeling_simulation_problem.tex"
+ },
+ {
+  "page": 34,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "",
+  "highlighted": "line-following",
+  "line": "Reverse line-following environments use the same path generation and rendering pipeline,",
+  "block": "the agent to keep both the tractor and trailer within the lane boundaries while maintaining progress along the path. Reverse line-following environments use the same path generation and rendering pipeline, but reverse the longitudinal command and compute reward and tracking terms with the trailer as the leading unit, so that the same task can be studied in backward maneuvers",
+  "hits": [
+   {
+    "file": "chapters/03_modeling_simulation_problem.tex",
+    "line": 78
+   }
+  ],
+  "chapfile": "chapters/03_modeling_simulation_problem.tex"
+ },
+ {
+  "page": 36,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "Adding a summary at the end of each chapter is very helpful.",
+  "highlighted": "0\u25e6) Episodes terminate on collision, jackknife (|\u03b3| > 90\u25e6), or successful path completion.",
+  "line": "Episodes terminate on collision, jackknife (|\u03b3| > 90\u25e6), or successful path completion.",
+  "block": "that governs this trade-off is developed in section 4.3.1, and the experimental protocols in chapter 5. Episodes terminate on collision, jackknife (|\u03b3| > 90\u25e6), or successful path completion.",
+  "hits": [
+   {
+    "file": "chapters/03_modeling_simulation_problem.tex",
+    "line": 93
+   }
+  ],
+  "chapfile": "chapters/03_modeling_simulation_problem.tex"
+ },
+ {
+  "page": 40,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "new line",
+  "highlighted": "For forward driving, the terminal reward is",
+  "line": "Forward lane-following rewards. For forward driving, the terminal reward is",
+  "block": "lane boundaries and inserted obstacle cells. Forward lane-following rewards. For forward driving, the terminal reward is \uf8f1 \uf8f2100, success, fwd",
+  "hits": [
+   {
+    "file": "equations/reward_function.tex",
+    "line": 29
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 40,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "remove.",
+  "highlighted": "s.",
+  "line": "Forward lane-following rewards. For forward driving, the terminal reward is",
+  "block": "lane boundaries and inserted obstacle cells. Forward lane-following rewards. For forward driving, the terminal reward is \uf8f1 \uf8f2100, success, fwd",
+  "hits": [
+   {
+    "file": "equations/reward_function.tex",
+    "line": 29
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 41,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "new line",
+  "highlighted": "For reverse driving, the terminal reward is",
+  "line": "Reverse lane-following rewards. For reverse driving, the terminal reward is",
+  "block": "Reverse lane-following rewards. For reverse driving, the terminal reward is \uf8f1 \uf8f2200, success, rev",
+  "hits": [
+   {
+    "file": "equations/reward_function.tex",
+    "line": 64
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 41,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "difficulty-scaled",
+  "highlighted": "A deliberate stop instead receives a difficulty-gated",
+  "line": "standard terminal penalty (chapter 3). A deliberate stop instead receives a difficulty-gated",
+  "block": "Obstacle-aware extensions. Obstacle environments inherit the underlying forward or reverse reward, including the proximity penalty above. A failed obstacle episode receives the standard terminal penalty (chapter 3). A deliberate stop instead receives a difficulty-gated 24",
+  "hits": [
+   {
+    "file": "equations/reward_function.tex",
+    "line": 110
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 41,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "If this is heading, please remove \".\"",
+  "highlighted": "s.",
+  "line": "Reverse lane-following rewards. For reverse driving, the terminal reward is",
+  "block": "Reverse lane-following rewards. For reverse driving, the terminal reward is \uf8f1 \uf8f2200, success, rev",
+  "hits": [
+   {
+    "file": "equations/reward_function.tex",
+    "line": 64
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 41,
+  "subtype": "StrikeOut",
+  "author": "amirk",
+  "comment": ":",
+  "highlighted": "y.",
+  "line": "Obstacle difficulty. The obstacle-aware terms below are keyed to a scalar difficulty d \u2208",
+  "block": "Rgreuvide(k) = \u03b1k(cid:0)\u22125\u22062\u03b4 \u2212Pprox(cid:1)+(1\u2212\u03b1k)Rmreuvlt. (4.18) Obstacle difficulty. The obstacle-aware terms below are keyed to a scalar difficulty d \u2208 [0,1], a static geometric clearance ratio computed as the tightest cross-section in the observ- able path window:",
+  "hits": [
+   {
+    "file": "equations/reward_function.tex",
+    "line": 96
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 41,
+  "subtype": "StrikeOut",
+  "author": "amirk",
+  "comment": ":",
+  "highlighted": "s.",
+  "line": "Obstacle-aware extensions. Obstacle environments inherit the underlying forward or",
+  "block": "rationale and per-direction calibration are developed in section 4.3.1 and chapter 5. Obstacle-aware extensions. Obstacle environments inherit the underlying forward or reverse reward, including the proximity penalty above. A failed obstacle episode receives the standard terminal penalty (chapter 3). A deliberate stop instead receives a difficulty-gated",
+  "hits": [
+   {
+    "file": "equations/reward_function.tex",
+    "line": 108
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 42,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "Please fix all such cases.",
+  "highlighted": "d.",
+  "line": "Branching hidden-path reward. Rather than tracking the single hidden avoidance path",
+  "block": "a crash, and lose to driving through on an easy one. Branching hidden-path reward. Rather than tracking the single hidden avoidance path of chapter 3, the obstacle reward tracks two hidden corridors, one passing each side of the obstacle, and keeps the more favorable of the two evaluations:",
+  "hits": [
+   {
+    "file": "equations/reward_function.tex",
+    "line": 120
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 43,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "potential section to cut out. Simple expatiation that different hyperparameters were used for different algorithms in ch5 should suffice here?",
+  "highlighted": "Hyperparameter Optimization",
+  "line": "4.4 Hyperparameter Optimization",
+  "block": "seeing far enough ahead. 4.4 Hyperparameter Optimization The TD3 agent requires careful hyperparameter tuning. The actor-critic learning rates,",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 64
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 45,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "Needs to be updated: the actual solution used a soft occupancy grid instead of graded encoding.",
+  "highlighted": "Graded (signed-distance) encoding.",
+  "line": "Graded (signed-distance) encoding. A binary occupancy image is a poor learning",
+  "block": "by construction. Graded (signed-distance) encoding. A binary occupancy image is a poor learning target even though it is a faithful map. It is flat almost everywhere, so the task-relevant quantity, the clearance between the vehicle and the nearest boundary, is carried only by",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 82
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 46,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "2 dimensional",
+  "highlighted": "8-dimensional",
+  "line": "embeds the 8-dimensional state vector to 64 dimensions. The two branches are concatenated",
+  "block": "encoder with 1 \u2192 5 \u2192 5 channels maps the image to an 80-dimensional feature vector, fol- lowed by a linear projection to 64 image features. A separate two-layer multilayer perceptron embeds the 8-dimensional state vector to 64 dimensions. The two branches are concatenated into a 128-dimensional feature vector for the TD3 actor and critic heads. Two choices in this extractor are made specifically for stability with a high-dimensional input: layer nor-",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 88
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 46,
+  "subtype": "Text",
+  "author": "bdschnap",
+  "comment": "Actually it makes sense to talk about the 8-dim version here: we start with stable 8 dim state, add perception which de-stabilizes training which motivates the following sections (which later change to the minimally required 2-dim state + perception  observation space)",
+  "highlighted": "8-dim dimen",
+  "line": "embeds the 8-dimensional state vector to 64 dimensions. The two branches are concatenated into a 128-dimensional feature vector for the TD3 actor and critic heads. Two choices in",
+  "block": "encoder with 1 \u2192 5 \u2192 5 channels maps the image to an 80-dimensional feature vector, fol- lowed by a linear projection to 64 image features. A separate two-layer multilayer perceptron embeds the 8-dimensional state vector to 64 dimensions. The two branches are concatenated into a 128-dimensional feature vector for the TD3 actor and critic heads. Two choices in this extractor are made specifically for stability with a high-dimensional input: layer nor- malization is applied to the image features so their scale cannot swamp the intrinsic state",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 88
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 46,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "I don't like this sentence, needs to be re-worded",
+  "highlighted": "The first and most direct decouples at the level of the representation.",
+  "line": "progression of ways to do so, developed in section 4.6. The first and most direct decouples at the level of the representation. If a random image branch can derail learning that the",
+  "block": "These diagnostics motivate decoupling perception from control, and this thesis pursues a progression of ways to do so, developed in section 4.6. The first and most direct decouples at the level of the representation. If a random image branch can derail learning that the vector state alone proved learnable, then supplying a usable visual representation from the first training step should remove that failure mode. An autoencoder is used to pretrain",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 112
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 46,
+  "subtype": "Text",
+  "author": "amirk",
+  "comment": "If the definition of dimension is the number of independent inputs, then it should be the number of independent inputs.",
+  "highlighted": "8-dim dimen",
+  "line": "embeds the 8-dimensional state vector to 64 dimensions. The two branches are concatenated into a 128-dimensional feature vector for the TD3 actor and critic heads. Two choices in",
+  "block": "encoder with 1 \u2192 5 \u2192 5 channels maps the image to an 80-dimensional feature vector, fol- lowed by a linear projection to 64 image features. A separate two-layer multilayer perceptron embeds the 8-dimensional state vector to 64 dimensions. The two branches are concatenated into a 128-dimensional feature vector for the TD3 actor and critic heads. Two choices in this extractor are made specifically for stability with a high-dimensional input: layer nor- malization is applied to the image features so their scale cannot swamp the intrinsic state",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 88
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 47,
+  "subtype": "StrikeOut",
+  "author": "bdschnap",
+  "comment": "",
+  "highlighted": "however,",
+  "line": "ter 5. Pretraining the encoder is only the first of the decoupling strategies, however, and",
+  "block": "the UNet encoder form a spectrum of image representations, from learned-during-control to learned-before-control, that is compared against the engineered state and LiDAR in chap- ter 5. Pretraining the encoder is only the first of the decoupling strategies, however, and on its own it addresses only part of the problem. The stronger routes decouple at the level of the policy and of perception itself, and they rest on a specific view of why raw vision",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 125
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 49,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "state observation agent",
+  "highlighted": "state agent",
+  "line": "state agent is trained first and then used as an expert. It is rolled out inside the image",
+  "block": "that is already good, and keeping it there, should avoid it. This second decoupling strategy acts at the level of the policy rather than the representation. A competent low-dimensional state agent is trained first and then used as an expert. It is rolled out inside the image environment, its observations and actions are recorded, and the image policy (convolutional encoderandactorheadtogether)istrainedbysupervisedregressiontoreproducetheexpert\u2019s",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 161
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 49,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "not GSD anymore, needs to be updated",
+  "highlighted": "graded signed-distance",
+  "line": "The encoder takes the graded signed-distance BEV with its two coordinate channels",
+  "block": "module, and the policy is trained from scratch with ordinary TD3 over a low-dimensional vector, exactly as in the engineered-state baseline. Figure 4.2 shows the two-stage scheme. The encoder takes the graded signed-distance BEV with its two coordinate channels (section 4.5) through a small three-layer convolutional tower into a 128-dimensional trunk with layer normalization, from which a linear head regresses the standardized geometry",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 174
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 50,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "calculations based on on-board sensor measurements",
+  "highlighted": "direct measurements",
+  "line": "as true proprioception, because they are cheap direct measurements on the vehicle and,",
+  "block": "The internal states, the steering angle \u03b4 and the hitch articulation angle \u03b3, are supplied as true proprioception, because they are cheap direct measurements on the vehicle and, being internal, are less reliably recoverable from an ego-centric top-down image, as noted in section 4.5. The exteroceptive geometry, the tractor and trailer tracking errors and the",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 174
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 50,
+  "subtype": "Text",
+  "author": "amirk",
+  "comment": "it would make more sense to be replaced by \"measurements or estimates\"",
+  "highlighted": "direc an eg",
+  "line": "as true proprioception, because they are cheap direct measurements on the vehicle and, being internal, are less reliably recoverable from an ego-centric top-down image, as noted",
+  "block": "The internal states, the steering angle \u03b4 and the hitch articulation angle \u03b3, are supplied as true proprioception, because they are cheap direct measurements on the vehicle and, being internal, are less reliably recoverable from an ego-centric top-down image, as noted in section 4.5. The exteroceptive geometry, the tractor and trailer tracking errors and the path-curvature look-aheads, is taken from the frozen encoder\u2019s prediction, because that is",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 174
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 51,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "potential to cut:\nwas helpful for behavior cloning, but not useful for geometry encoder",
+  "highlighted": "4.6.5 Safe Adaptation",
+  "line": "4.6.5 Safe Adaptation",
+  "block": "the from-scratch learning curve are reported in chapter 5. 4.6.5 Safe Adaptation A warm-started policy raises a further question: can reinforcement learning then improve it",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 180
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 52,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "potential to cut: shows some improvement on strategies that struggle to learn, but minimal or no improvement on training strategies with stable learning",
+  "highlighted": "Failure Replay Curriculum",
+  "line": "4.7 Failure Replay Curriculum",
+  "block": "the algorithm comparison of chapter 5. 4.7 Failure Replay Curriculum A persistent challenge in training RL agents on the reverse lane-following task is that the",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 188
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 53,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "move to ch5?",
+  "highlighted": "Evaluation Methodology",
+  "line": "4.8 Evaluation Methodology",
+  "block": "benefit is expected to be negligible. 4.8 Evaluation Methodology The observation, reward, and training designs above are assessed by a common evaluation",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 202
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 53,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "timeout never occurs and while it is technically captured as a possible result, it is not reported in ch5 results and should be removed",
+  "highlighted": "or timeout.",
+  "line": "categoricallyascompletion, deliberatestop, collision, ortimeout. Becausetheobstacletask\u2019s",
+  "block": "Every policy is evaluated on a fixed pool of pre-generated scenarios rather than on freshly sampled episodes, so that different controllers face identical layouts. Outcomes are recorded categoricallyascompletion, deliberatestop, collision, ortimeout. Becausetheobstacletask\u2019s difficulty distribution is bimodal, results are reported stratified by the geometric difficulty of eq. (4.19) rather than pooled, so that easy and hard layouts are not averaged into a single",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 204
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 53,
+  "subtype": "StrikeOut",
+  "author": "bdschnap",
+  "comment": "",
+  "highlighted": "continuous",
+  "line": "obstacle over an episode is also reported, as a continuous measure of how close the vehicle",
+  "block": "metric is therefore the collision rate conditional on attempting, crash/(complete + crash), reported alongside the raw collision rate and the stop rate. The minimum clearance to any obstacle over an episode is also reported, as a continuous measure of how close the vehicle came to contact. To interpret the stop-gate behavior, the geometric difficulty is calibrated against actual",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 206
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 54,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "not true anymore, it is always enabled so that every policy can choose to stop",
+  "highlighted": "the stop action is disabled during the lane-following and drivability evaluations",
+  "line": "So that completion measures tracking rather than stop-timing, the stop action is disabled during the lane-following and drivability evaluations and enabled only when the stop-gate",
+  "block": "policy should be judged, rather than the raw geometric scale. The forward and reverse values of d\u22c6, and what they reveal about the reverse task in particular, are reported in chapter 5. So that completion measures tracking rather than stop-timing, the stop action is disabled during the lane-following and drivability evaluations and enabled only when the stop-gate behavior itself is under test.",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 213
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 54,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "policies",
+  "highlighted": "agents:",
+  "line": "agents: several observation modalities, multiple reward formulations, forward and reverse",
+  "block": "The observation, reward, and curriculum studies described in this chapter, together with the controller benchmark of chapter 5, require training and evaluating a large matrix of agents: several observation modalities, multiple reward formulations, forward and reverse variants, and repeated random seeds for statistical validity. The scalar Pygame/Gymnasium environment of section 3.4 is the physically faithful reference model, but it advances a sin-",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 218
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 55,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "this needs a better expatiation",
+  "highlighted": "the sequential, per-beam LiDAR ray-march is replaced by a vectorized fixed-length march with a first-hit reduction;",
+  "line": "3. the sequential, per-beam LiDAR ray-march is replaced by a vectorized fixed-length march with a first-hit reduction;",
+  "block": "generated paths, which removes the reset bottleneck entirely; 3. the sequential, per-beam LiDAR ray-march is replaced by a vectorized fixed-length march with a first-hit reduction; 4. the Python-loop collision and proximity tests are replaced by a batched gather of",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 227
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 55,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "reset (get new path, set vehicle pose) and restart",
+  "highlighted": "restart",
+  "line": "with internal automatic reset, so that finished environments restart without host-side",
+  "block": "5. the scalar termination, stop-signal, and spawn branches are replaced by boolean masks with internal automatic reset, so that finished environments restart without host-side control flow.",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 229
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 56,
+  "subtype": "StrikeOut",
+  "author": "bdschnap",
+  "comment": "",
+  "highlighted": "(no LiDAR)",
+  "line": "State (no LiDAR) \u223c1,700,000 \u223c2,100",
+  "block": "Observation Batched GPU (best N) Scalar (single core) State (no LiDAR) \u223c1,700,000 \u223c2,100 LiDAR (24 beams) \u223c64,000 \u223c470",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 252
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 56,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "table should report exact numbers since I have them, and also include a comparison with a BEV observation space",
+  "highlighted": "Table 4.3:",
+  "line": "Table 4.3: Environment-stepping throughput (transitions per second) for the batched GPU environment versus the single-core scalar reference, measured on an RTX 4080 SUPER.",
+  "block": "they are unaffected by the specific plant used in a given experiment. Table 4.3: Environment-stepping throughput (transitions per second) for the batched GPU environment versus the single-core scalar reference, measured on an RTX 4080 SUPER.",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 246
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 57,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "can cut, the hand written TD3 was no different than SB3",
+  "highlighted": "A separate hand-written GPU-resident TD3 is used only as a throughput demonstration.",
+  "line": "mentations of TD3, SAC, PPO, and DQN run on it unchanged. A separate hand-written GPU-resident TD3 is used only as a throughput demonstration. This infrastructure is what",
+  "block": "ison of chapter 5. To keep that comparison fair, the batched environment is exposed to Stable Baselines3 [72] through a vectorized-environment adapter, so that the vetted imple- mentations of TD3, SAC, PPO, and DQN run on it unchanged. A separate hand-written GPU-resident TD3 is used only as a throughput demonstration. This infrastructure is what makes the multi-seed ablation campaign of chapter 5 feasible within a practical time budget.",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 278
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 57,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "Please add a summary here. \n\nOne of the main question for me and most likely your readers will be the transferability of the traimed network from one vehicle/trailer to a different tractor or trailer. You need somewhere discuss this.",
+  "highlighted": "makes the multi-seed ablation campaign of chapter 5 feasible within a practical time budget.",
+  "line": "makes the multi-seed ablation campaign of chapter 5 feasible within a practical time budget.",
+  "block": "mentations of TD3, SAC, PPO, and DQN run on it unchanged. A separate hand-written GPU-resident TD3 is used only as a throughput demonstration. This infrastructure is what makes the multi-seed ablation campaign of chapter 5 feasible within a practical time budget.",
+  "hits": [
+   {
+    "file": "chapters/04_learning_framework.tex",
+    "line": 278
+   }
+  ],
+  "chapfile": "chapters/04_learning_framework.tex"
+ },
+ {
+  "page": 58,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "order (avoid using path for confusion with vehicle path)",
+  "highlighted": "path",
+  "line": "path the design took. The algorithm and the reward are settled first on the engineered state,",
+  "block": "This chapter reports what the learning framework of chapter 4 produced. It follows the same path the design took. The algorithm and the reward are settled first on the engineered state, where learning is fast and the outcome is unambiguous. The observation is then opened up, first to LiDAR and then to the raw image, and the study turns to what richer sensing",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 9
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 58,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "Just move section 4.8 here so that I don't need to discuss it twice",
+  "highlighted": "5.1 Evaluation Setup Every number in this chapter comes from the common evaluation protocol described once in section 4.8, so",
+  "line": "5.1 Evaluation Setup Every number in this chapter comes from the common evaluation protocol described once in section 4.8, so only the points that bear on reading the tables are repeated here. Policies are",
+  "block": "to turn it into features. 5.1 Evaluation Setup Every number in this chapter comes from the common evaluation protocol described once in section 4.8, so only the points that bear on reading the tables are repeated here. Policies are scored on a fixed pool of pre-generated scenarios rather than on freshly sampled episodes, so that different controllers face identical layouts. Each configuration is trained over three",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 14
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 59,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "included so that I verify all results are evaluated on the fair path set, this is more an internal note and should be cut from the final version",
+  "highlighted": "A word on the evaluation pool is in order before the numbers. The pool is the unfiltered mild-path distribution, every generated layout kept, and every controller is scored on the identical set. An earlier version of the pool kept only paths a tuned pure-pursuit controller could complete, which guaranteed pure pursuit a perfect score by construction and biased any comparison against it. Removing that filter shifts the reverse rates by at most about two points and changes none of the orderings, so the results reported here are on the unfil- tered pool throughout. The qualitative findings, the orderings, the negative results, and the perception analysis do not depend on the pool at all.",
+  "line": "A word on the evaluation pool is in order before the numbers. The pool is the unfiltered mild-path distribution, every generated layout kept, and every controller is scored on the identical set. An earlier version of the pool kept only paths a tuned pure-pursuit controller could complete, which guaranteed pure pursuit a perfect score by construction and biased any comparison against it. Removing that filter shifts the reverse rates by at most about two points and changes none of the orderings, so the results reported here are on the unfil- tered pool throughout. The qualitative findings, the orderings, the negative results, and the perception analysis do not depend on the pool at all.",
+  "block": "scatter on the reverse task, and reporting a single best number would read that scatter as an effect. A word on the evaluation pool is in order before the numbers. The pool is the unfiltered mild-path distribution, every generated layout kept, and every controller is scored on the identical set. An earlier version of the pool kept only paths a tuned pure-pursuit controller could complete, which guaranteed pure pursuit a perfect score by construction and biased any comparison against it. Removing that filter shifts the reverse rates by at most about two points and changes none of the orderings, so the results reported here are on the unfil- tered pool throughout. The qualitative findings, the orderings, the negative results, and the perception analysis do not depend on the pool at all. 5.2 Selecting the Algorithm and the Reward",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 18
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 60,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "need to report forward tracking and highlight that multiplicative TD3 was best for forward and reverse",
+  "highlighted": "and the forward reward choice is left to the tracking-quality detail rather than to completion.",
+  "line": "is therefore not where the algorithm or the reward is decided, and the forward reward choice is left to the tracking-quality detail rather than to completion.",
+  "block": "PID, LQR, and MPC all reach full completion forward. Only the combination of a discrete action space and a poorly matched reward breaks the forward task at all. Forward tracking is therefore not where the algorithm or the reward is decided, and the forward reward choice is left to the tracking-quality detail rather than to completion. Reverse lane-following is where the choice is made. The open-loop reverse dynamics are unstable, as established in chapter 3, so early policies fail often and the algorithm has to",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 28
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 62,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "need to debug the results table import script to determine why this data is not imported",
+  "highlighted": "\u2014 \u2014",
+  "line": "BEV (32\u00d732) 0.0 1.17 \u2014 \u2014 \u00b10.0",
+  "block": "LiDAR-24 (26) 100.0\u00b10.0 0.46 63.1\u00b161.9 1.21 LiDAR-64 (66) 66.7 0.95 31.2 1.00 \u00b165.3 \u00b161.1 BEV (32\u00d732) 0.0 1.17 \u2014 \u2014 \u00b10.0 The result contradicts the expectation that more sensing is better. Reliability falls as the",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 50
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 63,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "not true anymore (maybe this is why my data import script is failing)",
+  "highlighted": "and the reverse image run was set aside for the dedicated study of the next section.",
+  "line": "solves the state task, the bird\u2019s-eye-view policy never completes a single forward layout, and the reverse image run was set aside for the dedicated study of the next section. This is a",
+  "block": "The raw image is the extreme case. Trained from scratch with the same recipe that solves the state task, the bird\u2019s-eye-view policy never completes a single forward layout, and the reverse image run was set aside for the dedicated study of the next section. This is a striking outcome, because the image plainly contains the geometry the state encodes, and more besides. Whatever is stopping the image policy from learning, it is not a shortage of",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 71
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 63,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "does not \"require\" the image, but the obstacle task needs additional information that the current engineered state does not contain.",
+  "highlighted": "requires the image.",
+  "line": "resolved, because the obstacle task of section 5.5 requires the image. The hypothesis set",
+  "block": "An image observation that contains the exteroceptive geometry the engineered state sum- marizes, yet cannot learn the task the state solves easily, is a contradiction that must be resolved, because the obstacle task of section 5.5 requires the image. The hypothesis set out in section 4.6 is that the failure is an optimization pathology of off-policy actor-critic learning rather than a limit of perception. A randomly initialized image encoder gives the",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 76
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 64,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "work",
+  "highlighted": "works.",
+  "line": "Therepresentation-sidefixescomefirstandnoneofthemworks. Renderingtheimageasa",
+  "block": "critic holds parity Therepresentation-sidefixescomefirstandnoneofthemworks. Renderingtheimageasa gradedsigned-distancefieldratherthanahardoccupancymask, addingcoordinatechannels, and giving the encoder the stabilizing treatment of layer normalization with separate actor",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 85
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 64,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "claim is a little bit aggressive",
+  "highlighted": "If the trouble were that the image is a poor learning target, one of these would have improved completion.",
+  "line": "and critic front-ends all leave completion at zero. If the trouble were that the image is a poor learning target, one of these would have improved completion. None does, which points",
+  "block": "gradedsigned-distancefieldratherthanahardoccupancymask, addingcoordinatechannels, and giving the encoder the stabilizing treatment of layer normalization with separate actor and critic front-ends all leave completion at zero. If the trouble were that the image is a poor learning target, one of these would have improved completion. None does, which points away from the representation as the cause. The picture changes the moment the policy is warm-started by imitation. Cloning the competent state expert into the image policy",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 85
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 65,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "should be noted that the procedure here was freeze actor to train the critic, then unfreeze the actor to try to improve performance over the base result. unfreezing the actor did not improve CTE, and also caused one seed to reach a lower completion rate",
+  "highlighted": "Only freezing the actor, and training the critic alone, holds the cloned policy at parity. Read down the ladder, the cause is neither the image nor the encoder but the actor being driven off-distribution by an untrained critic, exactly the mechanism hypothesized in section 4.6. The actor-frozen configuration was repeated over three seeds and held, at 1.00, 1.00, and 0.92 completion.",
+  "line": "either. Only freezing the actor, and training the critic alone, holds the cloned policy at parity. Read down the ladder, the cause is neither the image nor the encoder but the actor being driven off-distribution by an untrained critic, exactly the mechanism hypothesized in section 4.6. The actor-frozen configuration was repeated over three seeds and held, at 1.00, 1.00, and 0.92 completion.",
+  "block": "either. Only freezing the actor, and training the critic alone, holds the cloned policy at parity. Read down the ladder, the cause is neither the image nor the encoder but the actor being driven off-distribution by an untrained critic, exactly the mechanism hypothesized in section 4.6. The actor-frozen configuration was repeated over three seeds and held, at 1.00, 1.00, and 0.92 completion. This diagnosis also exposes why the imitation warm-start, though it works, is not a complete result. Because the image observation still carries the full state vector, the cloning",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 85
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 65,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "and paths",
+  "highlighted": "vehicle\u2019s",
+  "line": "regression to predict the vehicle\u2019s geometry directly from the bird\u2019s-eye-view image, using",
+  "block": "The recipe that removes the failure at its root refuses to let reinforcement learning shape the encoder at all, following section 4.6. A convolutional encoder is trained by supervised regression to predict the vehicle\u2019s geometry directly from the bird\u2019s-eye-view image, using the simulator\u2019s true state as a privileged teacher label. It is then frozen and used as a fixed perception module, and the policy is trained from scratch with ordinary TD3 over a",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 92
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 65,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "not sure now if distilling is the correct term here",
+  "highlighted": "Distilling",
+  "line": "5.4.2 Distilling Geometry into a Frozen Encoder",
+  "block": "requires an approach where the image alone must supply the geometry. 5.4.2 Distilling Geometry into a Frozen Encoder The recipe that removes the failure at its root refuses to let reinforcement learning shape",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 89
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 67,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "because the engineered state does not include information about obstacles that a vehicle tracking the center of the lane could collide with",
+  "highlighted": "because a compact tracking summary is blind to obstacles that are not on the reference path,",
+  "line": "engineered state is genuinely insufficient, because a compact tracking summary is blind to obstacles that are not on the reference path, so the image has to carry information the state",
+  "block": "The obstacle task is where the preceding results converge. It is the one setting where the engineered state is genuinely insufficient, because a compact tracking summary is blind to obstacles that are not on the reference path, so the image has to carry information the state cannot. It is also where the value of a learned controller separates cleanly from classical",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 112
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 67,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "learned controller and/or perception system",
+  "highlighted": "controller",
+  "line": "cannot. It is also where the value of a learned controller separates cleanly from classical",
+  "block": "engineered state is genuinely insufficient, because a compact tracking summary is blind to obstacles that are not on the reference path, so the image has to carry information the state cannot. It is also where the value of a learned controller separates cleanly from classical 50",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 112
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 68,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "not really fair to call obstacle positions added to engineered state observation \"high dimensional\". Need to come up with a different explanation here",
+  "highlighted": "different high-dimensional input.",
+  "line": "provoked by a different high-dimensional input. This rules out explicit obstacle encoding",
+  "block": "no reordering collapses just as the others do, the instability is not caused by slots swapping identity between steps. It is the same off-policy training pathology seen in section 5.4, now provoked by a different high-dimensional input. This rules out explicit obstacle encoding and motivates a representation that does not ask the policy to parse a variable set of objects at all.",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 116
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 68,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "probably need to add an image here, or where the hidden path is first introduced",
+  "highlighted": "A ground-truth test isolates the mechanism from the perception. Taking an existing forward state policy and feeding it avoidance-path errors in place of centerline errors, with no retraining at all, cut obstacle collisions roughly in half and lifted completion from about 0.55 to about 0.67. The controller follows whatever path it is given, so the entire obstacle problem can be moved into the choice of path, which is exactly the quantity the image can supply.",
+  "line": "A ground-truth test isolates the mechanism from the perception. Taking an existing forward state policy and feeding it avoidance-path errors in place of centerline errors, with no retraining at all, cut obstacle collisions roughly in half and lifted completion from about 0.55 to about 0.67. The controller follows whatever path it is given, so the entire obstacle problem can be moved into the choice of path, which is exactly the quantity the image can supply.",
+  "block": "predicts this path, in the same learning-by-cheating manner as the geometry encoder of section 5.4.2, privileged in simulation and image-derived at deployment. A ground-truth test isolates the mechanism from the perception. Taking an existing forward state policy and feeding it avoidance-path errors in place of centerline errors, with no retraining at all, cut obstacle collisions roughly in half and lifted completion from about 0.55 to about 0.67. The controller follows whatever path it is given, so the entire obstacle problem can be moved into the choice of path, which is exactly the quantity the image can supply.",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 122
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 70,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "needs cleaner explanation",
+  "highlighted": "Because reverse tracking runs a systematic off-path error of around 0.8 m, tracking well at one moment does not imply the trailer will clear the coming gap, so a policy gated on layout difficulty over-attempts in the ambiguous band and clips obstacles there, crashing on around forty to forty-five percent of the attempts it makes in that band.",
+  "line": "Because reverse tracking runs a systematic off-path error of around 0.8 m, tracking well at one moment does not imply the trailer will clear the coming gap, so a policy gated on layout difficulty over-attempts in the ambiguous band and clips obstacles there, crashing on around forty to forty-five percent of the attempts it makes in that band.",
+  "block": "Because reverse tracking runs a systematic off-path error of around 0.8 m, tracking well at one moment does not imply the trailer will clear the coming gap, so a policy gated on layout difficulty over-attempts in the ambiguous band and clips obstacles there, crashing on around forty to forty-five percent of the attempts it makes in that band. The fix is to make the difficulty state-dependent. The effective vehicle width is inflated by the current trailer error to the avoidance path rather than by an average, so when the",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 134
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 70,
+  "subtype": "StrikeOut",
+  "author": "bdschnap",
+  "comment": "",
+  "highlighted": "now a",
+  "line": "trailer is tracking off-path into an obstacle the usable gap shrinks now and the difficulty rises",
+  "block": "The fix is to make the difficulty state-dependent. The effective vehicle width is inflated by the current trailer error to the avoidance path rather than by an average, so when the trailer is tracking off-path into an obstacle the usable gap shrinks now and the difficulty rises now, in time to trigger a stop. A second correction concerns where the difficulty looks. In reverse the trailer leads, so a window that looked only ahead of the lead point was blind to",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 136
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 70,
+  "subtype": "StrikeOut",
+  "author": "bdschnap",
+  "comment": "",
+  "highlighted": "now,",
+  "line": "now, in time to trigger a stop. A second correction concerns where the difficulty looks. In",
+  "block": "by the current trailer error to the avoidance path rather than by an average, so when the trailer is tracking off-path into an obstacle the usable gap shrinks now and the difficulty rises now, in time to trigger a stop. A second correction concerns where the difficulty looks. In reverse the trailer leads, so a window that looked only ahead of the lead point was blind to obstacles the trailing body was still clearing, which produced a spurious cluster of crashes",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 136
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 70,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "need to explicitly define that \"dynamic difficulty\" is the static difficulty inflated by the current error from the obstacle aware path",
+  "highlighted": "dynamic difficulty",
+  "line": "crash occurs below a dynamic difficulty of about 0.5, so a stop below that value is unam-",
+  "block": "With the state-dependent difficulty and the body-extent window in place, the stop de- cision reduces to a single clean threshold. Measured at the moment of collision, no reverse crash occurs below a dynamic difficulty of about 0.5, so a stop below that value is unam- biguously wrong and a stop at or above it is the best available action. Figure 5.4 shows the outcome stratified by dynamic difficulty, and table 5.9 gives the same data numerically.",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 140
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 70,
+  "subtype": "Text",
+  "author": "amirk",
+  "comment": "The reverse motion is inherently unstable that could mean the approach in the forward motion may not work in the reverse motion. I think a type of feedback in the network is needed to establish a more stable motion.",
+  "highlighted": "dyna a sto",
+  "line": "crash occurs below a dynamic difficulty of about 0.5, so a stop below that value is unam- biguously wrong and a stop at or above it is the best available action. Figure 5.4 shows",
+  "block": "With the state-dependent difficulty and the body-extent window in place, the stop de- cision reduces to a single clean threshold. Measured at the moment of collision, no reverse crash occurs below a dynamic difficulty of about 0.5, so a stop below that value is unam- biguously wrong and a stop at or above it is the best available action. Figure 5.4 shows the outcome stratified by dynamic difficulty, and table 5.9 gives the same data numerically. Completion falls and stopping rises across the gate, and the crash rate stays low throughout,",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 140
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 73,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "these are outdated, current numbers produce significantly higher r2 numbers for the curvature terms. (need to investigate if this is a import problem or missing data problem)",
+  "highlighted": "\u03ba 1 0.699 0.425 \u03ba 2 0.558 0.277",
+  "line": "\u03ba 0.699 0.425 1 \u03ba 0.558 0.277 2",
+  "block": "ey,t 0.977 0.977 e 0.985 0.882 \u03c8,t \u03ba 0.699 0.425 1 \u03ba 0.558 0.277 2 d 0.948 0.954 win",
+  "hits": [],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 73,
+  "subtype": "StrikeOut",
+  "author": "bdschnap",
+  "comment": "",
+  "highlighted": "A D",
+  "line": "5.5.6 A Deterministic Safety Gate",
+  "block": "5.5.6 A Deterministic Safety Gate The conservative stops seen above are not spurious behavior. On predominantly straight re-",
+  "hits": [
+   {
+    "file": "chapters/05_results_discussion.tex",
+    "line": 165
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 76,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "cut caption length? (remove analysis from captions?)",
+  "highlighted": "The learned policy nearly matches pure pursuit on completion and clears PID, while MPC, which receives an explicit path preview, is the informed upper bound.",
+  "line": "Table 5.16: Reverse lane-following controller benchmark on the evaluation pool. The learned policy nearly matches pure pursuit on completion and clears PID, while MPC, which receives an explicit path preview, is the informed upper bound.",
+  "block": "Table 5.16: Reverse lane-following controller benchmark on the evaluation pool. The learned policy nearly matches pure pursuit on completion and clears PID, while MPC, which receives an explicit path preview, is the informed upper bound. Completion Trailer CTE Max |\u03b3| Controller",
+  "hits": [
+   {
+    "file": "tables/benchmark_results.tex",
+    "line": 23
+   }
+  ],
+  "chapfile": "chapters/05_results_discussion.tex"
+ },
+ {
+  "page": 83,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "need to clean up this image to make it more readable",
+  "highlighted": "Figure 6.4:",
+  "line": "Figure 6.4: RL bridge dataflow. The lane reference node, the LiDAR-based , and Autoware localization supply the policy observation to",
+  "block": "(LiDARNDT) velocity,steeringfeedback Figure 6.4: RL bridge dataflow. The lane reference node, the LiDAR-based hitch angle estimator, and Autoware localization supply the policy observation to rl bridge node, which queries the TD3 policy at 10Hz and emits a control command that",
+  "hits": [
+   {
+    "file": "chapters/06_sim_to_real.tex",
+    "line": 86
+   }
+  ],
+  "chapfile": "chapters/06_sim_to_real.tex"
+ },
+ {
+  "page": 86,
+  "subtype": "Highlight",
+  "author": "amirk",
+  "comment": "I am not sure what you mean by actuator delay. In vehicle control systems with much higher speed, such a delay in steering system is not considered. In addition, in you training data, there is no such a delay that you need to compensate.",
+  "highlighted": "Actuator-Delay Compensation: Smith Predictor",
+  "line": "6.3.6 Actuator-Delay Compensation: Smith Predictor",
+  "block": "of the policy observation. 6.3.6 Actuator-Delay Compensation: Smith Predictor Thesimulationtrainsthepoliciesagainstanidealizedactuatorthatrespondsinstantaneously",
+  "hits": [
+   {
+    "file": "chapters/06_sim_to_real.tex",
+    "line": 144
+   }
+  ],
+  "chapfile": "chapters/06_sim_to_real.tex"
+ },
+ {
+  "page": 87,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "need to fix arrow overlap in the diagram",
+  "highlighted": "Figure 6.6:",
+  "line": "Figure 6.6: Smith-predictor compensator. The command u drives the physical vehicle and two kinematic shadows. The delayed shadow is subtracted from the measured state to form",
+  "block": "shadow \u03c4 = lag \u03c4 = 0 Figure 6.6: Smith-predictor compensator. The command u drives the physical vehicle and two kinematic shadows. The delayed shadow is subtracted from the measured state to form a residual r, which corrects the delay-free shadow to give the delay-compensated estimate free",
+  "hits": [
+   {
+    "file": "chapters/06_sim_to_real.tex",
+    "line": 166
+   }
+  ],
+  "chapfile": "chapters/06_sim_to_real.tex"
+ },
+ {
+  "page": 89,
+  "subtype": "Highlight",
+  "author": "bdschnap",
+  "comment": "potential for cutting or significantly reducing length of section, this is a contribution, but was not heavily used for testing (simple lab maps with collected lidar data was primarily used instead of the generated maps)",
+  "highlighted": "High-Fidelity Geographic Simulation",
+  "line": "6.5 High-Fidelity Geographic Simulation",
+  "block": "The current deployment treats localization failure as an emergency-stop condition. 6.5 High-Fidelity Geographic Simulation The 2D Pygame environment of chapter 3 is deliberately abstract. It captures the tractor-",
+  "hits": [
+   {
+    "file": "chapters/06_sim_to_real.tex",
+    "line": 202
+   }
+  ],
+  "chapfile": "chapters/06_sim_to_real.tex"
+ }
+]

@@ -17,7 +17,7 @@ BEV occupancy, from scratch        & 0.00 & Ordinary RL on the raw image fails o
 Imitation warm-start               & 1.00 & A cloned state expert produces a working vision policy \\
 \quad + naive fine-tuning          & 0.00 & Letting RL move the whole policy destroys the clone \\
 \quad + RL, encoder frozen         & 0.00 & Freezing perception does not save it, so the encoder is not the culprit \\
-\quad + RL, actor frozen           & 1.00 & Freezing the actor and training only the critic holds parity \\
+\quad + RL, actor frozen           & 1.00 & Freezing the actor and training only the critic holds parity. Further training of the actor afterwards does not guarantee improvement, and sometimes destroys the policy \\
 \bottomrule
 \end{tabular}%
 }

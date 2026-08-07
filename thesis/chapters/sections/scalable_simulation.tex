@@ -1,0 +1,78 @@
+% Scalable Simulation: lifted verbatim from the old chapters/04_learning_framework.tex
+% (section 4.9) so it can be \input at the end of chapter 3, where the batched
+% simulator reads as a contribution of the modeling-and-simulation chapter rather
+% than as infrastructure buried in the learning chapter.
+%
+% Drop into ch3 with:   \input{chapters/sections/scalable_simulation}
+%
+% Only changes from the original: cross-references that pointed at "this chapter"
+% or at \cref{ch:results} now name the learning chapter or a specific section,
+% since this text no longer lives in the same chapter as the experiments.
+
+\section{Scalable Simulation: GPU-Parallel Batched Environments}
+\label{sec:batched_sim}
+
+The observation, reward, and curriculum studies of \cref{ch:learning_framework}, together with the controller benchmark of \cref{sec:benchmark}, require training and evaluating a large matrix of policies: several observation modalities, multiple reward formulations, forward and reverse variants, and repeated random seeds for statistical validity. The scalar Pygame/Gymnasium environment of \cref{ch:simulation} is the physically faithful reference model, but it advances a single environment at a time in Python and rebuilds an occupancy grid on every reset, which makes a study of this size prohibitively slow. To make the empirical campaign tractable, the environment was re-implemented as a batched simulator that advances $N$ independent environments simultaneously on a graphics processing unit (GPU). The original scalar environment is retained unchanged as the parity oracle against which the batched implementation is validated, so that the physical fidelity established in \cref{ch:modeling} continues to hold for every result reported in this thesis.
+
+\subsection{Batched Environment Design}
+
+The batched environment adds a leading batch axis of size $N$ to every state array, so that a single vectorized operation advances all $N$ environments at once. It is written against a thin array-backend abstraction and runs identically on NumPy for the CPU~\cite{harris2020numpy} or CuPy for the GPU~\cite{okuta2017cupy}, selected at run time by a single environment variable. Because CuPy exposes a NumPy-compatible interface, the same vectorized code executes on either device without modification. Achieving this required replacing five constructs in the scalar environment that are inherently sequential or defined one environment at a time:
+
+\begin{enumerate}
+    \item the per-step zero-order-hold discretization, computed in the scalar model with \texttt{scipy.signal.cont2discrete}, is replaced by a batched matrix exponential using the scaling-and-squaring method~\cite{higham2005scaling}, which discretizes all $N$ state-space models in one operation;
+    \item the per-reset occupancy grid and $k$-d tree nearest-neighbor lookup are replaced by an analytic distance-to-centerline computation together with an on-device pool of pre-generated paths, which removes the reset bottleneck entirely;
+    \item the sequential, per-beam LiDAR ray-march is replaced by a vectorized fixed-length march with a first-hit reduction;
+    \item the Python-loop collision and proximity tests are replaced by a batched gather of vehicle body points against the corridor;
+    \item the scalar termination, stop-signal, and spawn branches are replaced by boolean masks with internal automatic reset, so that finished environments reset, drawing a new path and setting a new vehicle pose, and restart without host-side control flow.
+\end{enumerate}
+
+% REVIEW:B14 the LiDAR ray-march item above needs a clearer explanation
+The batched environment also produces the bird's-eye-view image observation without invoking the Pygame renderer. Because a top-down BEV image is a membership query at a grid of sample points (whether each point lies inside the lane corridor, on an obstacle, or outside the world), it is generated using the same analytic corridor primitives as the LiDAR march: for each environment an $S \times S$ grid is laid out in the vehicle frame, transformed to world coordinates by the anchor pose, and evaluated at all $N \cdot S \cdot S$ points in a single vectorized gather. The resulting observation is an occupancy image (drivable versus blocked) rather than a rendered grayscale scene, and its cost per environment is comparable to a single LiDAR frame. All three observation modalities (state, LiDAR, and BEV image) therefore run on the GPU, so the entire ablation matrix can be executed on the batched environment.
+
+\subsection{Numerical Parity}
+
+Retaining the scalar environment as an oracle allows the batched implementation to be validated for numerical equivalence rather than merely for plausible behavior. Across a suite of parity tests, the batched dynamics, geometry, observation, and reward pipeline reproduces the scalar model to within floating-point tolerance: the matrix-exponential discretization matches \texttt{scipy} to roughly $10^{-8}$ absolute error, the vehicle dynamics agree to within $\sim\!10^{-14}$ over a $200$-step rollout, the state and LiDAR observation vector is bit-identical, and the reward matches to $\sim\!10^{-14}$ wherever the proximity term is inactive. The NumPy and CuPy backends produce identical results, confirming that the GPU port introduces no numerical divergence of its own.
+
+Two terms are deliberately not bit-identical, because they replace a rasterized grid with analytic geometry: the near-boundary proximity penalty differs by $0.1$--$0.5$ only within the narrow lane-edge region, and the analytic LiDAR march agrees with the grid raycast to within approximately one grid cell, with collision decisions matching the grid on $97$--$98.5\%$ of randomly sampled states (the remainder lying within one cell of the boundary). These differences are confined to the immediate vicinity of boundaries and do not affect the terminal outcomes that drive reward and evaluation, so the batched environment is a faithful stand-in for the scalar reference in every experiment reported here.
+
+\subsection{Throughput and Scaling}
+
+The batched environment was benchmarked on an NVIDIA RTX 4080 SUPER GPU. \Cref{tab:sim_throughput} reports raw environment-stepping throughput: at large batch sizes the GPU environment sustains roughly $1.7$ million transitions per second for the state observation, against about $2{,}100$ for the single-core scalar environment, and roughly $64{,}000$ transitions per second for the compute-heavier $24$-beam LiDAR observation, against about $470$. These figures are governed by the batch size and observation type rather than by the vehicle parameters, so they are unaffected by the specific plant used in a given experiment.
+
+% REVIEW:B4 report exact throughput numbers instead of the ~ approximations, and add a BEV observation row
+\begin{table}[H]
+\centering
+\caption{Environment-stepping throughput (transitions per second) for the batched GPU environment versus the single-core scalar reference, measured on an RTX 4080 SUPER.}
+\label{tab:sim_throughput}
+\begin{tabular}{lrr}
+\toprule
+Observation & Batched GPU (best $N$) & Scalar (single core) \\
+\midrule
+State & $\sim\!1{,}700{,}000$ & $\sim\!2{,}100$ \\
+LiDAR ($24$ beams) & $\sim\!64{,}000$ & $\sim\!470$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Because the identical code runs on either backend, the GPU's contribution can be isolated by swapping only the array library. \Cref{tab:numpy_cupy} shows this crossover: at small $N$ the GPU's per-kernel launch overhead loses to CPU NumPy, but as $N$ grows the GPU pulls ahead, reaching $6.6\times$ at $N=4096$ for the state observation. For the compute-bound LiDAR observation the GPU wins at every batch size, up to $62\times$ at $N=4096$, because each step performs far more work per environment. This crossover is the expected profile of a batched accelerator and motivates the use of large batch sizes ($N \geq 1024$) together with the LiDAR observation to exploit the device.
+
+\begin{table}[H]
+\centering
+\caption{Same batched code, NumPy (CPU) versus CuPy (GPU), by batch size $N$ and observation type. Throughput in transitions per second. Speedup is CuPy relative to NumPy.}
+\label{tab:numpy_cupy}
+\begin{tabular}{llrrr}
+\toprule
+Observation & $N$ & NumPy (CPU) & CuPy (GPU) & Speedup \\
+\midrule
+State      & $256$  & $87{,}060$ & $30{,}821$  & $0.35\times$ \\
+State      & $1024$ & $81{,}668$ & $122{,}464$ & $1.5\times$ \\
+State      & $4096$ & $72{,}200$ & $479{,}141$ & $6.6\times$ \\
+LiDAR-$24$ & $256$  & $2{,}676$  & $24{,}815$  & $9.3\times$ \\
+LiDAR-$24$ & $1024$ & $2{,}334$  & $71{,}394$  & $30.6\times$ \\
+LiDAR-$24$ & $4096$ & $1{,}005$  & $62{,}601$  & $62.3\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% REVIEW:B25 the hand-written GPU-resident TD3 sentence below is a candidate for cutting (it was no different from SB3)
+These gains apply to environment stepping, not to the entire training loop. For off-policy algorithms such as TD3, the gradient-update loop remains the bottleneck: it is a sequence of comparatively small-batch optimizer steps that leaves the GPU underutilized (around $34\%$ utilization during off-policy reverse training), so a single off-policy run is not accelerated in proportion to the environment speedup. The batched environment's value for off-policy learning is therefore twofold: it allows many configuration and seed jobs to share one GPU concurrently, and it makes on-policy algorithms, which consume large environment batches directly and so exploit the fast environment, practical to include in the algorithm comparison of \cref{sec:algo_reward}. To keep that comparison fair, the batched environment is exposed to Stable~Baselines3~\cite{raffin2021sb3} through a vectorized-environment adapter, so that the vetted implementations of TD3, SAC, PPO, and DQN run on it unchanged. A separate hand-written GPU-resident TD3 is used only as a throughput demonstration. This infrastructure is what makes the multi-seed ablation campaign of \cref{ch:learning_framework} feasible within a practical time budget.

@@ -1,0 +1,20 @@
+\begin{table}[H]
+\centering
+\caption{Recommended experiment matrix for the thesis}
+\label{tab:experiment_matrix}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.6cm} >{\raggedright\arraybackslash}p{2.5cm} >{\raggedright\arraybackslash}p{2.7cm} >{\raggedright\arraybackslash}p{4.6cm}}
+\toprule
+Experiment & Task & Observation & Success Metric \\
+\midrule
+Observation ablation (forward) & Path following & state, LiDAR, BEV variants & Fixed-speed trailer mean abs.\ CTE, max $|\gamma|$, completion \\
+Observation ablation (reverse) & Reverse tracking & state, LiDAR, BEV variants & Fixed-speed trailer mean abs.\ CTE, max $|\gamma|$, jackknife rate \\
+Reward ablation (forward) & Path following & best observation only & Fixed-speed mean return, trailer CTE, stability metrics \\
+Reward ablation (reverse) & Reverse tracking & best observation only & Fixed-speed completion, jackknife rate, trailer CTE \\
+Controller benchmark (forward) & Path following & best RL obs.\ vs.\ classical & Fixed-speed TD3 vs.\ pure pursuit vs.\ PID vs.\ MPC \\
+Controller benchmark (reverse) & Reverse tracking & best RL obs.\ vs.\ classical & Fixed-speed TD3 vs.\ reverse pure pursuit vs.\ reverse PID vs.\ reverse MPC \\
+Obstacle RL extension & End-to-end navigation & LiDAR or BEV & Variable-speed collision rate, completion, min clearance \\
+Obstacle classical comparison & Planner + controller & matched local path + controller & Only if classical baselines receive equivalent planning information \\
+\bottomrule
+\end{tabular}
+\end{table}

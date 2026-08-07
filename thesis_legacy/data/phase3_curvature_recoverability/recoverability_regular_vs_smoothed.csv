@@ -1,0 +1,23 @@
+# Obstacle image->state recoverability, test R^2, per component and direction, for the two encoders:
+# regular = CNN trained on the potential-field avoidance path (as-deployed recipe);
+#           forward from encoder_recoverability.csv, reverse from final_multiseed_vision.txt.
+# smoothed = CNN trained on the clearance-preserving smoothed avoidance path (sigma=6);
+#           from scripts/curvature_recoverability_probe.py --smoothed (results_curvature_probe/*_smooth6/).
+# max = the per-cell best of the two (what Table 5.12 reports; the two paths could be combined into a
+#       single encoder but reporting the best of each is technically fair). Clearance preserved on the
+#       smoothed path: min 1.40 m, 0% obstacle intrusion, both directions.
+component,direction,regular_R2,smoothed_R2,max_R2
+e_y,forward,0.947,0.957,0.957
+e_y,reverse,0.967,0.980,0.980
+e_psi,forward,0.870,0.932,0.932
+e_psi,reverse,0.876,0.943,0.943
+e_y_t,forward,0.977,0.981,0.981
+e_y_t,reverse,0.977,0.976,0.977
+e_psi_t,forward,0.985,0.991,0.991
+e_psi_t,reverse,0.882,0.936,0.936
+k1,forward,0.699,0.965,0.965
+k1,reverse,0.425,0.726,0.726
+k2,forward,0.558,0.903,0.903
+k2,reverse,0.277,0.639,0.639
+d_win,forward,0.948,0.878,0.948
+d_win,reverse,0.954,0.959,0.959

@@ -1,0 +1,38 @@
+\begin{tikzpicture}[
+  >=Stealth, font=\footnotesize,
+  block/.style={draw, rounded corners, align=center, inner sep=3pt, minimum height=8mm},
+  op/.style={draw, circle, inner sep=0.5pt, minimum size=5.5mm, font=\scriptsize},
+  lbl/.style={midway, font=\scriptsize}
+]
+  % ---- Stage 1: supervised distillation (top) ----
+  \node[font=\bfseries\scriptsize, anchor=west] at (-0.3,2.7) {Stage 1: distill geometry into the encoder (privileged supervision)};
+  \node[block] (img1) at (0,0) {BEV\\image};
+  \node[block, right=10mm of img1] (cnn) {CNN\\encoder};
+  \node[block, right=10mm of cnn] (pred1) {predicted\\geometry $\hat{g}$};
+  \node[block, above=7mm of pred1] (teach) {simulator state\\(teacher)};
+  \node[op, right=8mm of pred1] (loss) {$\mathcal{L}$};
+  \draw[->] (img1) -- (cnn);
+  \draw[->] (cnn) -- (pred1);
+  \draw[->] (pred1) -- (loss);
+  \draw[->] (teach) -| (loss);
+  \node[font=\scriptsize, align=center, below=1mm of cnn] {trained by regression,\\ then frozen};
+
+  % ---- Stage 2: policy training on frozen features (bottom) ----
+  \node[font=\bfseries\scriptsize, anchor=west] at (-0.3,-2.4) {Stage 2: train the policy on the frozen features};
+  \node[block] (img2) at (0,-3.7) {BEV\\image};
+  \node[block, right=10mm of img2] (frz) {frozen\\encoder};
+  \node[block, right=10mm of frz] (geo) {geometry $\hat{g}$\\{\scriptsize $e_y,e_\psi,e_{y,t},e_{\psi,t},\kappa_1,\kappa_2$}};
+  \node[block, below=7mm of geo] (prop) {proprioception\\$\delta,\ \gamma$};
+  \node[op, right=8mm of geo] (cat) {$\oplus$};
+  \node[block, right=8mm of cat] (pol) {TD3\\policy};
+  \node[block, right=10mm of pol] (act) {action\\$\dot\delta,\ \sigma$};
+  \draw[->] (img2) -- (frz);
+  \draw[->] (frz) -- (geo);
+  \draw[->] (geo) -- (cat);
+  \draw[->] (prop) -| (cat);
+  \draw[->] (cat) -- (pol);
+  \draw[->] (pol) -- (act);
+
+  % reuse of frozen encoder from stage 1 to stage 2
+  \draw[->,dashed] (cnn.south) to[out=-90,in=90] node[lbl,right]{frozen weights} (frz.north);
+\end{tikzpicture}

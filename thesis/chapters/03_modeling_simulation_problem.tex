@@ -67,27 +67,29 @@ The simulation environment includes:
     \item \textbf{Observations}: the rendered top-down BEV image described above, alongside engineered state and range-sensor (LiDAR) observations. The full set of observation modalities available to the policy is defined in \cref{ch:learning_framework}.
 \end{enumerate}
 
+\subsection{Control Policy Interface}
+
+A traditional or learning based policy interacts with the simulation through a deliberately narrow interface. In the reinforcement-learning sense its action is two-dimensional, a continuous steering rate $\dot{\delta}$ and a stop signal $\sigma$:
+\begin{equation}
+    \mathbf{a} = [\dot{\delta},\, \sigma] \in [-25^\circ/\text{s},\, 25^\circ/\text{s}] \times [-1,\, 1].
+    \label{eq:action_space}
+\end{equation}
+Longitudinal speed is not itself a control degree of freedom. The environment is driven by a target speed, but the policy does not set it directly. Instead, a thin interface layer maps the stop signal onto that speed, commanding the fixed operating value of the current task ($5$\,m/s forward, $-5$\,m/s in reverse) while the vehicle drives and zero speed the instant a stop is issued. Because speed is prescribed in this way, every method solves the same lateral problem and the forward and reverse tasks share a common control interface. Commanding the steering rate rather than the steering angle reflects the fact that the steering angle cannot change instantaneously on a physical vehicle, so regulating its rate of change is more physically realistic. The stop signal is a go/stop decision. When $\sigma$ exceeds a fixed threshold the vehicle halts and the episode terminates, which lets the policy decline to attempt a layout it judges impassable. This stop-capable action is used across all learning-based tasks, so that the interface does not change between the no-obstacle and obstacle settings. 
+
+Episodes terminate on collision, jackknife ($|\gamma| > 90^\circ$), intentional stop, or successful task completion.
+
 \section{Environment Tasks}
 
 The environment implementation is structured around reusable task and observation components. A base lane-following task is combined with different observation heads, while obstacle-aware variants reuse the same task logic through an environment that adds obstacle generation, local path planning, and obstacle-aware reward evaluation. This avoids maintaining separate forward, reverse, LiDAR, and BEV implementations with duplicated task logic.
 
-\subsection{Line Following}
+\subsection{Lane Following}
 
 The lane-following environment extends the base tractor-trailer environment to present a lane-tracking task. A reference lane is generated at the start of each episode using cubic spline interpolation through randomly placed waypoints. The reward function encourages the agent to keep both the tractor and trailer within the lane boundaries while maintaining progress along the path.
 
-Reverse line-following environments use the same path generation and rendering pipeline, but reverse the longitudinal command and compute reward and tracking terms with the trailer as the leading unit, so that the same task can be studied in backward maneuvers without changing the task definition.
+Reverse lane-following environments use the same path generation and rendering pipeline, but reverse the longitudinal command and compute reward and tracking terms with the trailer as the leading unit, so that the same task can be studied in backward maneuvers without changing the task definition.
 
 \subsection{Obstacle Avoidance}
 
 The obstacle avoidance environment adds static obstacles within the lane. The agent must navigate the tractor-trailer through the lane while avoiding obstacles, which requires both path-following behavior and collision avoidance. Instead of following the global lane centerline directly, the environment constructs a local path around the placed obstacles and evaluates tracking error relative to this locally planned path. Obstacles are placed as a single cluster of one or two circular obstacles per episode, drawn from a small set of layout categories (clear, shift, squeeze, and blocked), so that the difficulty distribution is controlled and can be stratified during evaluation. The locally planned avoidance path is used only to shape the reward and is never exposed to the agent, so the detour must be inferred from the LiDAR or BEV observation. In addition to terminal collision penalties, the base environment applies a per-step proximity penalty near blocked occupancy-grid cells, so both lane boundaries and inserted obstacles discourage the agent before contact occurs. Forward and reverse obstacle environments are both available. The scalar difficulty rating that indexes these layouts, and the reward that keys on it, are developed in \cref{sec:obstacle_reward}.
 
-\subsection{Actions and Episode Termination}
-
-The policy is exposed to a deliberately narrow interface. In the reinforcement-learning sense its action is two-dimensional, a continuous steering rate $\dot{\delta}$ and a stop signal $\sigma$:
-\begin{equation}
-    \mathbf{a} = [\dot{\delta},\, \sigma] \in [-25^\circ/\text{s},\, 25^\circ/\text{s}] \times [-1,\, 1].
-    \label{eq:action_space}
-\end{equation}
-Longitudinal speed is not itself a control degree of freedom. The environment is driven by a target speed, but the policy does not set it directly. Instead, a thin interface layer maps the stop signal onto that speed, commanding the fixed operating value of the current task ($5$\,m/s forward, $-5$\,m/s in reverse) while the vehicle drives and zero speed the instant a stop is issued. Because speed is prescribed in this way, every method solves the same lateral problem and the forward and reverse tasks share a common control interface. Commanding the steering rate rather than the steering angle reflects the fact that the steering angle cannot change instantaneously on a physical vehicle, so regulating its rate of change is more physically realistic. The stop signal is a go/stop decision. When $\sigma$ exceeds a fixed threshold the vehicle halts and the episode terminates, which lets the policy decline to attempt a layout it judges impassable. This stop-capable action is used across all learning-based tasks, so that the interface does not change between the no-obstacle and obstacle settings. Discrete algorithms realize the same choice through a joint steering-and-stop action set. Stopping is not universally desirable. In the obstacle-free tasks a stop is treated as a failure and penalized, and it earns reward only on difficult obstacle layouts. The difficulty-keyed stop-gate reward that governs this trade-off is developed in \cref{sec:obstacle_reward}, and the experimental protocols in \cref{ch:results}.
-
-Episodes terminate on collision, jackknife ($|\gamma| > 90^\circ$), or successful path completion.
+\input{chapters/sections/scalable_simulation}

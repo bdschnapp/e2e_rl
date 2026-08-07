@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\caption{Planned run matrix for the experimental campaign}
+\label{tab:results_plan_matrix}
+\begin{tabular}{p{3.4cm} p{2.2cm} p{2.6cm} p{2.8cm} p{1.3cm} p{2.6cm}}
+\toprule
+Study & Scenario & Observation sweep & Reward sweep & Runs & Purpose \\
+\midrule
+Phase 1A & forward & state, LiDAR, BEV variants & dense & 5+ & Select best forward observation space and BEV representation \\
+Phase 1B & reverse & state, LiDAR, BEV variants & dense & 5+ & Select best reverse observation space and BEV representation \\
+Phase 2A & forward & best from Phase 1A & dense, tractor\_focus, multiplicative & 3 & Select best forward reward \\
+Phase 2B & reverse & best from Phase 1B & dense, no\_hitch, multiplicative & 3 & Select best reverse reward \\
+Phase 3 & forward, reverse & best RL configuration per direction & benchmark only & 2 & Compare TD3 against tuned pure pursuit, PID, and MPC \\
+Phase 4 & forward\_obs, reverse\_obs & LiDAR or BEV & best reward from matching direction & 4 & Secondary obstacle-navigation study \\
+\bottomrule
+\end{tabular}
+\end{table}

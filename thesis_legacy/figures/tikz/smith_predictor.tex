@@ -1,0 +1,25 @@
+\begin{tikzpicture}[
+  >=Stealth, font=\small, node distance=10mm and 18mm,
+  block/.style={draw, rounded corners, align=center, inner sep=4pt,
+                minimum height=9mm, text width=30mm},
+  sum/.style={draw, circle, inner sep=1pt, minimum size=6mm, font=\footnotesize},
+  lbl/.style={font=\scriptsize}
+]
+  \node[block] (policy) {Policy $\pi$\\(delay-free trained)};
+  \node[block, right=of policy] (act) {Actuator + vehicle\\(physical, delayed)};
+  \node[sum, right=of act] (s1) {$\pm$};
+  \node[block, below=of act] (ds) {Delayed shadow\\$\tau=\text{lag}$};
+  \node[block, below=of policy] (fs) {Delay-free shadow\\$\tau=0$};
+  \node[sum, below=of s1] (s2) {$+$};
+
+  \coordinate (u) at ($(policy.east)!0.5!(act.west)$);
+
+  \draw[->] (policy) -- (act) node[lbl,midway,above]{$u$};
+  \draw[->] (u) |- (fs);
+  \draw[->] (u) |- (ds);
+  \draw[->] (act) -- (s1) node[lbl,midway,above]{$x^{\mathrm{meas}}$};
+  \draw[->] (ds) -| (s1) node[lbl,pos=0.75,right]{$x^{\mathrm{delayed}}$};
+  \draw[->] (s1) -- (s2) node[lbl,midway,right]{$r$};
+  \draw[->] (fs) -| (s2) node[lbl,pos=0.75,left]{$x^{\mathrm{free}}$};
+  \draw[->] (s2) -| ($(policy.south)$) node[lbl,pos=0.25,below]{$\hat{x}=x^{\mathrm{free}}+r$};
+\end{tikzpicture}

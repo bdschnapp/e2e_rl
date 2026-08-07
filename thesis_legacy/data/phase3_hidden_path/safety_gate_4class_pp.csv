@@ -1,0 +1,10 @@
+# 4-class outcome by STATIC (layout) difficulty. controller=pp. gate: peak_dd>0.375 OR peak_hitch>0.6 (gate precedence).
+# static difficulty is layout-intrinsic (controller-independent) -> fair PP-vs-model comparison, no early-stop confound.
+# model_stop = policy's own learned stop (PP has none); gate_stop = deterministic safety filter fired.
+# OVERALL success=0.1814 model_stop=0.0000 crash=0.0019 gate_stop=0.8167 commit_success=0.9898 n=8031
+static_lo,static_hi,n,success,model_stop,crash,gate_stop
+0,0.2,32,0.7188,0.0,0.0,0.2812
+0.2,0.4,2350,0.6102,0.0,0.0026,0.3872
+0.4,0.6,1937,0.0,0.0,0.0005,0.9995
+0.6,0.8,275,0.0,0.0,0.0036,0.9964
+0.8,1.01,3437,0.0,0.0,0.002,0.998
